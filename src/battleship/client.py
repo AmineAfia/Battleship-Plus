@@ -1,8 +1,9 @@
 import sys
+from common.constants import Constants
 
 
 def main():
-    pass
+    print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
 
 
 if __name__ == '__main__':
