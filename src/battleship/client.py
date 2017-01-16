@@ -15,8 +15,12 @@ def main():
         reader, writer = yield from asyncio.streams.open_connection(
             Constants.SERVER_IP, Constants.SERVER_PORT, loop=loop)
 
-        login_message = ProtocolMessage(ProtocolMessageType.LOGIN, {"username": "testuser"})
-        yield from login_message.send(writer)
+        for i in [1, 2]:
+            login_message = ProtocolMessage(ProtocolMessageType.LOGIN, {"username": "testuser{}".format(i)})
+            yield from login_message.send(writer)
+
+            logout_message = ProtocolMessage(ProtocolMessageType.LOGOUT)
+            yield from logout_message.send(writer)
 
         writer.close()
 
