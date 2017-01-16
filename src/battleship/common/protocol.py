@@ -1,5 +1,6 @@
 #from enum import Enum
 from enum import IntEnum
+from typing import Dict, List
 
 
 class ProtocolConfig:
@@ -26,34 +27,34 @@ class ProtocolMessageType(IntEnum):
 
 
 class ProtocolField:
-    name = ""
-    length_bytes = 1
 
-    def __init__(self, name, length_bytes=1):
+    def __init__(self, name: str, field_type, length_bytes: int=1):
         self.name = name
         self.length_bytes = length_bytes
+        self.type = field_type
 
 
-#class ProtocolMessageParameters(Enum):
-#    LOGIN = [ProtocolField("username", 2)]
-#    LOGOUT = []
-
-ProtocolMessageParameters = {
-    ProtocolMessageType.LOGIN: [ProtocolField("username", 2)],
+# TODO: is it pythonic to declare it as a global dictionary?
+ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
+    ProtocolMessageType.LOGIN: [ProtocolField("username", str, 2)],
     ProtocolMessageType.LOGOUT: []
 }
 
 
 class ProtocolMessage(object):
-    type = ProtocolMessageType.NONE  #: ProtocolMessageType
-    parameters = {}  #:
 
-    def __init__(self, type, parameters=None):
-        self.type = type
-        self.parameters = parameters
+    def __init__(self, msg_type: ProtocolMessageType, parameters: dict=None):
+        self.type = msg_type
+        if parameters is None:
+            self.parameters = {}
+        else:
+            self.parameters = parameters
 
+    def __str__(self):
+        return "{}: {}".format(self.type.name, self.parameters)
 
-    # TODO: this should be wrapped in an connection class, with some logic to prevent overlapping protocol messages
+    # TODO: this should be wrapped in an connection class, with some logic to prevent overlapping protocol messages,
+    # TODO: sort of a scheduler, no rather a queue
     async def send(self, writer):
         # send type
         writer.write(self.type.to_bytes(1, byteorder=ProtocolConfig.BYTEORDER, signed=False))
@@ -65,7 +66,7 @@ class ProtocolMessage(object):
 
             parameter_value = self.parameters[protocol_field.name]
 
-            # TODO: can this be done the pythonic way without checking the type?
+            # TODO: can this be done the pythonic way without checking the type? See https://stackoverflow.com/a/154156
             if type(parameter_value) is str:
                 parameter_bytes = parameter_value.encode(encoding=ProtocolConfig.STR_ENCODING)
             elif type(parameter_value) is int:
@@ -81,4 +82,4 @@ class ProtocolMessage(object):
             print("{}({}, {} byte)={}, ".format(
                 protocol_field.name, type(parameter_value), protocol_field.length_bytes, parameter_value), end="")
 
-        print(".")
+        print(".", flush=True)

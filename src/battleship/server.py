@@ -1,6 +1,6 @@
 import sys
 from common.constants import Constants
-
+from common.protocol import ProtocolConfig, ProtocolMessage, ProtocolMessageType, ProtocolMessageParameters, ProtocolField
 
 import asyncio
 import asyncio.streams
@@ -41,6 +41,8 @@ class MyServer:
 
         task.add_done_callback(client_done)
 
+    # TODO: this can be a function in protocol.py, that takes a client_reader and
+    # TODO: calls a callback for every new ProtocolMessage
     @asyncio.coroutine
     def _handle_client(self, client_reader, client_writer):
         """
@@ -49,11 +51,64 @@ class MyServer:
         a main loop that reads a line with a request and then sends
         out one or more lines back to the client with the result.
         """
+
+        waiting_for_new_msg: bool = True
+        read_bytes: int = 0
+        msg: ProtocolMessage = None
+        parameter_index: int = 0
+        parameter: ProtocolField = None
+        reading_length_field: bool = False
+
         while True:
-            data = yield from client_reader.read()
+            if waiting_for_new_msg:
+                read_bytes = 1
+
+            data = yield from client_reader.read(read_bytes)
             if not data:  # an empty string means the client disconnected
                 break
-            print("< {}".format(data))
+
+            if waiting_for_new_msg:
+                # TODO: make something like parse_int, parse_str
+                msg_type = ProtocolMessageType(int.from_bytes(data, byteorder=ProtocolConfig.BYTEORDER, signed=False))
+                msg = ProtocolMessage(msg_type)
+                # the next thing to do is read the length field of the parameter
+                parameter_index = 0
+                # TODO: put this in a function
+                try:
+                    parameter = ProtocolMessageParameters[msg_type][parameter_index]
+                    reading_length_field = True
+                    read_bytes = parameter.length_bytes
+                    waiting_for_new_msg = False
+                except IndexError:
+                    waiting_for_new_msg = True
+                    # TODO: replace with something that hands that to the “controller”
+                    print("< {}".format(msg))
+
+            elif reading_length_field:
+                read_bytes = int.from_bytes(data, byteorder=ProtocolConfig.BYTEORDER, signed=False)
+                reading_length_field = False
+
+            else:
+                if parameter.type is str:
+                    # TODO: dito
+                    msg.parameters[parameter.name] = data.decode(encoding=ProtocolConfig.STR_ENCODING)
+                elif parameter.type is int:
+                    msg.parameters[parameter.name] = int.from_bytes(
+                        data, byteorder=ProtocolConfig.BYTEORDER, signed=False)
+                else:
+                    print("ERROR: unimplemented parameter type: {}".format(parameter.type))
+                    pass
+                parameter_index += 1
+                # TODO: dito
+                try:
+                    parameter = ProtocolMessageParameters[msg_type][parameter_index]
+                    reading_length_field = True
+                    read_bytes = parameter.length_bytes
+                    waiting_for_new_msg = False
+                except IndexError:
+                    waiting_for_new_msg = True
+                    # TODO: replace with something that hands that to the “controller”
+                    print("< {}".format(msg))
 
             # This enables us to have flow control in our connection.
             yield from client_writer.drain()
