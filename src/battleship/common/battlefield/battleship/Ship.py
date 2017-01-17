@@ -15,7 +15,7 @@ class Ship:
         print("Size = {}x{}".format(xPos, yPos))
 
     def move(self, xPos, yPos):
-        print("move {} at x=={},y={}".format(self._shipID, xPos, yPos))
+        print("move {} at x={},y={}".format(self._shipID, xPos, yPos))
 
 
 
