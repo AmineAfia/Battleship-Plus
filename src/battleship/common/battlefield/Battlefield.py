@@ -23,3 +23,6 @@ class Battlefield:
         else:
             print("fail!")
         return hit
+
+    if __name__ == "__main__":
+        x = 3

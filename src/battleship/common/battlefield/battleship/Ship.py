@@ -17,6 +17,15 @@ class Ship:
     def move(self, xPos, yPos):
         print("move {} at x={},y={}".format(self._shipID, xPos, yPos))
 
+    def hit(self, xPos, yPos):
+        hit = False
+
+
+        if (hit):
+            print("im hurt")
+        else:
+            print("easy peasy")
+
 
 
 

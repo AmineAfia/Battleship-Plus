@@ -1,13 +1,15 @@
 from .battlefield import Battlefield
+from .battlefield.battleship import AircraftCarrier
 from .battlefield.battleship import Battleship
-
+from .battlefield.battleship import Cruiser
+from .battlefield.battleship import Destroyer
+from .battlefield.battleship import Submarine
 
 class GameController:
 
     def createGame(self, length, ships):
         self._gameName = "Battleship+"
         self._battlefield = Battlefield(length, ships)
-
 
 
     def move(self, battlefield, shipID, xPos, yPos):
