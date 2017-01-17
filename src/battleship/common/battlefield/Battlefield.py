@@ -10,10 +10,10 @@ class Battlefield:
         print("New Battlefield created with size {}x{}".format(length, length))
 
 
-    def move(battlefield, shipID, xPos, yPos):
+    def move(self, shipID, xPos, yPos):
         print("move {} at x={},y={}".format(shipID, xPos, yPos))
 
-    def shoot(xPos, yPos):
+    def shoot(self, xPos, yPos):
         hit = False
         print("shoot at x={},y={}".format(xPos, yPos))
 
@@ -24,5 +24,6 @@ class Battlefield:
             print("fail!")
         return hit
 
-    if __name__ == "__main__":
-        x = 3
+    def hit(self, xPos, yPos):
+        x = 0
+
