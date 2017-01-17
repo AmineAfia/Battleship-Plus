@@ -16,12 +16,19 @@ def main():
             Constants.SERVER_IP, Constants.SERVER_PORT, loop=loop)
 
         for i in [1, 2]:
-            login_message = ProtocolMessage(ProtocolMessageType.LOGIN, {"username": "testuser{}".format(i)})
+
+            yield from asyncio.sleep(1, loop=loop)
+
+            login_message = ProtocolMessage(ProtocolMessageType.LOGIN,
+                                            {"username": "testuser{}".format(i)})
             yield from login_message.send(writer)
+
+            yield from asyncio.sleep(1, loop=loop)
 
             logout_message = ProtocolMessage(ProtocolMessageType.LOGOUT)
             yield from logout_message.send(writer)
 
+        yield from asyncio.sleep(1, loop=loop)
         writer.close()
 
     # creates a client and connects to our server
