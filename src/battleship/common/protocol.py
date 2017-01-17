@@ -2,6 +2,9 @@
 from enum import IntEnum
 from typing import Dict, List
 
+import asyncio
+import asyncio.streams
+
 
 class ProtocolConfig:
     BYTEORDER = 'little'
@@ -83,3 +86,71 @@ class ProtocolMessage(object):
                 protocol_field.name, type(parameter_value), protocol_field.length_bytes, parameter_value), end="")
 
         print(".", flush=True)
+
+
+@asyncio.coroutine
+def parse_from_stream(client_reader, client_writer, msg_callback):
+
+    waiting_for_msg_type: bool = True
+    read_bytes: int = 1
+    msg: ProtocolMessage = None
+    parameter_index: int = -1
+    parameter: ProtocolField = None
+    waiting_for_field_length: bool = False
+
+    while True:
+
+        data = yield from client_reader.read(read_bytes)
+        if not data:  # this means the client disconnected
+            break
+
+        # parse data
+        if waiting_for_msg_type:
+            msg_type = _msg_type_from_bytes(data)
+            msg = ProtocolMessage(msg_type)
+
+        elif waiting_for_field_length:
+            read_bytes = _int_from_bytes(data)
+
+        else:
+            if parameter.type is str:
+                msg.parameters[parameter.name] = _str_from_bytes(data)
+            elif parameter.type is int:
+                msg.parameters[parameter.name] = _int_from_bytes(data)
+            else:
+                print("ERROR: unimplemented parameter type: {}".format(parameter.type))
+
+        # prepare the next loop
+        if waiting_for_msg_type or not waiting_for_field_length:
+            # the next thing to do is read the length field of the parameter
+            parameter_index += 1
+            try:
+                parameter = ProtocolMessageParameters[msg_type][parameter_index]
+                waiting_for_field_length = True
+                read_bytes = parameter.length_bytes
+                waiting_for_msg_type = False
+            except IndexError:
+                # there is no next parameter, so prepare for the next protocol message
+                waiting_for_msg_type = True
+                parameter_index = -1
+                read_bytes = 1
+                msg_callback(msg)
+
+        elif waiting_for_field_length:
+            # next is to read the actual data
+            waiting_for_field_length = False
+
+        # This enables us to have flow control in our connection.
+        yield from client_writer.drain()
+
+
+def _msg_type_from_bytes(data) -> ProtocolMessageType:
+    return ProtocolMessageType(_int_from_bytes(data))
+
+
+def _int_from_bytes(data: bytes) -> int:
+    return int.from_bytes(data, byteorder=ProtocolConfig.BYTEORDER, signed=False)
+
+
+def _str_from_bytes(data: bytes) -> str:
+    return data.decode(encoding=ProtocolConfig.STR_ENCODING)

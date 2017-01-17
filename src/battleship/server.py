@@ -1,6 +1,6 @@
 import sys
 from common.constants import Constants
-from common.protocol import ProtocolConfig, ProtocolMessage, ProtocolMessageType, ProtocolMessageParameters, ProtocolField
+from common.protocol import ProtocolConfig, ProtocolMessage, ProtocolMessageType, ProtocolMessageParameters, ProtocolField, parse_from_stream
 
 import asyncio
 import asyncio.streams
@@ -9,14 +9,6 @@ import asyncio.streams
 class MyServer:
 
     next_client_id = 1
-
-    """
-    This is just an example of how a TCP server might be potentially
-    structured.  This class has basically 3 methods: start the server,
-    handle a client, and stop the server.
-    Note that you don't have to follow this structure, it is really
-    just an example or possible starting point.
-    """
 
     def __init__(self):
         self.server = None  # encapsulates the server sockets
@@ -36,13 +28,13 @@ class MyServer:
 
         client_id = MyServer.next_client_id
         MyServer.next_client_id += 1
-        print("< [{}] client connected".format(client_id));
+        print("< [{}] client connected".format(client_id))
 
         def msg_callback(msg: ProtocolMessage):
             print("< [{}] {}".format(client_id, msg))
 
         # start a new Task to handle this specific client connection
-        task = asyncio.Task(self._handle_client(client_reader, client_writer, msg_callback))
+        task = asyncio.Task(parse_from_stream(client_reader, client_writer, msg_callback))
         self.clients[task] = (client_reader, client_writer)
 
         def client_done(task):
@@ -51,83 +43,9 @@ class MyServer:
 
         task.add_done_callback(client_done)
 
-    # TODO: this can be a function in protocol.py, that takes a client_reader and
-    # TODO: calls a callback for every new ProtocolMessage
-    @asyncio.coroutine
-    def _handle_client(self, client_reader, client_writer, msg_callback):
-        """
-        This method actually does the work to handle the requests for
-        a specific client.  The protocol is line oriented, so there is
-        a main loop that reads a line with a request and then sends
-        out one or more lines back to the client with the result.
-        """
-
-        waiting_for_new_msg: bool = True
-        read_bytes: int = 0
-        msg: ProtocolMessage = None
-        parameter_index: int = 0
-        parameter: ProtocolField = None
-        reading_length_field: bool = False
-
-        while True:
-            if waiting_for_new_msg:
-                read_bytes = 1
-
-            data = yield from client_reader.read(read_bytes)
-            if not data:  # an empty string means the client disconnected
-                break
-
-            if waiting_for_new_msg:
-                # TODO: make something like parse_int, parse_str
-                msg_type = ProtocolMessageType(int.from_bytes(data, byteorder=ProtocolConfig.BYTEORDER, signed=False))
-                msg = ProtocolMessage(msg_type)
-                # the next thing to do is read the length field of the parameter
-                parameter_index = 0
-                # TODO: put this in a function
-                try:
-                    parameter = ProtocolMessageParameters[msg_type][parameter_index]
-                    reading_length_field = True
-                    read_bytes = parameter.length_bytes
-                    waiting_for_new_msg = False
-                except IndexError:
-                    waiting_for_new_msg = True
-                    # TODO: replace with something that hands that to the “controller”
-                    #print("< {}".format(msg))
-                    msg_callback(msg)
-
-            elif reading_length_field:
-                read_bytes = int.from_bytes(data, byteorder=ProtocolConfig.BYTEORDER, signed=False)
-                reading_length_field = False
-
-            else:
-                if parameter.type is str:
-                    # TODO: dito
-                    msg.parameters[parameter.name] = data.decode(encoding=ProtocolConfig.STR_ENCODING)
-                elif parameter.type is int:
-                    msg.parameters[parameter.name] = int.from_bytes(
-                        data, byteorder=ProtocolConfig.BYTEORDER, signed=False)
-                else:
-                    print("ERROR: unimplemented parameter type: {}".format(parameter.type))
-                    pass
-                parameter_index += 1
-                # TODO: dito
-                try:
-                    parameter = ProtocolMessageParameters[msg_type][parameter_index]
-                    reading_length_field = True
-                    read_bytes = parameter.length_bytes
-                    waiting_for_new_msg = False
-                except IndexError:
-                    waiting_for_new_msg = True
-                    # TODO: replace with something that hands that to the “controller”
-                    #print("< {}".format(msg))
-                    msg_callback(msg)
-
-            # This enables us to have flow control in our connection.
-            yield from client_writer.drain()
-
     def start(self, loop):
         """
-        Starts the TCP server, so that it listens on port 12345.
+        Starts the TCP server, so that it listens on the specified port.
         For each client that connects, the accept_client method gets
         called.  This method runs the loop until the server sockets
         are ready to accept connections.
