@@ -7,6 +7,9 @@ import asyncio.streams
 
 
 class MyServer:
+
+    next_client_id = 1
+
     """
     This is just an example of how a TCP server might be potentially
     structured.  This class has basically 3 methods: start the server,
@@ -31,12 +34,19 @@ class MyServer:
         of the new client.
         """
 
+        client_id = MyServer.next_client_id
+        MyServer.next_client_id += 1
+        print("< [{}] client connected".format(client_id));
+
+        def msg_callback(msg: ProtocolMessage):
+            print("< [{}] {}".format(client_id, msg))
+
         # start a new Task to handle this specific client connection
-        task = asyncio.Task(self._handle_client(client_reader, client_writer))
+        task = asyncio.Task(self._handle_client(client_reader, client_writer, msg_callback))
         self.clients[task] = (client_reader, client_writer)
 
         def client_done(task):
-            print("client task done:", task, file=sys.stderr)
+            print("< [{}] client disconnected".format(client_id))
             del self.clients[task]
 
         task.add_done_callback(client_done)
@@ -44,7 +54,7 @@ class MyServer:
     # TODO: this can be a function in protocol.py, that takes a client_reader and
     # TODO: calls a callback for every new ProtocolMessage
     @asyncio.coroutine
-    def _handle_client(self, client_reader, client_writer):
+    def _handle_client(self, client_reader, client_writer, msg_callback):
         """
         This method actually does the work to handle the requests for
         a specific client.  The protocol is line oriented, so there is
@@ -82,7 +92,8 @@ class MyServer:
                 except IndexError:
                     waiting_for_new_msg = True
                     # TODO: replace with something that hands that to the “controller”
-                    print("< {}".format(msg))
+                    #print("< {}".format(msg))
+                    msg_callback(msg)
 
             elif reading_length_field:
                 read_bytes = int.from_bytes(data, byteorder=ProtocolConfig.BYTEORDER, signed=False)
@@ -108,7 +119,8 @@ class MyServer:
                 except IndexError:
                     waiting_for_new_msg = True
                     # TODO: replace with something that hands that to the “controller”
-                    print("< {}".format(msg))
+                    #print("< {}".format(msg))
+                    msg_callback(msg)
 
             # This enables us to have flow control in our connection.
             yield from client_writer.drain()
