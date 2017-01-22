@@ -24,7 +24,7 @@ class Ship:
         if (self._orientation == 0):
             for i in range (self._x_length):
                 for j in range (self._y_length):
-                    self._ship_state[i + j] = [(j + x_pos, i + y_pos), (0)]
+                    self._ship_state[i][j] = [(i + x_pos, j + y_pos), (0)]
 
 
         elif (self._orientation == 1):
@@ -75,10 +75,12 @@ class Ship:
             return False
 
     def alive(self):
-        alive = True
-        if(self._hit_counter == self._x_length * self._y_length):
-            alive = False
-        return alive
+        for i in range(self._x_length):
+            for j in range(self._y_length):
+                [(x, y), state] = self._ship_state[i][j]
+                if (state == 0):
+                    return True
+        return False
 
     def strikeAtPosition(self, x_pos, y_pos):
         if (self._orientation == 0):
@@ -87,14 +89,13 @@ class Ship:
                     print(self.getShipType())
                     if (x_pos == (i + self._x_pos) and y_pos == (j + self._y_pos)):
 
-                        self._hit_counter = self._hit_counter + 1
                         return True
 
         elif (self._orientation == 1):
             for i in range (self._x_length):
                 for j in range (self._y_length):
                     if (x_pos == (i + self._x_pos) and y_pos == (j + self._y_pos)):
-                        self._hit_counter = self._hit_counter +1
+
                         return True
 
         else:
@@ -105,6 +106,9 @@ class Ship:
         return self._ship_type
 
 
+    def rotateShip(self):
+        self._ship_state = [[[] for _ in range(self._x_length)] for _ in range(self._y_length)]
+        print(self._ship_state)
 
 
 
