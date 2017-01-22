@@ -44,14 +44,14 @@ class GameController:
         #ships.append(Battleship(0,0,0,1))
         #ships.append(Cruiser(1,0,0,1))
         #ships.append(Destroyer(2,0,0,1))
-        ships.append(Submarine(3,0,0,1))
-        #ships.append(AircraftCarrier(4,0,0,1))
+        #ships.append(Submarine(3,0,0,1))
+        ships.append(AircraftCarrier(4,0,0,1))
 
         battlefield = createGame(length, ships)
 
-        move(battlefield,3,2)
+        move(battlefield,4,2)
 
-        strike(battlefield,0,0)
-        strike(battlefield,0,1)
-        strike(battlefield,1,1)
+        #strike(battlefield,0,0)
+        #strike(battlefield,0,1)
+        #strike(battlefield,1,1)
 
