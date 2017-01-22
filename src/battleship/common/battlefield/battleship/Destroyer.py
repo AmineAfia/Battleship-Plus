@@ -2,8 +2,8 @@ from .Ship import Ship
 
 class Destroyer(Ship):
 
-    def __init__(self, shipID, xPos, yPos):
-        self._shipType = "Destroyer"
-        self._xlength = 3
-        self._yLength = 1
-        Ship.__init__(self, shipID, self._shipType, xPos, yPos, self._xLength, self._yLength)
+    def __init__(self, ship_id, x_pos, y_pos):
+        self._ship_type = "Destroyer"
+        self._x_length = 3
+        self._y_length = 1
+        Ship.__init__(self, ship_id, self._ship_type, x_pos, y_pos, self._x_length, self._y_length)

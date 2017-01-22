@@ -8,14 +8,15 @@ class Battlefield:
         self._length = length
         self._ships = ships
         print("New Battlefield created with size {}x{}".format(length, length))
+        print(self._ships._ship_type)
 
 
-    def move(self, shipID, xPos, yPos):
-        print("move {} at x={},y={}".format(shipID, xPos, yPos))
+    def move(self, ship_id, x_pos, y_pos):
+        print("move {} at x={},y={}".format(ship_id, x_pos, y_pos))
 
-    def shoot(self, xPos, yPos):
+    def shoot(self, x_pos, y_pos):
         hit = False
-        print("shoot at x={},y={}".format(xPos, yPos))
+        print("shoot at x={},y={}".format(x_pos, y_pos))
 
 
         if(hit):
@@ -24,6 +25,6 @@ class Battlefield:
             print("fail!")
         return hit
 
-    def hit(self, xPos, yPos):
+    def hit(self, x_pos, y_pos):
         x = 0
 

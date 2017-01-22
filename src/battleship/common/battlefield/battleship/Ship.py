@@ -1,33 +1,33 @@
 class Ship:
 
-    #shipType = ship type
-    #xPos = fixed point at x position
-    #yPos = fixed point at y position
-    #xLength = x length of ship
-    #yLength = y length of ship
-    def __init__(self, shipID, shipType, xPos, yPos, xLength, yLength):
-        self._shipID = shipID
-        self._shipType = shipType
-        self._xPos = xPos
-        self._yPos = yPos
-        self._xLength = xLength
-        self._yLength = yLength
-        self._hitCounter = 0
-        self._hitMap = [[0 for x in range(xLength)] for y in range(yLength)]
-        print("Created Ship: {} with shipID: {}".format(self._shipType, self._shipID))
-        print("Fixed at x={},y={}".format(xPos, yPos))
-        print("Size = {}x{}".format(xPos, yPos))
+    #ship_type = ship type
+    #x_pos = fixed point at x position
+    #y_pos = fixed point at y position
+    #x_length = x length of ship
+    #y_length = y length of ship
+    def __init__(self, ship_id, ship_type, x_pos, y_pos, x_length, y_length):
+        self._ship_id = ship_id
+        self._ship_type = ship_type
+        self._x_pos = x_pos
+        self._y_pos = y_pos
+        self._x_length = x_length
+        self._y_length = y_length
+        self._hit_counter = 0
+        self._hitMap = [[0 for x in range(x_length)] for y in range(y_length)]
+        print("Created Ship: {} with ship_id: {}".format(self._ship_type, self._ship_id))
+        print("Fixed at x={},y={}".format(x_pos, y_pos))
+        print("Size = {}x{}".format(x_pos, y_pos))
 
     #can not move it hit
-    def move(self, xPos, yPos):
-        print("move {} at x={},y={}".format(self._shipID, xPos, yPos))
+    def move(self, x_pos, y_pos):
+        print("move {} at x={},y={}".format(self._ship_id, x_pos, y_pos))
 
     #return if enemy get a score
-    def hit(self, xPos, yPos):
+    def hit(self, x_pos, y_pos):
         hit = False
 
         if (hit):
-            self._hitCounter = self._hitCounter + 1
+            self._hit_counter = self._hit_counter + 1
             print("im hurt")
         else:
             print("easy peasy")
@@ -35,7 +35,7 @@ class Ship:
 
     def alive(self):
         alive = True
-        if(self._hitCounter == self._xLength * self._yLength):
+        if(self._hit_counter == self._x_length * self._y_length):
             alive = False
         return alive
 
