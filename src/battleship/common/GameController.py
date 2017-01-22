@@ -7,23 +7,32 @@ from battlefield.battleship.Submarine import Submarine
 
 #Controller for Battleship+
 class GameController:
-    battlefield = {}
-    game_name = {}
-    ships = {}
+    game_name = "Battleship+"
+    ships = []
+
+    turn_counter = 0
 
     #create a new battlefield
     def createGame(length, ships):
-        game_name = "Battleship+"
-        battlefield = Battlefield(length, ships)
+        return Battlefield(length, ships)
 
     #move your own ship on your battlefield
-    def move(battlefield, ship_id, x_pos, y_pos):
-        battlefield.move(battlefield, ship_id, x_pos, y_pos)
-        #print("move {} at x=={},y={}".format(ship_id, x_pos, y_pos))
+    def move(battlefield, ship_id, direction):
+        if (battlefield.move(ship_id, direction)):
+            print("moved ship")
+        else:
+            print("error - ship not moved")
+
 
     #shoot at the coordinates on the enemy battlefield
-    def shoot(x_pos, y_pos):
+    def shoot(battlefield, x_pos, y_pos):
         print("shoot at x={},y={}".format(x_pos, y_pos))
+        if (battlefield.shoot(x_pos, y_pos)):
+            print("got it!")
+        else:
+            print("fail!")
+
+
 
     #here we go
     if __name__ == "__main__":
@@ -33,11 +42,17 @@ class GameController:
         #size = 5x5
         length = 5
         #added a Battleship ship_id=1, x=1, y=1, orientation = 0(north) or 1(east)
-        ships = Battleship(1,1,1,1)
+        #ships.append(Battleship(0,0,0,1))
+        #ships.append(Cruiser(1,0,0,1))
+        #ships.append(Destroyer(2,0,0,1))
+        ships.append(Submarine(3,0,0,1))
+        #ships.append(AircraftCarrier(4,0,0,1))
 
+        battlefield = createGame(length, ships)
 
-        createGame(length, ships)
+        move(battlefield,3,2)
 
-
-
+        shoot(battlefield,0,0)
+        shoot(battlefield,0,1)
+        shoot(battlefield,1,1)
 

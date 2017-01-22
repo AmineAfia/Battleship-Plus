@@ -5,6 +5,7 @@ class Ship:
     #y_pos = fixed point at y position
     #x_length = x length of ship
     #y_length = y length of ship
+    #orientation north=0, east=1
     def __init__(self, ship_id, ship_type, x_pos, y_pos, x_length, y_length, orientation):
         self._ship_id = ship_id
         self._ship_type = ship_type
@@ -17,11 +18,23 @@ class Ship:
         self._hitMap = [[0 for x in range(x_length)] for y in range(y_length)]
         print("Created Ship: {} with ship_id: {}".format(self._ship_type, self._ship_id))
         print("Fixed at x={}, y={}, orientation={}".format(x_pos, y_pos,orientation))
-        print("Size = {}x{}".format(x_pos, y_pos))
+        print("Size = {}x{}".format(self._x_length, self._y_length))
 
-    #can not move it hit
-    def move(self, x_pos, y_pos):
-        print("move {} at x={},y={}".format(self._ship_id, x_pos, y_pos))
+    #move the ship to 0=north 1=east 2=south 3=west
+    def move(self, direction):
+        if (self._hit_counter == 0 and direction >= 0 and direction <=3):
+            if (direction == 0):
+                self._y_pos = self._y_pos - 1
+            if (direction == 1):
+                self._x_pos = self._x_pos + 1
+            if (direction == 2):
+                self._y_pos = self._y_pos + 1
+            if (direction == 3):
+                self._x_pos = self._x_pos - 1
+            print("move ship={} to x={} y={}".format(self._ship_id, self._x_pos, self._y_pos))
+            return True
+        else:
+            return False
 
     #return if enemy get a score
     def hit(self, x_pos, y_pos):
@@ -39,6 +52,28 @@ class Ship:
         if(self._hit_counter == self._x_length * self._y_length):
             alive = False
         return alive
+
+    def isAtPosition(self, x_pos, y_pos):
+        if (self._orientation == 0):
+            for i in range (self._x_length):
+                for j in range (self._y_length):
+                    print(self.getShipType())
+                    if (x_pos == (i + self._x_pos) and y_pos == (j + self._y_pos)):
+                        return True
+
+        elif (self._orientation == 1):
+            for i in range (self._x_length):
+                for j in range (self._y_length):
+                    print(self.getShipType())
+                    if (x_pos == (i + self._x_pos) and y_pos == (j + self._y_pos)):
+                        return True
+
+        else:
+            return False
+        return False
+
+    def getShipType(self):
+        return self._ship_type
 
 
 
