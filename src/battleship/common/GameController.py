@@ -4,6 +4,7 @@ from battlefield.battleship.Battleship import Battleship
 from battlefield.battleship.Cruiser import Cruiser
 from battlefield.battleship.Destroyer import Destroyer
 from battlefield.battleship.Submarine import Submarine
+from .constants import Orientation, Direction
 
 #Controller for Battleship+
 class GameController:
@@ -45,11 +46,11 @@ class GameController:
         #ships.append(Cruiser(1,0,0,1))
         #ships.append(Destroyer(2,0,0,1))
         #ships.append(Submarine(3,0,0,1))
-        ships.append(AircraftCarrier(4,0,0,0))
+        ships.append(AircraftCarrier(4,0,0,Orientation.EAST))
 
         battlefield = createGame(length, ships)
 
-        move(battlefield,4,2)
+        move(battlefield,4,Direction.EAST)
 
         #strike(battlefield,0,0)
         #strike(battlefield,0,1)

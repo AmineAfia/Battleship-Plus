@@ -1,4 +1,5 @@
 from .battleship import Ship
+from ..constants import Orientation, Direction
 
 class Battlefield:
 

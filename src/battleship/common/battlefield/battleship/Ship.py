@@ -1,3 +1,5 @@
+from ...constants import Orientation, Direction
+
 class Ship:
 
     #ship_type = ship type
@@ -21,13 +23,13 @@ class Ship:
         self._ship_state = [[[] for _ in range (y_length)] for _ in range (x_length)]
         print (self._ship_state)
 
-        if (self._orientation == 0):
+        if (self._orientation == Orientation.NORTH):
             for i in range (self._x_length):
                 for j in range (self._y_length):
                     self._ship_state[i][j] = [(i + x_pos, j + y_pos), (0)]
 
 
-        elif (self._orientation == 1):
+        elif (self._orientation == Orientation.EAST):
             for i in range (self._x_length):
                 for j in range (self._y_length):
                     self._ship_state[i][j] = [(i + x_pos, j + y_pos), (0)]
@@ -41,28 +43,28 @@ class Ship:
     #move the ship to 0=north 1=east 2=south 3=west
     def move(self, direction):
         if (self._hit_counter == 0 and direction >= 0 and direction <=3):
-            if (direction == 0):
+            if (direction == Direction.NORTH):
                 for i in range(self._x_length):
                     for j in range(self._y_length):
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x, y - 1), state]
                 print(self._ship_state)
                 #self._y_pos = self._y_pos - 1
-            if (direction == 1):
+            if (direction == Direction.EAST):
                 for i in range(self._x_length):
                     for j in range(self._y_length):
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x + 1, y), state]
                 print(self._ship_state)
                 #self._x_pos = self._x_pos + 1
-            if (direction == 2):
+            if (direction == Direction.SOUTH):
                 for i in range(self._x_length):
                     for j in range(self._y_length):
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x, y + 1), state]
                 print(self._ship_state)
                 #self._y_pos = self._y_pos + 1
-            if (direction == 3):
+            if (direction == Direction.WEST):
                 for i in range(self._x_length):
                     for j in range(self._y_length):
                         [(x,y), state] = self._ship_state[i][j]
