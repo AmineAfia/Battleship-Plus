@@ -9,6 +9,7 @@ import asyncio.streams
 class ProtocolConfig:
     BYTEORDER = 'little'
     STR_ENCODING = 'utf-8'
+    PAYLOAD_LENGTH_BYTES = 2
 
 
 class ProtocolMessageType(IntEnum):
@@ -276,13 +277,21 @@ class ProtocolMessage(object):
     # TODO: this should be wrapped in an connection class, with some logic to prevent overlapping protocol messages,
     # TODO: sort of a scheduler, no rather a queue
     async def send(self, writer):
-        # send type
-        writer.write(self.type.to_bytes(1, byteorder=ProtocolConfig.BYTEORDER, signed=False))
 
-        print("> msg_type={}, ".format(self.type.name), end="")
+        msg_bytes_type = b''
+        msg_bytes_length = b''
+        msg_bytes_payload = b''
+
+        # append type
+        msg_bytes_type += self.type.to_bytes(1, byteorder=ProtocolConfig.BYTEORDER, signed=False)
+
+        # print("> msg_type={}, ".format(self.type.name), end="")
+
+        num_fields = len(ProtocolMessageParameters[self.type])
 
         # send each parameter with length and value in the defined order
-        for protocol_field in ProtocolMessageParameters[self.type]:
+        for num_field, protocol_field in enumerate(ProtocolMessageParameters[self.type]):
+            last_field = (num_field == num_fields-1)
 
             parameter_value = self.parameters[protocol_field.name]
 
@@ -290,39 +299,64 @@ class ProtocolMessage(object):
             if type(parameter_value) is str:
                 parameter_bytes = parameter_value.encode(encoding=ProtocolConfig.STR_ENCODING)
             elif type(parameter_value) is int:
-                parameter_bytes = _bytes_from_int(parameter_value)
+                parameter_bytes = _bytes_from_int(parameter_value, length=protocol_field.length)
             elif type(parameter_value) is NumShips:
                 parameter_bytes = parameter_value.to_bytes()
             else:
                 print("ERROR(send): unimplemented parameter type: {}".format(type(parameter_value)))
 
-            # send length
-            writer.write(len(parameter_bytes).to_bytes(
-                protocol_field.length_bytes, byteorder=ProtocolConfig.BYTEORDER, signed=False))
+            # length field?
+            if not last_field and not protocol_field.fixed_length:
+                # We have a length field for this field. And it has length 1 by definition
+                parameter_bytes_length = len(parameter_bytes)
+                if parameter_bytes_length > 1:
+                    raise ValueError("Parameter value for field {} in msg {} is too large to fit into 1 byte".format(
+                        protocol_field.name, self.type.name))
+                msg_bytes_payload += _bytes_from_int(parameter_bytes_length)
 
-            # send value
-            writer.write(parameter_bytes)
+            # data
+            msg_bytes_payload += parameter_bytes
 
-            print("{}({}, {} byte)={}, ".format(
-                protocol_field.name, type(parameter_value), protocol_field.length_bytes, parameter_value), end="")
+            # print("{}({}, {} byte)={}, ".format(
+            #     protocol_field.name, type(parameter_value), protocol_field.length_bytes, parameter_value), end="")
 
-        print(".", flush=True)
+        msg_bytes_payload_length = len(msg_bytes_payload)
+
+        # if msg_bytes_payload_length > 255:
+        #    raise ValueError("Msg {} has to many bytes ({} > {}) to fit into one protocol message".format(
+        #        self.type.name, msg_bytes_payload_length, 255))
+
+        # this raises OverflowError if the payload is too long
+        msg_bytes_length = _bytes_from_int(msg_bytes_payload_length, length=ProtocolConfig.PAYLOAD_LENGTH_BYTES)
+
+        print("> {}".format(self))
+        writer.write(msg_bytes_type)
+        print("type({})".format(msg_bytes_type))
+        if num_fields > 0:
+            writer.write(msg_bytes_length)
+            print("length({})".format(msg_bytes_length))
+            writer.write(msg_bytes_payload)
+            print("payload({})".format(msg_bytes_payload))
+
+        # print(".", flush=True)
 
 
 @asyncio.coroutine
 def parse_from_stream(client_reader, client_writer, msg_callback):
 
     waiting_for_msg_type: bool = True
-    read_bytes: int = 1
+    bytes_to_read_next: int = 1
     msg: ProtocolMessage = None
+    msg_remaining_payload_bytes = 0
     parameter_index: int = -1
+    parameter_count: int = 0
     parameter: ProtocolField = None
     waiting_for_field_length: bool = False
+    waiting_for_payload_length: bool = False
 
     while True:
-        #print("< Reading {} bytes".format(read_bytes))
 
-        data = yield from client_reader.read(read_bytes)
+        data = yield from client_reader.read(bytes_to_read_next)
         if not data:  # this means the client disconnected
             break
 
@@ -330,11 +364,17 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
         if waiting_for_msg_type:
             msg_type = _msg_type_from_bytes(data)
             msg = ProtocolMessage(msg_type)
+            parameter_count = len(ProtocolMessageParameters[msg_type])
+
+        elif waiting_for_payload_length:
+            msg_remaining_payload_bytes = _int_from_bytes(data)
 
         elif waiting_for_field_length:
-            read_bytes = _int_from_bytes(data)
+            bytes_to_read_next = _int_from_bytes(data)
 
         else:
+            msg_remaining_payload_bytes -= bytes_to_read_next
+
             if parameter.type is str:
                 msg.parameters[parameter.name] = _str_from_bytes(data)
             elif parameter.type is int:
@@ -345,19 +385,56 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
                 print("ERROR(parse_from_stream): unimplemented parameter type: {}".format(parameter.type))
 
         # prepare the next loop
-        if waiting_for_msg_type or not waiting_for_field_length:
-            # the next thing to do is read the length field of the parameter
-            parameter_index += 1
-            try:
-                parameter = ProtocolMessageParameters[msg_type][parameter_index]
-                waiting_for_field_length = True
-                read_bytes = parameter.length_bytes
+        if waiting_for_msg_type:
+            # Check if this message type has payload.
+            # If so, there will be a global length field
+            if len(ProtocolMessageParameters[msg_type]) > 0:
+                waiting_for_payload_length = True
                 waiting_for_msg_type = False
-            except IndexError:
-                # there is no next parameter, so prepare for the next protocol message
+                bytes_to_read_next = ProtocolConfig.PAYLOAD_LENGTH_BYTES
+            # If not, the message is already complete
+            else:
                 waiting_for_msg_type = True
                 parameter_index = -1
-                read_bytes = 1
+                bytes_to_read_next = 1
+                msg_callback(msg)
+
+        elif waiting_for_payload_length or not waiting_for_field_length:
+            waiting_for_payload_length = False
+            # the next thing to do is read the length field of a parameter,
+            # or the content of a parameter
+            parameter_index += 1
+
+            # there is a next parameter
+            if parameter_index < parameter_count:
+
+                waiting_for_msg_type = False
+
+                parameter = ProtocolMessageParameters[msg_type][parameter_index]
+
+                # If it's fixed length, we read the payload as a next step.
+                if parameter.fixed_length:
+                    waiting_for_field_length = False
+                    bytes_to_read_next = parameter.length
+
+                # If it's variable length, we might have a length field to read.
+                # We have a length field if it's _not_ the last parameter
+                elif parameter_index < parameter_count-1:
+                    waiting_for_field_length = True
+                    bytes_to_read_next = parameter.length_bytes
+
+                # If it's variable length _and_ the last field, all the remaining
+                # bytes belong to this field
+                else:
+                    waiting_for_field_length = False
+                    bytes_to_read_next = msg_remaining_payload_bytes
+
+            # there is no next parameter, so prepare for the next protocol message
+            else:
+
+                waiting_for_msg_type = True
+                parameter_index = -1
+                bytes_to_read_next = 1
                 msg_callback(msg)
 
         elif waiting_for_field_length:
@@ -380,5 +457,5 @@ def _str_from_bytes(data: bytes) -> str:
     return data.decode(encoding=ProtocolConfig.STR_ENCODING)
 
 
-def _bytes_from_int(data: int) -> bytes:
-    return data.to_bytes(1, byteorder=ProtocolConfig.BYTEORDER, signed=False)
+def _bytes_from_int(data: int, length: int=1) -> bytes:
+    return data.to_bytes(length, byteorder=ProtocolConfig.BYTEORDER, signed=False)
