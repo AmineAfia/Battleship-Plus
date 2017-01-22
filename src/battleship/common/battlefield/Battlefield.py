@@ -5,8 +5,9 @@ class Battlefield:
     #length = battlefield length <length> x <length>
     #ships = linked list of ships
     def __init__(self, length, ships):
-        self._length = length
         self._ships = ships
+        self._my_battlefield =  [range[length], range[length]]
+        self._enemy_battlefield = [range[length], range[length]]
         print("New Battlefield created with size {}x{} with ships:".format(length, length))
         for ship in ships:
             print (ship.getShipType())
@@ -29,5 +30,16 @@ class Battlefield:
 
     #shoot at enemy battlefield
     def shoot(self, x_pos, y_pos):
-        x = 0
-
+        if ((x_pos * y_pos) >= len(self._enemy_battlefield)):
+            #shoot at hidden field
+            if (self._enemy_battlefield[x_pos][y_pos] == 0):
+                return True
+            #shoot at known field
+            elif (self._enemy_battlefield[x_pos][y_pos] == 1):
+                return True
+            #shoot at same same damaged ship again
+            elif (self._enemy_battlefield[x_pos][y_pos] == 2):
+                return True
+            else:
+                return False
+        return False
