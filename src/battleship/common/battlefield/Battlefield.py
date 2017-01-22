@@ -6,8 +6,8 @@ class Battlefield:
     #ships = linked list of ships
     def __init__(self, length, ships):
         self._ships = ships
-        self._my_battlefield =  [range[length], range[length]]
-        self._enemy_battlefield = [range[length], range[length]]
+        self._my_battlefield =  [[length], [length]]
+        self._enemy_battlefield = [[length], [length]]
         print("New Battlefield created with size {}x{} with ships:".format(length, length))
         for ship in ships:
             print (ship.getShipType())
