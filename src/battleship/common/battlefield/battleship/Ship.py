@@ -36,36 +36,26 @@ class Ship:
         else:
             return False
 
-    #return if enemy get a score
-    def hit(self, x_pos, y_pos):
-        hit = False
-
-        if (hit):
-            self._hit_counter = self._hit_counter + 1
-            print("im hurt")
-        else:
-            print("easy peasy")
-        return hit
-
     def alive(self):
         alive = True
         if(self._hit_counter == self._x_length * self._y_length):
             alive = False
         return alive
 
-    def isAtPosition(self, x_pos, y_pos):
+    def strikeAtPosition(self, x_pos, y_pos):
         if (self._orientation == 0):
             for i in range (self._x_length):
                 for j in range (self._y_length):
                     print(self.getShipType())
                     if (x_pos == (i + self._x_pos) and y_pos == (j + self._y_pos)):
+                        self._hit_counter = self._hit_counter + 1
                         return True
 
         elif (self._orientation == 1):
             for i in range (self._x_length):
                 for j in range (self._y_length):
-                    print(self.getShipType())
                     if (x_pos == (i + self._x_pos) and y_pos == (j + self._y_pos)):
+                        self._hit_counter = self._hit_counter +1
                         return True
 
         else:

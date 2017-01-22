@@ -11,7 +11,7 @@ class Battlefield:
         for ship in ships:
             print (ship.getShipType())
 
-    #move a ship one position
+    #move a ship one position further
     def move(self, ship_id, direction):
         for ship in self._ships:
             if (ship._ship_id == ship_id):
@@ -20,12 +20,14 @@ class Battlefield:
                 else:
                     return False
 
-    def shoot(self, x_pos, y_pos):
+    #enemy strike
+    def strike(self, x_pos, y_pos):
         for ship in self._ships:
-            if (ship.isAtPosition(x_pos, y_pos)):
+            if (ship.strikeAtPosition(x_pos, y_pos)):
                 return True
         return False
 
-    def hit(self, x_pos, y_pos):
+    #shoot at enemy battlefield
+    def shoot(self, x_pos, y_pos):
         x = 0
 

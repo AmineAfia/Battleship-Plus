@@ -23,11 +23,10 @@ class GameController:
         else:
             print("error - ship not moved")
 
-
-    #shoot at the coordinates on the enemy battlefield
-    def shoot(battlefield, x_pos, y_pos):
-        print("shoot at x={},y={}".format(x_pos, y_pos))
-        if (battlefield.shoot(x_pos, y_pos)):
+    #strike at the coordinates on the enemy battlefield
+    def strike(battlefield, x_pos, y_pos):
+        print("strike at x={},y={}".format(x_pos, y_pos))
+        if (battlefield.strike(x_pos, y_pos)):
             print("got it!")
         else:
             print("fail!")
@@ -52,7 +51,7 @@ class GameController:
 
         move(battlefield,3,2)
 
-        shoot(battlefield,0,0)
-        shoot(battlefield,0,1)
-        shoot(battlefield,1,1)
+        strike(battlefield,0,0)
+        strike(battlefield,0,1)
+        strike(battlefield,1,1)
 
