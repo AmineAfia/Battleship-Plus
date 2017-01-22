@@ -32,8 +32,8 @@ class GameController:
 
         #size = 5x5
         length = 5
-        #added a Battleship at x=1, y=1, with ship_id=1
-        ships = Battleship(1,1,1)
+        #added a Battleship ship_id=1, x=1, y=1, orientation = 0(north) or 1(east)
+        ships = Battleship(1,1,1,1)
 
 
         createGame(length, ships)
