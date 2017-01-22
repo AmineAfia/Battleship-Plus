@@ -2,7 +2,8 @@
 from operator import itemgetter
 from itertools import cycle
 from pyfiglet import Figlet
-
+import curses
+import sys
 
 class Player(object):
 
@@ -13,7 +14,7 @@ class Player(object):
         # self.x = 5
         # self.y = 4
 
-        self.positions = [(5,4), (2,2), (1,1), (10,10)]
+        self.positions = [(5,4), (2,4), (1,1), (10,9)]
         self.sortedPositions = sorted(self.positions, key=itemgetter(1), reverse=True)
 
     def shoot(self, shootX, shootY):
@@ -41,6 +42,17 @@ class GameMap(object):
         # # ASCII Art
         # f = Figlet(font='big')
         # print(f.renderText('Battleship+'))
+
+        # New strategy of printing the field:
+        def print_there(x, y, text):
+             sys.stdout.write("\x1b7\x1b[%d;%df%s\x1b8" % (x, y, text))
+             sys.stdout.flush()
+
+        print_there(50, 50, 'dfdfdfdfdfffdfd----------------------------------------------------------fdfdfdfdfdfdf')
+
+        # eee = player.sortedPositions[0]
+        # ccc = eee.count(eee[1])
+        # print(ccc, end="")
 
         for _ in range(self.Y_OFFSET - player.sortedPositions[0][1]):
             render_empty_row()
