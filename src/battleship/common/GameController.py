@@ -8,10 +8,11 @@ from .constants import Orientation, Direction
 
 #Controller for Battleship+
 class GameController:
-    #game_name = "Battleship+"
-    #ships = []
 
-    turn_counter = 0
+    def __init__(self):
+        self._turn_counter = 0
+        self._game_started = False
+
 
     #create a new battlefield
     def createBattlefield(self, length, ships):
@@ -57,17 +58,22 @@ class GameController:
         #ships.append(Destroyer(2,0,0,1))
         #ships.append(Submarine(3,0,0,1))
         ships = []
-        ships.append(AircraftCarrier(4,0,0,Orientation.EAST))
+
+        ships.append(AircraftCarrier(4, 0, 0,Orientation.EAST))
         ships.append(AircraftCarrier(5, 0, 0, Orientation.EAST))
 
         battlefield = self.createBattlefield(length, ships)
+        #placed flag
+        battlefield.place(4, 0, 0, Orientation.EAST)
+        #battlefield.place(4, 0, 0, Orientation.EAST)
 
-        # self.move(battlefield,4,Direction.EAST)
-        self.startGame(battlefield)
-        #battlefield.place(4, 2, 2, Orientation.EAST)
+        #if all ships are places
+        #self.startGame(battlefield)
 
 
-        #strike(battlefield,0,0)
-        #strike(battlefield,0,1)
-        #strike(battlefield,1,1)
+        #self.move(battlefield, 4, Direction.NORTH)
+
+        #self.strike(battlefield, 0, 0)
+        #self.strike(battlefield,10,10)
+        #sself.strike(battlefield,0,0)
 

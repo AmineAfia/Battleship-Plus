@@ -17,11 +17,11 @@ class Ship:
         self._x_length = x_length
         self._y_length = y_length
         self._orientation = orientation
+        self._placed = False
         self._hit_counter = 0
         #self._ship_state = [[] for _ in range (x_length + y_length - 1)]
 
         self._ship_state = [[[] for _ in range (y_length)] for _ in range (x_length)]
-        print (self._ship_state)
 
         if (self._orientation == Orientation.NORTH):
             for i in range (self._x_length):
@@ -87,23 +87,11 @@ class Ship:
         return False
 
     def strikeAtPosition(self, x_pos, y_pos):
-        if (self._orientation == 0):
-            for i in range (self._x_length):
-                for j in range (self._y_length):
-                    print(self.getShipType())
-                    if (x_pos == (i + self._x_pos) and y_pos == (j + self._y_pos)):
-
-                        return True
-
-        elif (self._orientation == 1):
-            for i in range (self._x_length):
-                for j in range (self._y_length):
-                    if (x_pos == (i + self._x_pos) and y_pos == (j + self._y_pos)):
-
-                        return True
-
-        else:
-            return False
+        for i in range(self._x_length):
+            for j in range(self._y_length):
+                if (self._ship_state[i][j] == [(x_pos, y_pos), self._ship_state[i][j][1]]):
+                    self._ship_state[i][j] = [(self._ship_state[i][j][0]), 1]
+                    return True
         return False
 
     def getShipType(self):
@@ -119,12 +107,13 @@ class Ship:
                 shipCoordinates.append(state[0])
         return shipCoordinates
 
-
+    #boolean flag if placed already
     def isShipAtLocation(self, x_pos, y_pos):
-        for i in range(self._x_length):
-            for j in range(self._y_length):
-                if (self._ship_state[i][j] == [(x_pos, y_pos), self._ship_state[i][j][1]]):
-                    return True
+        if (self._placed):
+            for i in range(self._x_length):
+                for j in range(self._y_length):
+                    if (self._ship_state[i][j] == [(x_pos, y_pos), self._ship_state[i][j][1]]):
+                        return True
         return False
 
     #rotate this ship
@@ -157,7 +146,11 @@ class Ship:
                 for j in range (self._y_length):
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
 
+        self._placed = True
         print(self._ship_state)
+
+    def isPlaced(self):
+        return self._placed
 
 
 
