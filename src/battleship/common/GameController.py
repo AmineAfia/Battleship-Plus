@@ -51,6 +51,8 @@ class GameController:
 
         battlefield = self.createBattlefield(length, ships)
 
+
+        battlefield.place(4, 2, 2, Orientation.EAST)
         #self.move(battlefield,4,Direction.EAST)
 
         #strike(battlefield,0,0)

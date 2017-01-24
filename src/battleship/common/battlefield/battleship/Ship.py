@@ -135,10 +135,24 @@ class Ship:
                 for j in range (self._y_length):
                     self._ship_state[i][j] = [(j + self._y_pos, i + self._x_pos), (0)]
 
+    #replace this ship
     def place(self, x_pos, y_pos, orientation):
         self._x_pos = x_pos
         self._y_pos = y_pos
         self._orientation = orientation
+
+        if (self._orientation == Orientation.NORTH):
+            for i in range (self._x_length):
+                for j in range (self._y_length):
+                    self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
+
+
+        elif (self._orientation == Orientation.EAST):
+            for i in range (self._x_length):
+                for j in range (self._y_length):
+                    self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
+
+        print(self._ship_state)
 
 
 
