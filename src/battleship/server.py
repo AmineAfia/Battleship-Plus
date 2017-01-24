@@ -1,5 +1,5 @@
 import sys
-from common.constants import Constants
+from common.constants import Constants, Orientation, EndGameReason, Direction
 from common.protocol import ProtocolConfig, ProtocolMessage, ProtocolMessageType, ProtocolMessageParameters, ProtocolField, parse_from_stream
 
 import asyncio

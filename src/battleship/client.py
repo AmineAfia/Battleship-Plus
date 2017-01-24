@@ -3,7 +3,7 @@ import asyncio
 import asyncio.streams
 from common.constants import Constants
 from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips
-from common.constants import Orientation
+from common.constants import Orientation, Direction, EndGameReason, ErrorCode, GameOptions
 
 
 def main():
@@ -28,8 +28,9 @@ def main():
                                             {"board_size": 5,
                                              "num_ships": NumShips([1, 2, 3, 4, 5]),
                                              "round_time": 25,
-                                             "options": 42,
-                                             "password": "foobar"})
+                                             "options": GameOptions.PASSWORD,
+                                             "password": "foobar"
+                                                 })
             yield from create_game_message.send(writer)
 
             yield from asyncio.sleep(1, loop=loop)

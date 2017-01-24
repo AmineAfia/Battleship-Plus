@@ -1,6 +1,7 @@
-#from enum import Enum
 from enum import IntEnum
 from typing import Dict, List
+from .constants import Orientation, EndGameReason, Direction, ErrorCode, GameOptions
+
 
 import asyncio
 import asyncio.streams
@@ -46,30 +47,9 @@ class ProtocolMessageType(IntEnum):
     ERROR = 255
 
 
-class Orientation(IntEnum):
-    NORTH = 0
-    EAST = 1
-
-
-class EndGameReason(IntEnum):
-    OPPONENT_ABORT = 0
-    OPPONENT_TIMEOUT = 1
-    YOU_WON = 2
-    OPPONENT_WON = 3
-    SERVER_CLOSED_CONNECTION = 4
-    OTHER = 5
-
-
-class Direction(IntEnum):
-    NORTH = 0
-    EAST = 1
-    SOUTH = 2
-    WEST = 3
-
-
 class ProtocolField:
 
-    def __init__(self, name: str, field_type, fixed_length: bool, length: int=0):
+    def __init__(self, name: str, field_type, fixed_length: bool, length: int=0, optional: bool=False):
         self.name = name
         self.length_bytes = 1
         self.fixed_length = fixed_length
@@ -78,6 +58,7 @@ class ProtocolField:
             raise ValueError("If a ProtocolField instance has fixed length, i.e. fixed_length=True,"
                              "it must have a non-zero length.")
         self.type = field_type
+        self.optional = optional
 
 
 class Position:
@@ -231,8 +212,8 @@ _field_text: ProtocolField = ProtocolField(name="text", field_type=str, fixed_le
 _field_board_size: ProtocolField = ProtocolField(name="board_size", field_type=int, fixed_length=True, length=1)
 _field_num_ships: ProtocolField = ProtocolField(name="num_ships", field_type=NumShips, fixed_length=True, length=5)
 _field_round_time: ProtocolField = ProtocolField(name="round_time", field_type=int, fixed_length=True, length=1)
-_field_options: ProtocolField = ProtocolField(name="options", field_type=int, fixed_length=True, length=1)
-_field_password: ProtocolField = ProtocolField(name="password", field_type=str, fixed_length=False)
+_field_options: ProtocolField = ProtocolField(name="options", field_type=GameOptions, fixed_length=True, length=1)
+_field_password: ProtocolField = ProtocolField(name="password", field_type=str, fixed_length=False, optional=True)
 _field_game_id: ProtocolField = ProtocolField(name="game_id", field_type=int, fixed_length=True, length=2)
 
 # Not yet defined parameters of Game messages
@@ -244,17 +225,53 @@ _field_positions: ProtocolField = ProtocolField(name="positions", field_type=Pos
 _field_orientation: ProtocolField = ProtocolField(
     name="orientation", field_type=Orientation, fixed_length=True, length=1)
 _field_reason: ProtocolField = ProtocolField(name="reason", field_type=EndGameReason, fixed_length=True, length=1)
+_field_ship_position: ProtocolField = ProtocolField(
+    name="ship_position", field_type=ShipPosition, fixed_length=True, length=3)
+_field_ship_positions: ProtocolField = ProtocolField(
+    name="ship_positions", field_type=ShipPositions, fixed_length=False)
 _field_ship_id: ProtocolField = ProtocolField(name="ship_id", field_type=int, fixed_length=True, length=5)
 _field_direction: ProtocolField = ProtocolField(name="direction", field_type=Orientation, fixed_length=True, length=1)
+
+# Errors
+_field_error_code: ProtocolField = ProtocolField(name="error_code", field_type=ErrorCode, fixed_length=True, length=1)
 
 
 # TODO: is it pythonic to declare it as a global dictionary?
 ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
+    ProtocolMessageType.NONE: [],
+    # Lobby, Server messages
+    ProtocolMessageType.CHAT_RECV: [_field_username, _field_username, _field_text],
+    ProtocolMessageType.GAMES: [_field_game_id, _field_username, _field_board_size,
+                                _field_num_ships, _field_round_time, _field_options],
+    ProtocolMessageType.GAME: [_field_game_id, _field_username, _field_board_size,
+                               _field_num_ships, _field_round_time, _field_options],
+    ProtocolMessageType.DELETE_GAME: [_field_game_id],
+    # Lobby, Client messages
     ProtocolMessageType.LOGIN: [_field_username],
     ProtocolMessageType.LOGOUT: [],
     ProtocolMessageType.CHAT_SEND: [_field_username, _field_text],
-    ProtocolMessageType.CREATE_GAME:
-        [_field_board_size, _field_num_ships, _field_round_time, _field_options, _field_password]
+    ProtocolMessageType.CREATE_GAME: [_field_board_size, _field_num_ships, _field_round_time,
+                                      _field_options, _field_password],
+    ProtocolMessageType.CANCEL: [_field_game_id],
+    ProtocolMessageType.JOIN: [_field_game_id, _field_password],
+    ProtocolMessageType.GET_GAMES: [],
+    # Game, Server messages
+    ProtocolMessageType.STARTGAME: [_field_board_size, _field_num_ships, _field_round_time, _field_opponent_name],
+    ProtocolMessageType.PLACED: [],
+    ProtocolMessageType.YOUSTART: [],
+    ProtocolMessageType.WAIT: [],
+    ProtocolMessageType.HIT: [_field_sunk, _field_position],
+    ProtocolMessageType.FAIL: [_field_position],
+    ProtocolMessageType.MOVED: [_field_positions],
+    ProtocolMessageType.TIMEOUT: [],
+    ProtocolMessageType.ENDGAME: [_field_reason],
+    # Game, Client messages
+    ProtocolMessageType.PLACE: [_field_ship_positions],
+    ProtocolMessageType.MOVE: [_field_turn_counter, _field_ship_id, _field_direction],
+    ProtocolMessageType.SHOOT: [_field_turn_counter, _field_position],
+    ProtocolMessageType.ABORT: [],
+    # Error message
+    ProtocolMessageType.ERROR: [_field_error_code]
 }
 
 
@@ -270,7 +287,10 @@ class ProtocolMessage(object):
     def __str__(self):
         s = "{}: {{".format(self.type.name)
         for key, value in self.parameters.items():
-            s += "{}: {}, ".format(key, value)
+            if isinstance(value, IntEnum):
+                s += "{}: {}, ".format(key, value.name)
+            else:
+                s += "{}: {}, ".format(key, value)
         s += "}"
         return s
 
@@ -293,12 +313,22 @@ class ProtocolMessage(object):
         for num_field, protocol_field in enumerate(ProtocolMessageParameters[self.type]):
             last_field = (num_field == num_fields-1)
 
-            parameter_value = self.parameters[protocol_field.name]
+            try:
+                parameter_value = self.parameters[protocol_field.name]
+            except KeyError:
+                if protocol_field.optional:
+                    # now handle the different cases in the protocol
+                    if self.type == ProtocolMessageType.CREATE_GAME and (self.parameters["options"] & GameOptions.PASSWORD):
+                        raise AttributeError("Send ProtocolMessage: missing password, but options say there shoud be one.")
+                    else:
+                        continue
+                else:
+                    raise AttributeError("Send ProtocolMessage: missing parameter {}".format(parameter_value))
 
             # TODO: can this be done the pythonic way without checking the type? See https://stackoverflow.com/a/154156
             if type(parameter_value) is str:
                 parameter_bytes = parameter_value.encode(encoding=ProtocolConfig.STR_ENCODING)
-            elif type(parameter_value) is int:
+            elif type(parameter_value) in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
                 parameter_bytes = _bytes_from_int(parameter_value, length=protocol_field.length)
             elif type(parameter_value) is NumShips:
                 parameter_bytes = parameter_value.to_bytes()
@@ -309,9 +339,9 @@ class ProtocolMessage(object):
             if not last_field and not protocol_field.fixed_length:
                 # We have a length field for this field. And it has length 1 by definition
                 parameter_bytes_length = len(parameter_bytes)
-                if parameter_bytes_length > 1:
-                    raise ValueError("Parameter value for field {} in msg {} is too large to fit into 1 byte".format(
-                        protocol_field.name, self.type.name))
+                # if parameter_bytes_length > 1:
+                #     raise ValueError("Parameter value for field {} in msg {} is too large to fit into 1 byte".format(
+                #         protocol_field.name, self.type.name))
                 msg_bytes_payload += _bytes_from_int(parameter_bytes_length)
 
             # data
@@ -347,7 +377,7 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
     waiting_for_msg_type: bool = True
     bytes_to_read_next: int = 1
     msg: ProtocolMessage = None
-    msg_remaining_payload_bytes = 0
+    msg_remaining_payload_bytes: int = 0
     parameter_index: int = -1
     parameter_count: int = 0
     parameter: ProtocolField = None
@@ -379,6 +409,17 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
                 msg.parameters[parameter.name] = _str_from_bytes(data)
             elif parameter.type is int:
                 msg.parameters[parameter.name] = _int_from_bytes(data)
+            # TODO: this is a lot of repetition, can this be generalized?
+            elif parameter.type is Orientation:
+                msg.parameters[parameter.name] = Orientation(_int_from_bytes(data))
+            elif parameter.type is Direction:
+                msg.parameters[parameter.name] = Direction(_int_from_bytes(data))
+            elif parameter.type is EndGameReason:
+                msg.parameters[parameter.name] = EndGameReason(_int_from_bytes(data))
+            elif parameter.type is ErrorCode:
+                msg.parameters[parameter.name] = ErrorCode(_int_from_bytes(data))
+            elif parameter.type is GameOptions:
+                msg.parameters[parameter.name] = GameOptions(_int_from_bytes(data))
             elif parameter.type is NumShips:
                 msg.parameters[parameter.name] = NumShips.from_bytes(data)
             else:
