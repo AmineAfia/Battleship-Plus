@@ -47,6 +47,7 @@ class Battlefield:
                 return False
         return False
 
+    #place the ship
     def place(self, ship_id, x_pos, y_pos, orientation):
         for ship in self._ships:
             if (ship.getShipId() == ship_id):
@@ -61,6 +62,16 @@ class Battlefield:
             if (ship.isShipAtLocation(x_pos, y_pos)):
                 return False
         return True
+
+    def placementFinished(self):
+        for ship in self._ships:
+            shipCoordinates = ship.getShipCoordinates()
+            print(shipCoordinates)
+            for coordinates in shipCoordinates:
+                if not (self.noShipAtPlace(coordinates[0], coordinates[1])):
+                    return False
+        return True
+
 
 
 

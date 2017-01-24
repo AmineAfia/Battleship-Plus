@@ -32,9 +32,20 @@ class GameController:
         else:
             print("fail!")
 
+    def startGame(self, battlefield):
+        if (battlefield.placementFinished()):
+            print("game started")
+        else:
+            print("placement not finished")
+
 
 
     #run the game controller
+    #first: create all ships with unique index
+    #second: create a new battlefield with a fixed length and ships
+    #third: ship placement
+    #forth: start game
+    #sixth: shoot or move until game is finished
     def run(self):
         print("creating battlefield with ships...")
 
@@ -51,9 +62,10 @@ class GameController:
 
         battlefield = self.createBattlefield(length, ships)
 
+        # self.move(battlefield,4,Direction.EAST)
+        self.startGame(battlefield)
+        #battlefield.place(4, 2, 2, Orientation.EAST)
 
-        battlefield.place(4, 2, 2, Orientation.EAST)
-        #self.move(battlefield,4,Direction.EAST)
 
         #strike(battlefield,0,0)
         #strike(battlefield,0,1)
