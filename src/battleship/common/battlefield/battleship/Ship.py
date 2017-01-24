@@ -26,16 +26,18 @@ class Ship:
         if (self._orientation == Orientation.NORTH):
             for i in range (self._x_length):
                 for j in range (self._y_length):
-                    self._ship_state[i][j] = [(i + x_pos, j + y_pos), (0)]
+                    self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
 
 
         elif (self._orientation == Orientation.EAST):
             for i in range (self._x_length):
                 for j in range (self._y_length):
-                    self._ship_state[i][j] = [(i + x_pos, j + y_pos), (0)]
+                    self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
 
 
         print (self._ship_state)
+
+
         print("Created Ship: {} with ship_id: {}".format(self._ship_type, self._ship_id))
         print("Fixed at x={}, y={}, orientation={}".format(x_pos, y_pos,orientation))
         print("Size = {}x{}".format(self._x_length, self._y_length))
@@ -107,10 +109,20 @@ class Ship:
     def getShipType(self):
         return self._ship_type
 
-
+    #rotate ship
     def rotateShip(self):
-        self._ship_state = [[[] for _ in range(self._x_length)] for _ in range(self._y_length)]
-        print(self._ship_state)
+        print("rotate")
+        if (self._orientation == Orientation.NORTH):
+            for i in range (self._x_length):
+                for j in range (self._y_length):
+                    self._ship_state[i][j] = [(j + self._y_pos, i + self._x_pos), (0)]
+
+
+        elif (self._orientation == Orientation.EAST):
+            for i in range (self._x_length):
+                for j in range (self._y_length):
+                    self._ship_state[i][j] = [(j + self._y_pos, i + self._x_pos), (0)]
+
 
 
 

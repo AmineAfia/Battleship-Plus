@@ -20,7 +20,7 @@ class GameController:
     #move your own ship on your battlefield
     def move(self, battlefield, ship_id, direction):
         if (battlefield.move(ship_id, direction)):
-            print("moved ship")
+            print("ship:{} moved to:{}".format(ship_id, direction))
         else:
             print("error - ship not moved")
 
