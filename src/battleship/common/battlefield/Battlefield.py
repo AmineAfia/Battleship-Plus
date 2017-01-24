@@ -46,3 +46,23 @@ class Battlefield:
             else:
                 return False
         return False
+
+    def place(self, ship_id, x_pos, y_pos, orientation):
+        for ship in self._ships:
+            if (ship.getShipId() == ship_id):
+                if (self.noShipAtPlace(x_pos, y_pos)):
+                    ship.place(x_pos, y_pos, orientation)
+                else:
+                    print("error a ship is already at this place")
+
+
+    def noShipAtPlace(self, x_pos, y_pos):
+        for ship in self._ships:
+            if (ship.isShipAtLocation(x_pos, y_pos)):
+                return False
+        return True
+
+
+
+
+

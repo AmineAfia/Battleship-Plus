@@ -14,7 +14,7 @@ class GameController:
     turn_counter = 0
 
     #create a new battlefield
-    def createGame(self, length, ships):
+    def createBattlefield(self, length, ships):
         return Battlefield(length, ships)
 
     #move your own ship on your battlefield
@@ -47,10 +47,11 @@ class GameController:
         #ships.append(Submarine(3,0,0,1))
         ships = []
         ships.append(AircraftCarrier(4,0,0,Orientation.EAST))
+        ships.append(AircraftCarrier(5, 0, 0, Orientation.EAST))
 
-        battlefield = self.createGame(length, ships)
+        battlefield = self.createBattlefield(length, ships)
 
-        self.move(battlefield,4,Direction.EAST)
+        #self.move(battlefield,4,Direction.EAST)
 
         #strike(battlefield,0,0)
         #strike(battlefield,0,1)

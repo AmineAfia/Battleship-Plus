@@ -109,9 +109,21 @@ class Ship:
     def getShipType(self):
         return self._ship_type
 
-    #rotate ship
+    def getShipId(self):
+        return self._ship_id
+
+    def getShipCoordinates(self):
+        return (self._x_pos, self._y_pos)
+
+    def isShipAtLocation(self, x_pos, y_pos):
+        for i in range(self._x_length):
+            for j in range(self._y_length):
+                if (self._ship_state[i][j] == [(x_pos, y_pos), self._ship_state[i][j][1]]):
+                    return True
+        return False
+
+                #rotate ship
     def rotateShip(self):
-        print("rotate")
         if (self._orientation == Orientation.NORTH):
             for i in range (self._x_length):
                 for j in range (self._y_length):
@@ -123,6 +135,10 @@ class Ship:
                 for j in range (self._y_length):
                     self._ship_state[i][j] = [(j + self._y_pos, i + self._x_pos), (0)]
 
+    def place(self, x_pos, y_pos, orientation):
+        self._x_pos = x_pos
+        self._y_pos = y_pos
+        self._orientation = orientation
 
 
 
