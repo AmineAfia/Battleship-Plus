@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import Enum, IntEnum
 from typing import Dict, List
 from .constants import Orientation, EndGameReason, Direction, ErrorCode, GameOptions
 
@@ -49,7 +49,7 @@ class ProtocolMessageType(IntEnum):
 
 class ProtocolField:
 
-    def __init__(self, name: str, field_type, fixed_length: bool, length: int=0, optional: bool=False):
+    def __init__(self, name: str, field_type, fixed_length: bool, length: int=0, optional: bool=False, implicit_length: bool=False):
         self.name = name
         self.length_bytes = 1
         self.fixed_length = fixed_length
@@ -59,6 +59,7 @@ class ProtocolField:
                              "it must have a non-zero length.")
         self.type = field_type
         self.optional = optional
+        self.implicit_length = implicit_length
 
 
 class Position:
@@ -207,28 +208,29 @@ class NumShips:
 
 
 # Parameters of Lobby messages
-_field_username: ProtocolField = ProtocolField(name="username", field_type=str, fixed_length=False)
+_field_username_with_length: ProtocolField = ProtocolField(name="username", field_type=str, fixed_length=False)
+_field_username_implicit_length: ProtocolField = ProtocolField(name="username", field_type=str, fixed_length=False, implicit_length=True)
 _field_text: ProtocolField = ProtocolField(name="text", field_type=str, fixed_length=False)
 _field_board_size: ProtocolField = ProtocolField(name="board_size", field_type=int, fixed_length=True, length=1)
 _field_num_ships: ProtocolField = ProtocolField(name="num_ships", field_type=NumShips, fixed_length=True, length=5)
 _field_round_time: ProtocolField = ProtocolField(name="round_time", field_type=int, fixed_length=True, length=1)
 _field_options: ProtocolField = ProtocolField(name="options", field_type=GameOptions, fixed_length=True, length=1)
-_field_password: ProtocolField = ProtocolField(name="password", field_type=str, fixed_length=False, optional=True)
+_field_password: ProtocolField = ProtocolField(name="password", field_type=str, fixed_length=False, optional=True, implicit_length=True)
 _field_game_id: ProtocolField = ProtocolField(name="game_id", field_type=int, fixed_length=True, length=2)
 
 # Not yet defined parameters of Game messages
 _field_turn_counter: ProtocolField = ProtocolField(name="turn_counter", field_type=int, fixed_length=True, length=1)
-_field_opponent_name: ProtocolField = _field_username
+_field_opponent_name: ProtocolField = ProtocolField(name="opponent_name", field_type=str, fixed_length=False, implicit_length=True)
 _field_sunk: ProtocolField = ProtocolField(name="sunk", field_type=int, fixed_length=True, length=1)
 _field_position: ProtocolField = ProtocolField(name="position", field_type=Position, fixed_length=True, length=2)
-_field_positions: ProtocolField = ProtocolField(name="positions", field_type=Positions, fixed_length=False)
+_field_positions: ProtocolField = ProtocolField(name="positions", field_type=Positions, fixed_length=False, implicit_length=True)
 _field_orientation: ProtocolField = ProtocolField(
     name="orientation", field_type=Orientation, fixed_length=True, length=1)
 _field_reason: ProtocolField = ProtocolField(name="reason", field_type=EndGameReason, fixed_length=True, length=1)
 _field_ship_position: ProtocolField = ProtocolField(
     name="ship_position", field_type=ShipPosition, fixed_length=True, length=3)
 _field_ship_positions: ProtocolField = ProtocolField(
-    name="ship_positions", field_type=ShipPositions, fixed_length=False)
+    name="ship_positions", field_type=ShipPositions, fixed_length=False, implicit_length=True)
 _field_ship_id: ProtocolField = ProtocolField(name="ship_id", field_type=int, fixed_length=True, length=5)
 _field_direction: ProtocolField = ProtocolField(name="direction", field_type=Orientation, fixed_length=True, length=1)
 
@@ -240,16 +242,16 @@ _field_error_code: ProtocolField = ProtocolField(name="error_code", field_type=E
 ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
     ProtocolMessageType.NONE: [],
     # Lobby, Server messages
-    ProtocolMessageType.CHAT_RECV: [_field_username, _field_username, _field_text],
-    ProtocolMessageType.GAMES: [_field_game_id, _field_username, _field_board_size,
+    ProtocolMessageType.CHAT_RECV: [_field_username_with_length, _field_username_with_length, _field_text],
+    ProtocolMessageType.GAMES: [_field_game_id, _field_username_with_length, _field_board_size,
                                 _field_num_ships, _field_round_time, _field_options],
-    ProtocolMessageType.GAME: [_field_game_id, _field_username, _field_board_size,
+    ProtocolMessageType.GAME: [_field_game_id, _field_username_implicit_length, _field_board_size,
                                _field_num_ships, _field_round_time, _field_options],
     ProtocolMessageType.DELETE_GAME: [_field_game_id],
     # Lobby, Client messages
-    ProtocolMessageType.LOGIN: [_field_username],
+    ProtocolMessageType.LOGIN: [_field_username_implicit_length],
     ProtocolMessageType.LOGOUT: [],
-    ProtocolMessageType.CHAT_SEND: [_field_username, _field_text],
+    ProtocolMessageType.CHAT_SEND: [_field_username_with_length, _field_text],
     ProtocolMessageType.CREATE_GAME: [_field_board_size, _field_num_ships, _field_round_time,
                                       _field_options, _field_password],
     ProtocolMessageType.CANCEL: [_field_game_id],
@@ -287,7 +289,7 @@ class ProtocolMessage(object):
     def __str__(self):
         s = "{}: {{".format(self.type.name)
         for key, value in self.parameters.items():
-            if isinstance(value, IntEnum):
+            if isinstance(value, Enum):
                 s += "{}: {}, ".format(key, value.name)
             else:
                 s += "{}: {}, ".format(key, value)
@@ -317,9 +319,11 @@ class ProtocolMessage(object):
                 parameter_value = self.parameters[protocol_field.name]
             except KeyError:
                 if protocol_field.optional:
-                    # now handle the different cases in the protocol
+                    # Now handle the different cases in the protocol.
                     if self.type == ProtocolMessageType.CREATE_GAME and (self.parameters["options"] & GameOptions.PASSWORD):
                         raise AttributeError("Send ProtocolMessage: missing password, but options say there shoud be one.")
+                    # In case of JOIN_GAME, we simply don't know at this layer, if a password is needed.
+                    # So just don't send one.
                     else:
                         continue
                 else:
@@ -336,7 +340,8 @@ class ProtocolMessage(object):
                 print("ERROR(send): unimplemented parameter type: {}".format(type(parameter_value)))
 
             # length field?
-            if not last_field and not protocol_field.fixed_length:
+            # if not last_field and not protocol_field.fixed_length:
+            if not protocol_field.fixed_length and not protocol_field.implicit_length:
                 # We have a length field for this field. And it has length 1 by definition
                 parameter_bytes_length = len(parameter_bytes)
                 # if parameter_bytes_length > 1:
@@ -377,12 +382,20 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
     waiting_for_msg_type: bool = True
     bytes_to_read_next: int = 1
     msg: ProtocolMessage = None
+    msg_payload_bytes: int = 0
     msg_remaining_payload_bytes: int = 0
     parameter_index: int = -1
     parameter_count: int = 0
     parameter: ProtocolField = None
     waiting_for_field_length: bool = False
     waiting_for_payload_length: bool = False
+
+    def finalize_msg_and_prepare_for_next():
+        nonlocal waiting_for_msg_type, parameter_index, bytes_to_read_next
+        waiting_for_msg_type = True
+        parameter_index = -1
+        bytes_to_read_next = 1
+        msg_callback(msg)
 
     while True:
 
@@ -397,7 +410,8 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
             parameter_count = len(ProtocolMessageParameters[msg_type])
 
         elif waiting_for_payload_length:
-            msg_remaining_payload_bytes = _int_from_bytes(data)
+            msg_payload_bytes = _int_from_bytes(data)
+            msg_remaining_payload_bytes = msg_payload_bytes
 
         elif waiting_for_field_length:
             bytes_to_read_next = _int_from_bytes(data)
@@ -435,10 +449,7 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
                 bytes_to_read_next = ProtocolConfig.PAYLOAD_LENGTH_BYTES
             # If not, the message is already complete
             else:
-                waiting_for_msg_type = True
-                parameter_index = -1
-                bytes_to_read_next = 1
-                msg_callback(msg)
+                finalize_msg_and_prepare_for_next()
 
         elif waiting_for_payload_length or not waiting_for_field_length:
             waiting_for_payload_length = False
@@ -446,7 +457,7 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
             # or the content of a parameter
             parameter_index += 1
 
-            # there is a next parameter
+            # Is there is a next parameter?
             if parameter_index < parameter_count:
 
                 waiting_for_msg_type = False
@@ -460,7 +471,8 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
 
                 # If it's variable length, we might have a length field to read.
                 # We have a length field if it's _not_ the last parameter
-                elif parameter_index < parameter_count-1:
+                # elif parameter_index < parameter_count-1:
+                elif not parameter.implicit_length:
                     waiting_for_field_length = True
                     bytes_to_read_next = parameter.length_bytes
 
@@ -469,14 +481,15 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
                 else:
                     waiting_for_field_length = False
                     bytes_to_read_next = msg_remaining_payload_bytes
+                    # TODO: function that calculates the implicit length for a given msg type, given the msg_payload_bytes
+                    # If there are no more bytes, apparently the message is finished.
+                    # This can be the case when no password is set.
+                    if bytes_to_read_next == 0:
+                        finalize_msg_and_prepare_for_next()
 
             # there is no next parameter, so prepare for the next protocol message
             else:
-
-                waiting_for_msg_type = True
-                parameter_index = -1
-                bytes_to_read_next = 1
-                msg_callback(msg)
+                finalize_msg_and_prepare_for_next()
 
         elif waiting_for_field_length:
             # next is to read the actual data
