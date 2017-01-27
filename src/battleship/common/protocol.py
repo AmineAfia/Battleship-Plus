@@ -209,6 +209,8 @@ class NumShips:
 
 # Parameters of Lobby messages
 _field_username_with_length: ProtocolField = ProtocolField(name="username", field_type=str, fixed_length=False)
+_field_sender_username_with_length: ProtocolField = ProtocolField(name="sender", field_type=str, fixed_length=False)
+_field_recipient_username_with_length: ProtocolField = ProtocolField(name="recipient", field_type=str, fixed_length=False)
 _field_username_implicit_length: ProtocolField = ProtocolField(name="username", field_type=str, fixed_length=False, implicit_length=True)
 _field_text: ProtocolField = ProtocolField(name="text", field_type=str, fixed_length=False)
 _field_board_size: ProtocolField = ProtocolField(name="board_size", field_type=int, fixed_length=True, length=1)
@@ -242,7 +244,7 @@ _field_error_code: ProtocolField = ProtocolField(name="error_code", field_type=E
 ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
     ProtocolMessageType.NONE: [],
     # Lobby, Server messages
-    ProtocolMessageType.CHAT_RECV: [_field_username_with_length, _field_username_with_length, _field_text],
+    ProtocolMessageType.CHAT_RECV: [_field_sender_username_with_length, _field_recipient_username_with_length, _field_text],
     ProtocolMessageType.GAMES: [_field_game_id, _field_username_with_length, _field_board_size,
                                 _field_num_ships, _field_round_time, _field_options],
     ProtocolMessageType.GAME: [_field_game_id, _field_username_implicit_length, _field_board_size,
@@ -319,8 +321,6 @@ class ProtocolMessage(object):
         else:
             self.repeating_parameters.append(parameters)
 
-    # TODO: this should be wrapped in an connection class, with some logic to prevent overlapping protocol messages,
-    # TODO: sort of a scheduler, no rather a queue
     async def send(self, writer):
 
         msg_bytes_type = b''
@@ -381,7 +381,7 @@ class ProtocolMessage(object):
         # this raises OverflowError if the payload is too long
         msg_bytes_length = _bytes_from_int(msg_bytes_payload_length, length=ProtocolConfig.PAYLOAD_LENGTH_BYTES)
 
-        print("> {}".format(self))
+        #print("> {}".format(self))
         writer.write(msg_bytes_type)
         #print("type({})".format(msg_bytes_type))
         if num_fields > 0:
@@ -390,11 +390,12 @@ class ProtocolMessage(object):
             writer.write(msg_bytes_payload)
             #print("payload({})".format(msg_bytes_payload))
 
+        await writer.drain()
+
         # print(".", flush=True)
 
 
-@asyncio.coroutine
-def parse_from_stream(client_reader, client_writer, msg_callback):
+async def parse_from_stream(client_reader, client_writer, msg_callback):
 
     waiting_for_msg_type: bool = True
     bytes_to_read_next: int = 1
@@ -408,14 +409,14 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
     waiting_for_field_length: bool = False
     waiting_for_payload_length: bool = False
 
-    def finalize_msg_and_prepare_for_next():
+    async def finalize_msg_and_prepare_for_next():
         nonlocal waiting_for_msg_type, parameter_index, bytes_to_read_next, parameters
         waiting_for_msg_type = True
         parameter_index = -1
         msg.append_parameters(parameters)
         parameters = {}
         bytes_to_read_next = 1
-        msg_callback(msg)
+        await msg_callback(msg)
 
     def get_implicit_length():
         # calculate it with parameter_index and remaining bytes
@@ -430,7 +431,7 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
 
     while True:
 
-        data = yield from client_reader.read(bytes_to_read_next)
+        data = await client_reader.read(bytes_to_read_next)
         if not data:  # this means the client disconnected
             break
 
@@ -481,7 +482,7 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
                 bytes_to_read_next = ProtocolConfig.PAYLOAD_LENGTH_BYTES
             # If not, the message is already complete
             else:
-                finalize_msg_and_prepare_for_next()
+                await finalize_msg_and_prepare_for_next()
 
         elif waiting_for_payload_length or not waiting_for_field_length:
             waiting_for_payload_length = False
@@ -526,18 +527,18 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
                     # If there are no more bytes, apparently the message is finished.
                     # This can be the case when no password is set.
                     if bytes_to_read_next == 0:
-                        finalize_msg_and_prepare_for_next()
+                        await finalize_msg_and_prepare_for_next()
 
             # there is no next parameter, so prepare for the next protocol message
             else:
-                finalize_msg_and_prepare_for_next()
+                await finalize_msg_and_prepare_for_next()
 
         elif waiting_for_field_length:
             # next is to read the actual data
             waiting_for_field_length = False
 
         # This enables us to have flow control in our connection.
-        yield from client_writer.drain()
+        await client_writer.drain()
 
 
 def _msg_type_from_bytes(data) -> ProtocolMessageType:
