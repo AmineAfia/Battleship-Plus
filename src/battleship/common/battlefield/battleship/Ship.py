@@ -80,14 +80,6 @@ class Ship:
         else:
             return False
 
-    def alive(self):
-        for i in range(self._x_length):
-            for j in range(self._y_length):
-                [(x, y), state] = self._ship_state[i][j]
-                if (state == 0):
-                    return True
-        return False
-
     def getShipType(self):
         return self._ship_type
 
@@ -162,11 +154,13 @@ class Ship:
                     hit_counter = 1 + hit_counter
 
                 if (x == x_pos and y == y_pos):
-                    self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 1]
+                    self._ship_state[i][j] = [(x, y), (1)]
                     self._hit = True
+                    hit_counter = 1 + hit_counter
 
         if (hit_counter >= (self._x_length * self._y_length)):
             self._sunk = True
+            print("{} versenkt!".format(self._ship_type))
 
 
 

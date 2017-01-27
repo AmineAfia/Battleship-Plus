@@ -20,60 +20,79 @@ class GameController:
 
     #move your own ship on your battlefield
     def move(self, battlefield, ship_id, direction):
-        if (battlefield.move(ship_id, direction)):
-            print("ship:{} moved to:{}".format(ship_id, direction))
-        else:
-            print("error - ship not moved")
+        if (self._game_started):
+            if (battlefield.move(ship_id, direction)):
+                print("ship:{} moved to:{}".format(ship_id, direction))
+            else:
+                print("error - ship not moved")
 
     #strike at the coordinates on the enemy battlefield
     def strike(self, battlefield, x_pos, y_pos):
-        print("strike at x={},y={}".format(x_pos, y_pos))
-        if (battlefield.strike(x_pos, y_pos)):
-            print("got it!")
-        else:
-            print("fail!")
+        if (self._game_started):
+            print("strike at x={},y={}".format(x_pos, y_pos))
+            if (battlefield.strike(x_pos, y_pos)):
+                print("got it!")
+            else:
+                print("fail!")
 
     def startGame(self, battlefield):
         if (battlefield.placementFinished()):
+            self._game_started = True
             print("game started")
         else:
+            self._game_started = False
             print("placement not finished")
 
 
 
-    #run the game controller
-    #first: create all ships with unique index
-    #second: create a new battlefield with a fixed length and ships
-    #third: ship placement
-    #forth: start game
-    #sixth: shoot or move until game is finished
-    def run(self):
-        print("creating battlefield with ships...")
+    #run the game controller with parameter:
+    #   battlefieldlength
+    #   ships_table: carrier, battleship, cruiser, destroyer, submarine
+    def run(self, length, ships_table):
 
-        #size = 5x5
-        length = 5
-        #added a Battleship ship_id=1, x=1, y=1, orientation = 0(north) or 1(east)
-        #ships.append(Battleship(0,0,0,1))
-        #ships.append(Cruiser(1,0,0,1))
-        #ships.append(Destroyer(2,0,0,1))
-        #ships.append(Submarine(3,0,0,1))
-        ships = []
+        if len(ships_table) == 5:
+            if (length < 27 or length > 9):
 
-        ships.append(AircraftCarrier(4, 0, 0,Orientation.EAST))
-        ships.append(AircraftCarrier(5, 0, 0, Orientation.EAST))
+                #create ships
+                id = 1
+                ships = []
+                for i in range(5):
+                    shipCount = ships_table[i]
+                    for _ in range(shipCount):
+                        if (i == 0):
+                            ships.append(AircraftCarrier(id, 0, 0,Orientation.EAST))
+                        if (i == 1):
+                            ships.append(Battleship(id, 0, 0, Orientation.EAST))
+                        if (i == 2):
+                            ships.append(Cruiser(id, 0, 0,Orientation.EAST))
+                        if (i == 3):
+                            ships.append(Destroyer(id, 0, 0,Orientation.EAST))
+                        if (i == 4):
+                            ships.append(Submarine(id, 0, 0,Orientation.EAST))
+                        id = id + 1
 
-        battlefield = self.createBattlefield(length, ships)
-        #placed flag
-        battlefield.place(4, 0, 0, Orientation.EAST)
-        battlefield.place(5, 0, 2, Orientation.EAST)
+                #create battlefield
+                battlefield = self.createBattlefield(length, ships)
 
-        #if all ships are places
-        self.startGame(battlefield)
+                #ship placement
+                battlefield.place(1, 0, 0, Orientation.EAST)
+                battlefield.place(2, 0, 1, Orientation.EAST)
+
+                ####################################################################################
+                #if all ships are places and the game starts
+                self.startGame(battlefield)
 
 
-        self.move(battlefield, 4, Direction.EAST)
+                self.move(battlefield, 1, Direction.EAST)
 
-        #self.strike(battlefield, 0, 0)
-        #self.strike(battlefield,10,10)
-        #self.strike(battlefield,0,0)
+                self.strike(battlefield, 0, 0)
+                self.strike(battlefield,1,0)
+                self.strike(battlefield,2,0)
+
+                #self.move(battlefield, 2, Direction.NORTH)
+
+            else:
+                print("wrong length")
+        else:
+            print("wrong number of ships")
 

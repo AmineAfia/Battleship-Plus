@@ -9,8 +9,12 @@ def main():
 
 if __name__ == '__main__':
 
+
+    length = 10
+    ships = [0,0,0,0,2]
+
     myController = GameController()
-    myController.run()
+    myController.run(length, ships)
 
     sys.exit(main())
 
