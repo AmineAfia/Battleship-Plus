@@ -30,8 +30,11 @@ class MyServer:
         MyServer.next_client_id += 1
         print("< [{}] client connected".format(client_id))
 
-        def msg_callback(msg: ProtocolMessage):
+        async def msg_callback(msg: ProtocolMessage):
             print("< [{}] {}".format(client_id, msg))
+            answer: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.CHAT_RECV, {"sender": "sender", "recipient": "recipient", "text": "fuck. you."})
+            print("> [{}] {}".format(client_id, answer))
+            await answer.send(client_writer)
 
         # start a new Task to handle this specific client connection
         task = asyncio.Task(parse_from_stream(client_reader, client_writer, msg_callback))
