@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, IntFlag
 
 
 class Constants:
@@ -56,3 +56,7 @@ class ErrorCode(IntEnum):
     PARAMETER_INVALID_SHIP_ID = 113
     PARAMETER_SHIP_IMMOVABLE = 114
     PARAMETER_INVALID_TURN_COUNT = 115
+
+
+class GameOptions(IntFlag):
+    PASSWORD = 128
