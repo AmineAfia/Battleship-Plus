@@ -12,9 +12,7 @@ class Battlefield:
         self._ships = ships
         self._my_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
         self._enemy_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
-        print("New Battlefield created with size {}x{} with ships:".format(length, length))
-        for ship in ships:
-            print (ship.getShipType())
+        print("New Battlefield created with size {}x{}".format(length, length))
 
     #move a ship one position further
     def move(self, ship_id, direction):
@@ -120,14 +118,12 @@ class Battlefield:
                 return False
         return True
 
-        #collision detection
+    def getNextUnplacedShipId(self):
         for ship in self._ships:
-            shipCoordinates = ship.getShipCoordinates()
-            print(shipCoordinates)
-            for coordinates in shipCoordinates:
-                if not (self.noShipAtPlaceBut(coordinates[0], coordinates[1], ship.getShipId())):
-                    return False
-        return Tr
+            if not (ship.isPlaced):
+                return ship.getShipId()
+        return 0
+
 
 
 
