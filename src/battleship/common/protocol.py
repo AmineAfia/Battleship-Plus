@@ -276,25 +276,48 @@ ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
     ProtocolMessageType.ERROR: [_field_error_code]
 }
 
+ProtocolMessageRepeatingTypes: List[ProtocolMessageType] = [ProtocolMessageType.GAMES]
+
 
 class ProtocolMessage(object):
 
-    def __init__(self, msg_type: ProtocolMessageType, parameters: dict=None):
+    def __init__(self, msg_type: ProtocolMessageType, repeating_parameters: list=None):
         self.type = msg_type
-        if parameters is None:
-            self.parameters = {}
+        if repeating_parameters is None or repeating_parameters == []:
+            self.repeating_parameters = [{}]
         else:
-            self.parameters = parameters
+            self.repeating_parameters = repeating_parameters
+
+    @classmethod
+    def create_repeating(cls, msg_type: ProtocolMessageType, repeating_parameters: list):
+        if type(repeating_parameters) is not list:
+            raise ValueError("Parameters must be a list")
+        return cls(msg_type, repeating_parameters)
+
+    @classmethod
+    def create_single(cls, msg_type: ProtocolMessageType, parameters: dict=None):
+        if parameters is None:
+            parameters = {}
+        elif type(parameters) is not dict:
+            raise ValueError("Parameters must be a dictionary")
+        return cls(msg_type, [parameters])
 
     def __str__(self):
-        s = "{}: {{".format(self.type.name)
-        for key, value in self.parameters.items():
-            if isinstance(value, Enum):
-                s += "{}: {}, ".format(key, value.name)
-            else:
-                s += "{}: {}, ".format(key, value)
-        s += "}"
+        s = "{}:".format(self.type.name)
+        for parameters in self.repeating_parameters:
+            s += _protocol_parameters_to_str(parameters)
+            s += ", "
         return s
+
+    @property
+    def parameters(self):
+        return self.repeating_parameters[0]
+
+    def append_parameters(self, parameters: dict):
+        if len(self.repeating_parameters) == 1 and self.repeating_parameters[0] == {}:
+            self.repeating_parameters[0] = parameters
+        else:
+            self.repeating_parameters.append(parameters)
 
     # TODO: this should be wrapped in an connection class, with some logic to prevent overlapping protocol messages,
     # TODO: sort of a scheduler, no rather a queue
@@ -311,55 +334,49 @@ class ProtocolMessage(object):
 
         num_fields = len(ProtocolMessageParameters[self.type])
 
-        # send each parameter with length and value in the defined order
-        for num_field, protocol_field in enumerate(ProtocolMessageParameters[self.type]):
-            last_field = (num_field == num_fields-1)
+        for parameters in self.repeating_parameters:
+            # send each parameter with length and value in the defined order
+            for num_field, protocol_field in enumerate(ProtocolMessageParameters[self.type]):
+                #last_field = (num_field == num_fields-1)
 
-            try:
-                parameter_value = self.parameters[protocol_field.name]
-            except KeyError:
-                if protocol_field.optional:
-                    # Now handle the different cases in the protocol.
-                    if self.type == ProtocolMessageType.CREATE_GAME and (self.parameters["options"] & GameOptions.PASSWORD):
-                        raise AttributeError("Send ProtocolMessage: missing password, but options say there shoud be one.")
-                    # In case of JOIN_GAME, we simply don't know at this layer, if a password is needed.
-                    # So just don't send one.
+                try:
+                    parameter_value = parameters[protocol_field.name]
+                except KeyError:
+                    if protocol_field.optional:
+                        # Now handle the different cases in the protocol.
+                        if self.type == ProtocolMessageType.CREATE_GAME and (parameters["options"] & GameOptions.PASSWORD):
+                            raise AttributeError("Send ProtocolMessage: missing password, but options say there shoud be one.")
+                        # In case of JOIN_GAME, we simply don't know at this layer, if a password is needed.
+                        # So just don't send one.
+                        else:
+                            continue
                     else:
-                        continue
+                        raise AttributeError("Send ProtocolMessage: missing parameter {}".format(parameter_value))
+
+                # TODO: can this be done the pythonic way without checking the type? See https://stackoverflow.com/a/154156
+                if type(parameter_value) is str:
+                    parameter_bytes = parameter_value.encode(encoding=ProtocolConfig.STR_ENCODING)
+                elif type(parameter_value) in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
+                    parameter_bytes = _bytes_from_int(parameter_value, length=protocol_field.length)
+                elif type(parameter_value) is NumShips:
+                    parameter_bytes = parameter_value.to_bytes()
                 else:
-                    raise AttributeError("Send ProtocolMessage: missing parameter {}".format(parameter_value))
+                    print("ERROR(send): unimplemented parameter type: {}".format(type(parameter_value)))
 
-            # TODO: can this be done the pythonic way without checking the type? See https://stackoverflow.com/a/154156
-            if type(parameter_value) is str:
-                parameter_bytes = parameter_value.encode(encoding=ProtocolConfig.STR_ENCODING)
-            elif type(parameter_value) in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
-                parameter_bytes = _bytes_from_int(parameter_value, length=protocol_field.length)
-            elif type(parameter_value) is NumShips:
-                parameter_bytes = parameter_value.to_bytes()
-            else:
-                print("ERROR(send): unimplemented parameter type: {}".format(type(parameter_value)))
+                # length field?
+                # if not last_field and not protocol_field.fixed_length:
+                if not protocol_field.fixed_length and not protocol_field.implicit_length:
+                    # We have a length field for this field. And it has length 1 by definition
+                    parameter_bytes_length = len(parameter_bytes)
+                    msg_bytes_payload += _bytes_from_int(parameter_bytes_length)
 
-            # length field?
-            # if not last_field and not protocol_field.fixed_length:
-            if not protocol_field.fixed_length and not protocol_field.implicit_length:
-                # We have a length field for this field. And it has length 1 by definition
-                parameter_bytes_length = len(parameter_bytes)
-                # if parameter_bytes_length > 1:
-                #     raise ValueError("Parameter value for field {} in msg {} is too large to fit into 1 byte".format(
-                #         protocol_field.name, self.type.name))
-                msg_bytes_payload += _bytes_from_int(parameter_bytes_length)
+                # data
+                msg_bytes_payload += parameter_bytes
 
-            # data
-            msg_bytes_payload += parameter_bytes
-
-            # print("{}({}, {} byte)={}, ".format(
-            #     protocol_field.name, type(parameter_value), protocol_field.length_bytes, parameter_value), end="")
+                # print("{}({}, {} byte)={}, ".format(
+                #     protocol_field.name, type(parameter_value), protocol_field.length_bytes, parameter_value), end="")
 
         msg_bytes_payload_length = len(msg_bytes_payload)
-
-        # if msg_bytes_payload_length > 255:
-        #    raise ValueError("Msg {} has to many bytes ({} > {}) to fit into one protocol message".format(
-        #        self.type.name, msg_bytes_payload_length, 255))
 
         # this raises OverflowError if the payload is too long
         msg_bytes_length = _bytes_from_int(msg_bytes_payload_length, length=ProtocolConfig.PAYLOAD_LENGTH_BYTES)
@@ -387,13 +404,16 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
     parameter_index: int = -1
     parameter_count: int = 0
     parameter: ProtocolField = None
+    parameters: dict = {}
     waiting_for_field_length: bool = False
     waiting_for_payload_length: bool = False
 
     def finalize_msg_and_prepare_for_next():
-        nonlocal waiting_for_msg_type, parameter_index, bytes_to_read_next
+        nonlocal waiting_for_msg_type, parameter_index, bytes_to_read_next, parameters
         waiting_for_msg_type = True
         parameter_index = -1
+        msg.append_parameters(parameters)
+        parameters = {}
         bytes_to_read_next = 1
         msg_callback(msg)
 
@@ -425,28 +445,29 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
             msg_remaining_payload_bytes = msg_payload_bytes
 
         elif waiting_for_field_length:
+            msg_remaining_payload_bytes -= bytes_to_read_next
             bytes_to_read_next = _int_from_bytes(data)
 
         else:
             msg_remaining_payload_bytes -= bytes_to_read_next
 
             if parameter.type is str:
-                msg.parameters[parameter.name] = _str_from_bytes(data)
+                parameters[parameter.name] = _str_from_bytes(data)
             elif parameter.type is int:
-                msg.parameters[parameter.name] = _int_from_bytes(data)
+                parameters[parameter.name] = _int_from_bytes(data)
             # TODO: this is a lot of repetition, can this be generalized?
             elif parameter.type is Orientation:
-                msg.parameters[parameter.name] = Orientation(_int_from_bytes(data))
+                parameters[parameter.name] = Orientation(_int_from_bytes(data))
             elif parameter.type is Direction:
-                msg.parameters[parameter.name] = Direction(_int_from_bytes(data))
+                parameters[parameter.name] = Direction(_int_from_bytes(data))
             elif parameter.type is EndGameReason:
-                msg.parameters[parameter.name] = EndGameReason(_int_from_bytes(data))
+                parameters[parameter.name] = EndGameReason(_int_from_bytes(data))
             elif parameter.type is ErrorCode:
-                msg.parameters[parameter.name] = ErrorCode(_int_from_bytes(data))
+                parameters[parameter.name] = ErrorCode(_int_from_bytes(data))
             elif parameter.type is GameOptions:
-                msg.parameters[parameter.name] = GameOptions(_int_from_bytes(data))
+                parameters[parameter.name] = GameOptions(_int_from_bytes(data))
             elif parameter.type is NumShips:
-                msg.parameters[parameter.name] = NumShips.from_bytes(data)
+                parameters[parameter.name] = NumShips.from_bytes(data)
             else:
                 print("ERROR(parse_from_stream): unimplemented parameter type: {}".format(parameter.type))
 
@@ -464,9 +485,19 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
 
         elif waiting_for_payload_length or not waiting_for_field_length:
             waiting_for_payload_length = False
+
             # the next thing to do is read the length field of a parameter,
             # or the content of a parameter
             parameter_index += 1
+
+            # check if we have a repeating message type and
+            # if we are currently at the end, and there is more to come
+            if msg_type in ProtocolMessageRepeatingTypes:
+                if parameter_index == parameter_count:
+                    if msg_remaining_payload_bytes > 0:
+                        parameter_index = 0
+                        msg.append_parameters(parameters)
+                        parameters = {}
 
             # Is there is a next parameter?
             if parameter_index < parameter_count:
@@ -523,3 +554,14 @@ def _str_from_bytes(data: bytes) -> str:
 
 def _bytes_from_int(data: int, length: int=1) -> bytes:
     return data.to_bytes(length, byteorder=ProtocolConfig.BYTEORDER, signed=False)
+
+
+def _protocol_parameters_to_str(parameters: dict) -> str:
+    s = "{"
+    for key, value in parameters.items():
+        if isinstance(value, Enum):
+            s += "{}: {}, ".format(key, value.name)
+        else:
+            s += "{}: {}, ".format(key, value)
+    s += "}"
+    return s
