@@ -65,15 +65,15 @@ class GameController:
         battlefield = self.createBattlefield(length, ships)
         #placed flag
         battlefield.place(4, 0, 0, Orientation.EAST)
-        #battlefield.place(4, 0, 0, Orientation.EAST)
+        battlefield.place(5, 0, 2, Orientation.EAST)
 
         #if all ships are places
-        #self.startGame(battlefield)
+        self.startGame(battlefield)
 
 
-        #self.move(battlefield, 4, Direction.NORTH)
+        #self.move(battlefield, 4, Direction.SOUTH)
 
-        #self.strike(battlefield, 0, 0)
-        #self.strike(battlefield,10,10)
-        #sself.strike(battlefield,0,0)
+        self.strike(battlefield, 0, 0)
+        self.strike(battlefield,10,10)
+        self.strike(battlefield,0,0)
 

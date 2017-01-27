@@ -18,7 +18,8 @@ class Ship:
         self._y_length = y_length
         self._orientation = orientation
         self._placed = False
-        self._hit_counter = 0
+        self._hit = False
+        self._sunk = False
         #self._ship_state = [[] for _ in range (x_length + y_length - 1)]
 
         self._ship_state = [[[] for _ in range (y_length)] for _ in range (x_length)]
@@ -35,9 +36,6 @@ class Ship:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
 
 
-        print (self._ship_state)
-
-
         print("Created Ship: {} with ship_id: {}".format(self._ship_type, self._ship_id))
         print("Fixed at x={}, y={}, orientation={}".format(x_pos, y_pos,orientation))
         print("Size = {}x{}".format(self._x_length, self._y_length))
@@ -50,6 +48,7 @@ class Ship:
                     for j in range(self._y_length):
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x, y - 1), state]
+                        self._y_pos = self._y_pos - 1
                 print(self._ship_state)
                 #self._y_pos = self._y_pos - 1
             if (direction == Direction.EAST):
@@ -57,6 +56,7 @@ class Ship:
                     for j in range(self._y_length):
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x + 1, y), state]
+                        self._x_pos = self._x_pos + 1
                 print(self._ship_state)
                 #self._x_pos = self._x_pos + 1
             if (direction == Direction.SOUTH):
@@ -64,6 +64,7 @@ class Ship:
                     for j in range(self._y_length):
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x, y + 1), state]
+                        self._y_pos = self._y_pos + 1
                 print(self._ship_state)
                 #self._y_pos = self._y_pos + 1
             if (direction == Direction.WEST):
@@ -71,6 +72,7 @@ class Ship:
                     for j in range(self._y_length):
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x - 1, y), state]
+                        self._x_pos = self._x_pos - 1
                 print(self._ship_state)
                 #self._x_pos = self._x_pos - 1
             #print("move ship={} to x={} y={}".format(self._ship_id, self._x_pos, self._y_pos))
@@ -83,14 +85,6 @@ class Ship:
             for j in range(self._y_length):
                 [(x, y), state] = self._ship_state[i][j]
                 if (state == 0):
-                    return True
-        return False
-
-    def strikeAtPosition(self, x_pos, y_pos):
-        for i in range(self._x_length):
-            for j in range(self._y_length):
-                if (self._ship_state[i][j] == [(x_pos, y_pos), self._ship_state[i][j][1]]):
-                    self._ship_state[i][j] = [(self._ship_state[i][j][0]), 1]
                     return True
         return False
 
@@ -151,6 +145,29 @@ class Ship:
 
     def isPlaced(self):
         return self._placed
+
+    def isHit(self):
+        return self._hit
+
+    def isSunk(self):
+        return self._sunk
+
+    def strike(self, x_pos, y_pos):
+        hit_counter = 0
+        for i in range(self._x_length):
+            for j in range(self._y_length):
+                [(x, y), state] = self._ship_state[i][j]
+
+                if (state == 1):
+                    hit_counter = 1 + hit_counter
+
+                if (x == x_pos and y == y_pos):
+                    self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 1]
+                    self._hit = True
+
+        if (hit_counter >= (self._x_length * self._y_length)):
+            self._sunk = True
+
 
 
 
