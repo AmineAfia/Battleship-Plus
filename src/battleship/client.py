@@ -47,7 +47,10 @@ def main():
             yield from _send_and_wait(ProtocolMessage(ProtocolMessageType.CHAT_SEND, {"username": "testuser", "text": "bummsfallerafalleri hurz"}))
 
             yield from _send_and_wait(ProtocolMessage(ProtocolMessageType.MOVE, {"turn_counter": 2, "ship_id": 146579, "direction": Orientation.EAST}))
-            
+
+            yield from _send_and_wait(ProtocolMessage(ProtocolMessageType.GAME, {
+                "game_id": 60000, "username": "you", "board_size": 7, "num_ships": NumShips([1, 2, 3, 4, 5]), "round_time": 25, "options": GameOptions.PASSWORD}))
+
             yield from _send_and_wait(ProtocolMessage(ProtocolMessageType.JOIN, {"game_id": 60000, "password": "bumms"}))
             yield from _send_and_wait(ProtocolMessage(ProtocolMessageType.JOIN, {"game_id": 60001}))
 

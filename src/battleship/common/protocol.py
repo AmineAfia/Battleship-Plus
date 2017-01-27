@@ -366,12 +366,12 @@ class ProtocolMessage(object):
 
         print("> {}".format(self))
         writer.write(msg_bytes_type)
-        print("type({})".format(msg_bytes_type))
+        #print("type({})".format(msg_bytes_type))
         if num_fields > 0:
             writer.write(msg_bytes_length)
-            print("length({})".format(msg_bytes_length))
+            #print("length({})".format(msg_bytes_length))
             writer.write(msg_bytes_payload)
-            print("payload({})".format(msg_bytes_payload))
+            #print("payload({})".format(msg_bytes_payload))
 
         # print(".", flush=True)
 
@@ -396,6 +396,17 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
         parameter_index = -1
         bytes_to_read_next = 1
         msg_callback(msg)
+
+    def get_implicit_length():
+        # calculate it with parameter_index and remaining bytes
+        accumulated_length_of_remaining_params: int = 0
+        for other_param in ProtocolMessageParameters[msg_type][parameter_index+1:]:
+            try:
+                accumulated_length_of_remaining_params += other_param.length
+            except:
+                # TODO: if length is not defined for the parameter, this is not a valid protocol message type
+                pass
+        return msg_remaining_payload_bytes - accumulated_length_of_remaining_params
 
     while True:
 
@@ -480,8 +491,7 @@ def parse_from_stream(client_reader, client_writer, msg_callback):
                 # bytes belong to this field
                 else:
                     waiting_for_field_length = False
-                    bytes_to_read_next = msg_remaining_payload_bytes
-                    # TODO: function that calculates the implicit length for a given msg type, given the msg_payload_bytes
+                    bytes_to_read_next = get_implicit_length()
                     # If there are no more bytes, apparently the message is finished.
                     # This can be the case when no password is set.
                     if bytes_to_read_next == 0:
