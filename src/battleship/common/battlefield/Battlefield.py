@@ -35,8 +35,8 @@ class Battlefield:
                     y_pos = y_pos - 1
 
                 if (self.noBorderCrossing(x_pos, y_pos)):
-                    if (not ship.isHit()):
-                        if (self.noShipAtPlace(x_pos, y_pos)):
+                    if not (ship.isHit()):
+                        if (self.noShipAtPlaceBut(x_pos, y_pos, ship.getShipId())):
                             if (self.noStrikeAtPlace(x_pos, y_pos)):
                                 ship.move(direction)
                                 return True

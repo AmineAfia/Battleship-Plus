@@ -42,7 +42,7 @@ class Ship:
 
     #move the ship to 0=north 1=east 2=south 3=west
     def move(self, direction):
-        if (self._hit_counter == 0 and direction >= 0 and direction <=3):
+        if (direction >= 0 and direction <=3):
             if (direction == Direction.NORTH):
                 for i in range(self._x_length):
                     for j in range(self._y_length):

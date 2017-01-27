@@ -71,9 +71,9 @@ class GameController:
         self.startGame(battlefield)
 
 
-        #self.move(battlefield, 4, Direction.SOUTH)
+        self.move(battlefield, 4, Direction.EAST)
 
-        self.strike(battlefield, 0, 0)
-        self.strike(battlefield,10,10)
-        self.strike(battlefield,0,0)
+        #self.strike(battlefield, 0, 0)
+        #self.strike(battlefield,10,10)
+        #self.strike(battlefield,0,0)
 
