@@ -30,6 +30,10 @@ def main():
         battleship_client = BattleshipClient(Constants.SERVER_IP, Constants.SERVER_PORT, loop, msg_callback, closed_callback)
         await battleship_client.connect()
 
+        # the following messages are just to test
+        # normally you can just call `await battleship_client.send(msg)`
+        # await is necessary because it's asynchronous
+
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.LOGIN,
                                                     {"username": "testuser{}".format(i)}))
 

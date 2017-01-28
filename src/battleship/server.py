@@ -9,6 +9,14 @@ from common.protocol import ProtocolMessage, ProtocolMessageType
 def main():
     loop = asyncio.get_event_loop()
 
+    # This gets called whenever a new client connects. The parameter `client`
+    # is of type BattleshipServerClient and holds a unique id, the reader and the writer.
+    # and it has a send method that sends a ProtocolMessage
+    # This callback has to return two other callbacks, one for messages and one for the
+    # event that the client disconnects.
+    # The idea is that these two callbacks are defined inside the client_connected function,
+    # because then they implicitly have access to objects created inside client_connected,
+    # for example a GameController.
     def client_connected(client):
 
         def client_disconnected():
