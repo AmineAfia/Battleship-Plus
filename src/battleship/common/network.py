@@ -23,12 +23,12 @@ class BattleshipClient:
         self.reader, self.writer = await asyncio.streams.open_connection(
             self.server, self.port, loop=self.loop)
         self.receiving_task = asyncio.Task(parse_from_stream(self.reader, self.writer, self.msg_callback))
-        self.receiving_task.add_done_callback(self._server_closed_connection())
+        self.receiving_task.add_done_callback(self._server_closed_connection)
 
     async def send(self, msg: ProtocolMessage):
         await msg.send(self.writer)
 
-    def _server_closed_connection(self):
+    def _server_closed_connection(self, task):
         self.closed_callback()
 
     def close(self):
