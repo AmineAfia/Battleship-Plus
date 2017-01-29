@@ -1,7 +1,7 @@
 import urwid
 from pyfiglet import Figlet
 
-from lobby.lobby import Lobby
+from .lobby.lobby import Lobby
 
 
 class Welcome:

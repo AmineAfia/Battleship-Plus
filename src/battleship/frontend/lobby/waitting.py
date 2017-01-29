@@ -1,7 +1,7 @@
 import urwid
 from pyfiglet import Figlet
 
-from game.battle import Battle
+from ..game.battle import Battle
 
 
 class Waiting:
