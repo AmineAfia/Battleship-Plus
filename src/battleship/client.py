@@ -19,16 +19,11 @@ def main():
     game_id = 1
     my_controller = GameController(game_id)
 
-    #cmd = ""
-    #while (cmd != "exit"):
-        #cmd = input("Was du wolle?")
-        #print (cmd)
-
     try:
 
         #CREATE THE BATTLEFIELD
-        length = 1
-        ships = [0, 0, 0, 0, 1]
+        length = 10
+        ships = [0, 0, 0, 1, 1]
         cmd = ["create", length, ships]
         my_controller.run(cmd)
 
@@ -38,6 +33,17 @@ def main():
         y_pos = 0
         orientation = Orientation.EAST
         cmd = ["place", ship_id, x_pos, y_pos, orientation]
+        my_controller.run(cmd)
+
+        ship_id = 2
+        x_pos = 0
+        y_pos = 1
+        orientation = Orientation.EAST
+        cmd = ["place", ship_id, x_pos, y_pos, orientation]
+        my_controller.run(cmd)
+
+        #START
+        cmd = ["start"]
         my_controller.run(cmd)
 
         # MOVE YOUR SHIP
@@ -62,10 +68,8 @@ def main():
         cmd = ["abort"]
         my_controller.run(cmd)
 
-    except ValueError as e:
-        print("lol fail")
     except BattleshipError as e:
-        print("noob: {}".format(e))
+        print("{}".format(e))
 
 
 
