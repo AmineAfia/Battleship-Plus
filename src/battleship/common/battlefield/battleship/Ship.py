@@ -36,9 +36,7 @@ class Ship:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
 
 
-        print("Created Ship: {} with ship_id: {}".format(self._ship_type, self._ship_id))
-        print("Fixed at x={}, y={}, orientation={}".format(x_pos, y_pos,orientation))
-        print("Size = {}x{}".format(self._x_length, self._y_length))
+        print("{} created. ship_id: {}. size = {}x{}".format(self._ship_type, self._ship_id, self._x_length, self._y_length))
 
     #move the ship to 0=north 1=east 2=south 3=west
     def move(self, direction):
@@ -49,7 +47,7 @@ class Ship:
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x, y - 1), state]
                         self._y_pos = self._y_pos - 1
-                print(self._ship_state)
+
                 #self._y_pos = self._y_pos - 1
             if (direction == Direction.EAST):
                 for i in range(self._x_length):
@@ -57,7 +55,7 @@ class Ship:
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x + 1, y), state]
                         self._x_pos = self._x_pos + 1
-                print(self._ship_state)
+
                 #self._x_pos = self._x_pos + 1
             if (direction == Direction.SOUTH):
                 for i in range(self._x_length):
@@ -65,7 +63,7 @@ class Ship:
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x, y + 1), state]
                         self._y_pos = self._y_pos + 1
-                print(self._ship_state)
+
                 #self._y_pos = self._y_pos + 1
             if (direction == Direction.WEST):
                 for i in range(self._x_length):
@@ -73,9 +71,9 @@ class Ship:
                         [(x,y), state] = self._ship_state[i][j]
                         self._ship_state[i][j] = [(x - 1, y), state]
                         self._x_pos = self._x_pos - 1
-                print(self._ship_state)
                 #self._x_pos = self._x_pos - 1
             #print("move ship={} to x={} y={}".format(self._ship_id, self._x_pos, self._y_pos))
+            print("Ship: {} moved to: {}".format(self._ship_id, self._ship_state))
             return True
         else:
             return False
@@ -133,7 +131,7 @@ class Ship:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
 
         self._placed = True
-        print(self._ship_state)
+        print("Ship: {} placed: {}".format(self._ship_id, self._ship_state))
 
     def isPlaced(self):
         return self._placed

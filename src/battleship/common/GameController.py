@@ -9,15 +9,17 @@ from .constants import Orientation, Direction
 #Controller for Battleship+
 class GameController:
 
-    def __init__(self):
+    def __init__(self, game_id):
         self._battlefield = object
         self._turn_counter = 0
         self._game_started = False
+        self._game_id = game_id
 
 
     #create a new battlefield
     def createBattlefield(self, length, ships):
         self._battlefield = Battlefield(length, ships)
+        print("Battlefield {}x{} created.".format(length, length))
 
     def placeShip(self, ship_id, x_pos, y_pos, orientation):
         self._battlefield.place(ship_id, x_pos, y_pos, orientation)
@@ -25,8 +27,7 @@ class GameController:
     def startGame(self):
         if (self._battlefield.placementFinished()):
             self._game_started = True
-            print("All ships are well placed.")
-            print("Game started!")
+            print("All ships are well placed. Game: {} started!".format(self._game_id))
         else:
             self._game_started = False
             print("Placement not finished.")
@@ -53,6 +54,11 @@ class GameController:
         if (self._game_started):
             print("shoot at x={}, y={}".format(x_pos, y_pos))
             self._battlefield.shoot(x_pos, y_pos)
+
+    def abort(self):
+        print("Game: {} aborted!".format(self._game_id))
+        self = None
+
 
 
 
@@ -126,6 +132,10 @@ class GameController:
             y_pos = cmd[2]
 
             self.shoot(x_pos, y_pos)
+
+        if (cmd[0] == "abort"):
+            self.abort()
+
 
 
 

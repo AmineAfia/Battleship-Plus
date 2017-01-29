@@ -16,7 +16,8 @@ if __name__ == '__main__':
             #print(msg.parameters["recipient"])
             #pass
 
-    my_controller = GameController()
+    game_id = 1
+    my_controller = GameController(game_id)
 
     #cmd = ""
     #while (cmd != "exit"):
@@ -53,6 +54,10 @@ if __name__ == '__main__':
     x_pos = 0
     y_pos = 0
     cmd = ["shoot", x_pos, y_pos]
+    my_controller.run(cmd)
+
+    #ABORT
+    cmd = ["abort"]
     my_controller.run(cmd)
 
 
