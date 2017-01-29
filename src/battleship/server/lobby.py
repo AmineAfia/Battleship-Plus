@@ -24,11 +24,16 @@ class ServerLobbyController:
         else:
             return False
 
-    def print_client(self, client, str):
-        print("  [{}] {}".format(client.id, str))
+    def print_client(self, client, text):
+        print("  [{}] {}".format(client.id, text))
 
     async def msg_to_user(self, msg, user):
         await self.users[user].send(msg)
+
+    # send message to all logged in users
+    async def msg_to_all(self, msg):
+        for username, user in self.users.items():
+            await user.send(msg)
 
     async def handle_msg(self, client, msg: ProtocolMessage):
 
