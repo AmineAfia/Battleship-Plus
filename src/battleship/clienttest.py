@@ -35,40 +35,40 @@ def main():
         # await is necessary because it's asynchronous
 
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.LOGIN,
-                                                    {"username": "testuser{}".format(i)}))
+                                                    {"username": "testuser{}".format(client_id)}))
 
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
-                                        {"board_size": 5,
-                                         "num_ships": NumShips([1, 2, 3, 4, 5]),
-                                         "round_time": 25,
-                                         "options": GameOptions.PASSWORD,
-                                         "password": "foobar"
-                                             }))
+        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
+        #                                 {"board_size": 5,
+        #                                  "num_ships": NumShips([1, 2, 3, 4, 5]),
+        #                                  "round_time": 25,
+        #                                  "options": GameOptions.PASSWORD,
+        #                                  "password": "foobar"
+        #                                      }))
+        #
+        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
+        #                                 {"board_size": 5,
+        #                                  "num_ships": NumShips([1, 2, 3, 4, 5]),
+        #                                  "round_time": 25,
+        #                                  "options": 0
+        #                                      }))
 
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
-                                        {"board_size": 5,
-                                         "num_ships": NumShips([1, 2, 3, 4, 5]),
-                                         "round_time": 25,
-                                         "options": 0
-                                             }))
-
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "testuser", "text": "bummsfallerafalleri hurz"}))
-
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.MOVE, {"turn_counter": 2, "ship_id": 146579, "direction": Orientation.EAST}))
-
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.GAME, {
-            "game_id": 60000, "username": "you", "board_size": 7, "num_ships": NumShips([1, 2, 3, 4, 5]), "round_time": 25, "options": GameOptions.PASSWORD}))
-
-        await _send_and_wait(ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, [
-            {"game_id": 60000, "username": "you", "board_size": 7, "num_ships": NumShips([1, 2, 3, 4, 5]),
-                "round_time": 25, "options": GameOptions.PASSWORD},
-            {"game_id": 60001, "username": "she", "board_size": 8, "num_ships": NumShips([1, 2, 3, 4, 6]),
-                "round_time": 30, "options": 0},
-            {"game_id": 60002, "username": "they", "board_size": 9, "num_ships": NumShips([1, 2, 3, 4, 7]),
-             "round_time": 35, "options": GameOptions.PASSWORD}]))
-
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 60000, "password": "bumms"}))
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 60001}))
+        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "testuser{}".format((client_id + 1) % 2), "text": "hurz from client {}".format(client_id)}))
+        #
+        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.MOVE, {"turn_counter": 2, "ship_id": 146579, "direction": Orientation.EAST}))
+        #
+        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.GAME, {
+        #     "game_id": 60000, "username": "you", "board_size": 7, "num_ships": NumShips([1, 2, 3, 4, 5]), "round_time": 25, "options": GameOptions.PASSWORD}))
+        #
+        # await _send_and_wait(ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, [
+        #     {"game_id": 60000, "username": "you", "board_size": 7, "num_ships": NumShips([1, 2, 3, 4, 5]),
+        #         "round_time": 25, "options": GameOptions.PASSWORD},
+        #     {"game_id": 60001, "username": "she", "board_size": 8, "num_ships": NumShips([1, 2, 3, 4, 6]),
+        #         "round_time": 30, "options": 0},
+        #     {"game_id": 60002, "username": "they", "board_size": 9, "num_ships": NumShips([1, 2, 3, 4, 7]),
+        #      "round_time": 35, "options": GameOptions.PASSWORD}]))
+        #
+        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 60000, "password": "bumms"}))
+        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 60001}))
 
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.LOGOUT))
 
