@@ -22,19 +22,19 @@ class Battlefield:
                 x_pos = ship_coordinates[0][0]
                 y_pos = ship_coordinates[0][1]
 
-                if(direction == Direction.EAST):
+                if direction == Direction.EAST:
                     x_pos = x_pos + 1
-                if(direction == Direction.SOUTH):
+                if direction == Direction.SOUTH:
                     y_pos = y_pos + 1
-                if(direction == Direction.WEST):
+                if direction == Direction.WEST:
                     x_pos = x_pos - 1
-                if(direction == Direction.NORTH):
+                if direction == Direction.NORTH:
                     y_pos = y_pos - 1
 
-                if (self.noBorderCrossing(x_pos, y_pos)):
-                    if not (ship.isHit()):
-                        if (self.noShipAtPlaceBut(x_pos, y_pos, ship.getShipId())):
-                            if (self.noStrikeAtPlace(x_pos, y_pos)):
+                if self.noBorderCrossing(x_pos, y_pos):
+                    if not ship.isHit():
+                        if self.noShipAtPlaceBut(x_pos, y_pos, ship.getShipId()):
+                            if self.noStrikeAtPlace(x_pos, y_pos):
                                 ship.move(direction)
                                 return True
         return False
@@ -42,18 +42,18 @@ class Battlefield:
     #enemy strike
     #check if already shot at this place
     def strike(self, x_pos, y_pos):
-        if (self.noBorderCrossing(x_pos, y_pos)):
-            if (self._my_battlefield[x_pos][y_pos] == 1):
+        if self.noBorderCrossing(x_pos, y_pos):
+            if self._my_battlefield[x_pos][y_pos] == 1:
                 print("already shot at this part of a ship")
                 return False
-            elif (self._my_battlefield[x_pos][y_pos] == 2):
+            elif self._my_battlefield[x_pos][y_pos] == 2:
                 print("already missed at this place")
                 return False
             #shoot at hidden place
-            elif (self._my_battlefield[x_pos][y_pos] == 0):
+            elif self._my_battlefield[x_pos][y_pos] == 0:
                 self._my_battlefield[x_pos][y_pos] = 2
                 for ship in self._ships:
-                    if (ship.isShipAtLocation(x_pos, y_pos)):
+                    if ship.isShipAtLocation(x_pos, y_pos):
                         ship.strike(x_pos, y_pos)
                         self._my_battlefield[x_pos][y_pos] = 1
                         return True
@@ -62,15 +62,15 @@ class Battlefield:
 
     #shoot at enemy battlefield
     def shoot(self, x_pos, y_pos):
-        if ((x_pos * y_pos) >= len(self._enemy_battlefield)):
+        if (x_pos * y_pos) >= len(self._enemy_battlefield):
             #shoot at hidden field
-            if (self._enemy_battlefield[x_pos][y_pos] == 0):
+            if self._enemy_battlefield[x_pos][y_pos] == 0:
                 return True
             #shoot at already damaged ship
-            elif (self._enemy_battlefield[x_pos][y_pos] == 1):
+            elif self._enemy_battlefield[x_pos][y_pos] == 1:
                 return True
             #shoot at missed field again
-            elif (self._enemy_battlefield[x_pos][y_pos] == 2):
+            elif self._enemy_battlefield[x_pos][y_pos] == 2:
                 return True
             else:
                 return False
@@ -79,8 +79,8 @@ class Battlefield:
     #place the ship
     def place(self, ship_id, x_pos, y_pos, orientation):
         for ship in self._ships:
-            if (ship.getShipId() == ship_id):
-                if (self.noShipAtPlace(x_pos, y_pos)):
+            if ship.getShipId() == ship_id:
+                if self.noShipAtPlace(x_pos, y_pos):
                     ship.place(x_pos, y_pos, orientation)
                 else:
                     print("error a ship is already at this place")
@@ -88,25 +88,25 @@ class Battlefield:
 
     def noShipAtPlace(self, x_pos, y_pos):
         for ship in self._ships:
-            if (ship.isShipAtLocation(x_pos, y_pos)):
+            if ship.isShipAtLocation(x_pos, y_pos):
                 return False
         return True
 
     def noShipAtPlaceBut(self, x_pos, y_pos, ship_id):
         for ship in self._ships:
             if (ship.isShipAtLocation(x_pos, y_pos)):
-                if not (ship.getShipId() == ship_id):
+                if not ship.getShipId() == ship_id:
                     return False
         return True
 
     def noStrikeAtPlace(self, x_pos, y_pos):
-        if (self._my_battlefield[x_pos][y_pos] == 0):
+        if self._my_battlefield[x_pos][y_pos] == 0:
             return True
         else:
             return False
 
     def noBorderCrossing(self, x_pos, y_pos):
-        if(x_pos < self._length and y_pos < self._length and x_pos >= 0 and y_pos >= 0):
+        if x_pos < self._length and y_pos < self._length and x_pos >= 0 and y_pos >= 0:
             return True
         else:
             return False
@@ -119,7 +119,7 @@ class Battlefield:
 
     def getNextUnplacedShipId(self):
         for ship in self._ships:
-            if not (ship.isPlaced):
+            if not ship.isPlaced:
                 return ship.getShipId()
         return 0
 
