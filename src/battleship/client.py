@@ -1,4 +1,5 @@
 import sys
+
 from common.constants import Constants
 from frontend.welcome import Welcome
 

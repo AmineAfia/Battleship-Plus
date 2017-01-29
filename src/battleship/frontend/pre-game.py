@@ -1,36 +1,36 @@
 import urwid
 
 
-class ShowMessages:
-    def __init__(self):
-        self.reply = urwid.Text("hahahah")
-        self.palette = [('I say', 'default,bold', 'default', 'bold')]
-        self.ask = urwid.Edit(('I say', ""))
+def main():
+    term = urwid.Terminal(None)
 
-        self.button = urwid.Button('Send')
-        self.div = urwid.Divider()
-        self.pile = urwid.Pile([self.ask, self.div, self.reply, self.div, self.button])
-        self.top = urwid.Filler(self.pile, valign='top')
+    mainframe = urwid.LineBox(
+        urwid.Pile([
+            ('weight', 70, term),
+            ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
+        ]),
+    )
 
-    def on_write_message(self, edit, new_edit_text):
-        self.reply.set_text(('I say', "You: %s" % new_edit_text))
+    def set_title(widget, title):
+        mainframe.set_title(title)
 
-    def exit_on_q(key):
-        if key == 'esc':
-            raise urwid.ExitMainLoop()
+    def quit(*args, **kwargs):
+        raise urwid.ExitMainLoop()
 
-    def on_enter_clicked(self, key, new_edit_text):
-        if key == 'enter':
-            raise urwid.ExitMainLoop()
-            # self.reply.set_text(('I say', "You: %s" % new_edit_text))
+    def handle_key(key):
+        if key in ('q', 'Q'):
+            quit()
 
-            # urwid.connect_signal(self.ask, 'change', self.on_write_message)
-            # urwid.connect_signal(button, 'click', self.on_enter_clicked)
-            # self.ask.set_text("")
+    urwid.connect_signal(term, 'title', set_title)
+    urwid.connect_signal(term, 'closed', quit)
 
-    def render_messages(self):
-        urwid.MainLoop(self.top, self.palette, unhandled_input=self.on_enter_clicked).run()
+    loop = urwid.MainLoop(
+        mainframe,
+        handle_mouse=False,
+        unhandled_input=handle_key)
+
+    term.main_loop = loop
+    loop.run()
 
 if __name__ == '__main__':
-    s = ShowMessages()
-    s.render_messages()
+    main()

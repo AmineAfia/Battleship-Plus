@@ -3,22 +3,35 @@ import urwid
 
 from .waitting import Waiting
 
+
+class ShipsList:
+    ships_list = []
+    ships = (2, 0, 1, 0, 1)
+    info_pile = None
+
+    @staticmethod
+    def get_ships():
+        ShipsList.ships_list.append(urwid.Button(("carrier {}".format(ShipsList.ships[0]))))
+        ShipsList.ships_list.append(urwid.Button(('battleship {}'.format(ShipsList.ships[1]))))
+        ShipsList.ships_list.append(urwid.Button(('cruiser {}'.format(ShipsList.ships[2]))))
+        ShipsList.ships_list.append(urwid.Button(('destroyer {}'.format(ShipsList.ships[3]))))
+        ShipsList.ships_list.append(urwid.Button(('submarine {}'.format(ShipsList.ships[4]))))
+        ShipsList.info_pile = urwid.Pile(ShipsList.ships_list)
+
+
 class PopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with North, South, West and East buttons """
     signals = ['close']
 
     def __init__(self):
-        # n_button = urwid.Padding(urwid.Button("North"), width=1)
-        n_button = urwid.Button("North")
-        s_button = urwid.Button("South")
-        w_button = urwid.Button("West")
-        e_button = urwid.Button("East")
+        self.h_button = urwid.Button("Horizontal")
+        v_button = urwid.Button("Vertical")
 
-        # w, align='left', width=('relative', 100), min_width=None, left=0, right=0)
-
-        urwid.connect_signal(n_button, 'click',
+        urwid.connect_signal(self.h_button, 'click',
                              lambda button: self._emit("close"))
-        pile = urwid.Pile([n_button, urwid.Columns([w_button, e_button], 2), s_button])
+        direction_pile = urwid.LineBox(urwid.Pile([urwid.Columns([self.h_button, v_button], 2)]), 'Direction')
+        ships_pile = urwid.LineBox(ShipsList.info_pile, 'Ships')
+        pile = urwid.Pile([direction_pile, ships_pile])
         fill = urwid.Filler(pile)
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
@@ -36,13 +49,13 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         return pop_up
 
     def get_pop_up_parameters(self):
-        return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 7}
+        return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 8}
 
 
 class Join:
     def __init__(self):
-        self.shit = None
         self.field_offset = 10
+        ShipsList.get_ships()
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -94,7 +107,10 @@ class Join:
             ], 2),
             self.blank,
 
-            ship_pile,
+            urwid.Columns([
+                ship_pile,
+                urwid.LineBox(ShipsList.info_pile, 'Available Ships')
+            ], 2),
             self.blank,
             forward_button,
         ]
