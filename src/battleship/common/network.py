@@ -35,20 +35,6 @@ class BattleshipClient:
         self.writer.close()
 
 
-class BattleshipServerClient:
-
-    next_client_id = 1
-
-    def __init__(self, reader, writer):
-        self.reader = reader
-        self.writer = writer
-        self.id = BattleshipServerClient.next_client_id
-        BattleshipServerClient.next_client_id += 1
-
-    async def send(self, msg: ProtocolMessage):
-        await msg.send(self.writer)
-
-
 class BattleshipServer:
 
     def __init__(self, ip, port, loop, client_connected_callback):
@@ -75,9 +61,9 @@ class BattleshipServer:
 
         # start a new Task to handle this specific client connection
         task = asyncio.Task(parse_from_stream(client_reader, client_writer, internal_msg_callback))
-        client_obj = BattleshipServerClient(client_reader, client_writer)
-        self.clients[task] = client_obj
-        external_msg_callback, external_disconnected_callback = self.client_connected_callback(client_obj)
+        self.clients[task] = (client_reader, client_writer)
+        external_msg_callback, external_disconnected_callback = self.client_connected_callback(client_reader,
+                                                                                               client_writer)
         if not inspect.iscoroutinefunction(external_msg_callback):
             raise TypeError("msg_callback must be a coroutine")
         task.add_done_callback(internal_client_done)

@@ -11,6 +11,7 @@ class ProtocolConfig:
     BYTEORDER = 'little'
     STR_ENCODING = 'utf-8'
     PAYLOAD_LENGTH_BYTES = 2
+    CHAT_MAX_TEXT_LENGTH = 63
 
 
 class ProtocolMessageType(IntEnum):
@@ -303,6 +304,16 @@ class ProtocolMessage(object):
         elif type(parameters) is not dict:
             raise ValueError("Parameters must be a dictionary")
         return cls(msg_type, [parameters])
+
+    @classmethod
+    def create_error(cls, error_code: ErrorCode):
+        return cls.create_single(ProtocolMessageType.ERROR, {"error_code": error_code})
+
+    @classmethod
+    def dummy(cls):
+        return cls.create_single(ProtocolMessageType.CHAT_RECV,
+                                 {"sender": "sender", "recipient": "recipient",
+                                  "text": "fuck. you."})
 
     def __str__(self):
         s = "{}:".format(self.type.name)
