@@ -1,14 +1,9 @@
 import urwid
 import urwid.raw_display
 import urwid.web_display
-from pyfiglet import Figlet
 
-from result import Result
+from .result import Result
 
-
-def unhandled(key):
-    if key == 'q':
-        raise urwid.ExitMainLoop()
 
 class PopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with North, South, West and East buttons """
@@ -27,12 +22,12 @@ class PopUpDialog(urwid.WidgetWrap):
                              lambda button: self._emit("close"))
         pile = urwid.Pile([n_button, urwid.Columns([w_button, e_button], 2), s_button])
         fill = urwid.Filler(pile)
-        self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
+        super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
 
 class ButtonWithAPopUp(urwid.PopUpLauncher):
     def __init__(self):
-        self.__super.__init__(urwid.Button("_"))
+        super().__init__(urwid.Button("_"))
         urwid.connect_signal(self.original_widget, 'click',
                              lambda button: self.open_pop_up())
 
@@ -46,19 +41,23 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 7}
 
 
-class Battle():
+class Battle:
     def __init__(self):
-        self._my_attribute = 0
         self.win = Result().show_winner
 
-    def main(self):
-        ''' Variables region'''
+    def unhandled(self, key):
+        if key == 'esc':
+            raise urwid.ExitMainLoop()
+
+    def battle_main(self):
         shoots = [(1, 1), (2, 2), (3, 5), (1, 2), (2, 1), (1, 3), (3, 1), (1, 4)]
         field_offset = 10
         text_button_list = {}
-        '''End of region'''
 
-        '''Functions region'''
+        def foward_result(foo):
+            self.win(foo)
+            raise urwid.ExitMainLoop()
+            # self.setup()
 
         def button_press(self):
             frame.footer = urwid.AttrWrap(urwid.Text(
@@ -79,11 +78,6 @@ class Battle():
             elif self.get_label() == 'East':
                 self.set_label('E')
 
-        # def forward_win():
-        #     Result.show_winner()
-        '''End of region'''
-
-        '''Rendering region'''
         # Constructing shooting field
         button_list = []
         f = []
@@ -126,14 +120,13 @@ class Battle():
             ], 2),
             blank,
             urwid.Columns([
-                urwid.Button('WIN', on_press=self.win),
+                urwid.Button('WIN', on_press=foward_result),
             ], 2),
         ]
 
         header = urwid.AttrWrap(urwid.Text("Battleship+"), 'header')
         listbox = urwid.ListBox(urwid.SimpleListWalker(widget_list))
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
-        '''End of region'''
 
         palette = [
             ('hit', 'black', 'light gray', 'bold'),
@@ -159,17 +152,16 @@ class Battle():
             screen = urwid.raw_display.Screen()
 
         urwid.MainLoop(frame, palette, screen,
-                       unhandled_input=unhandled, pop_ups=True).run()
+                       unhandled_input=self.unhandled, pop_ups=True).run()
 
-    def setup(self):
-        urwid.web_display.set_preferences("Urwid Tour")
-        # try to handle short web requests quickly
-        if urwid.web_display.handle_short_request():
-            return
-
-        self.main()
-
+    # def setup(self):
+    #     urwid.web_display.set_preferences("Urwid Tour")
+    #     # try to handle short web requests quickly
+    #     if urwid.web_display.handle_short_request():
+    #         return
+    #
+    #     self.battle_main()
 
 if '__main__' == __name__ or urwid.web_display.is_web_request():
     battle = Battle()
-    battle.setup()
+    battle.battle_main()

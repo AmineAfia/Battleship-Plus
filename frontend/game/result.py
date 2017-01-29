@@ -1,6 +1,5 @@
 import urwid
 from pyfiglet import Figlet
-from urwid import Button
 
 
 class Result:
@@ -14,14 +13,12 @@ class Result:
                 ('outside', '', '', '', 'g27', '#a06'),
                 ('bg', '', '', '', 'g7', '#d06'),]
 
-    def exit_on_q(key, foo):
-        if key == 'q':
+    @staticmethod
+    def exit_on_q(key):
+        if key == 'esc':
             raise urwid.ExitMainLoop()
 
     def show_winner(self, foo):
-        print(foo)
-        print(type(foo))
-
         placeholder = urwid.SolidFill()
         loop = urwid.MainLoop(placeholder, self.palette, unhandled_input=self.exit_on_q, pop_ups=True)
         loop.screen.set_terminal_properties(colors=256)
