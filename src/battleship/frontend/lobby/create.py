@@ -2,6 +2,7 @@
 import urwid
 
 from .join import Join
+#TODO import GameController from ../../common/GameController
 
 palette = [
     ('hit', 'black', 'light gray', 'bold'),
@@ -42,6 +43,10 @@ class CreateGame:
         destroyer = urwid.Edit(caption='destroyer: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
         submarine = urwid.Edit(caption='submarine: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
 
+        # TODO: import needed
+        """
+            Who forwards to whom: welcome->login->lobby->create->join->waiting->battle->result
+        """
 
         ships = [carrier.get_edit_text(), battleship.get_edit_text(), cruiser.get_edit_text(), destroyer.get_edit_text(), submarine.get_edit_text()]
         self.game_controller.create_battlefielf([length.get_edit_text(), ships])
