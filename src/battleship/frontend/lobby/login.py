@@ -1,16 +1,17 @@
 import urwid
 
 from .lobby import Lobby
+# from ..common.GameController import GameController
 
 class Login:
-    def __init__(self):
-
+    def __init__(self, game_controller):
+        self.game_controller = game_controller
         self.username = urwid.Edit("Username: ")
         self.password = urwid.Edit("Password: ", mask="*")
 
     def forward_lobby(self, key):
         if key == 'enter':
-            creat_game = Lobby()
+            creat_game = Lobby(self.game_controller)
             creat_game.lobby_main()
             raise urwid.ExitMainLoop()
 

@@ -2,12 +2,13 @@ import urwid
 from pyfiglet import Figlet
 
 from .lobby.login import Login
+# from ..common.GameController import GameController
 
 
 class Welcome:
-    def __init__(self):
+    def __init__(self, game_controller):
         self.wlcm = Figlet(font='big')
-
+        self.game_controller = game_controller
         self.palette = [
             ('banner', '', '', '', '#ffa', '#60a'),
             ('streak', '', '', '', 'g50', '#60a'),
@@ -17,7 +18,7 @@ class Welcome:
 
     def exit_on_q(self, key):
         if key in ('enter'):
-            start_session = Login()
+            start_session = Login(self.game_controller)
             start_session.login_main()
             raise urwid.ExitMainLoop()
 

@@ -1,7 +1,8 @@
 import urwid
 
 from .create import CreateGame
-
+# from ...common.GameController import GameController
+from ...common.GameController import GameController
 
 class GamesList:
     # Games list
@@ -35,8 +36,9 @@ class Chat:
 
 class Lobby(urwid.GridFlow):
     # create game method (switch screen)
-    def __init__(self):
+    def __init__(self, game_controller):
         self.blank = urwid.Divider()
+        self.game_controller = game_controller
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -63,7 +65,7 @@ class Lobby(urwid.GridFlow):
 
     @staticmethod
     def forward_create(foo):
-        create_game = CreateGame()
+        create_game = CreateGame(Lobby.game_controller)
         create_game.create_game()
         raise urwid.ExitMainLoop()
 

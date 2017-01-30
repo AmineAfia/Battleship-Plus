@@ -7,17 +7,16 @@ from common.errorHandler.BattleshipError import BattleshipError
 
 def main():
     print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
-    #welcome = Welcome()
-    #welcome.main_welcome()
+    game_id = 1
+    my_controller = GameController(game_id)
+    welcome = Welcome(my_controller)
+    welcome.main_welcome()
 
 	#def msg_callback(msg: ProtocolMessage):
         #if msg.type == ProtocolMessageType.CHAT_RECV:
             #print(msg.parameters["sender"])
             #print(msg.parameters["recipient"])
             #pass
-
-    game_id = 1
-    my_controller = GameController(game_id)
 
     try:
 

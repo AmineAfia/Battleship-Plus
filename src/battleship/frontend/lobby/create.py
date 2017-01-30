@@ -22,8 +22,10 @@ palette = [
 
 
 class CreateGame:
+    def __init__(self, game_controller):
+        self.game_controller = game_controller
 
-    def forward_waiting_room(self, foo):
+    def forward_waiting_room(self):
         join_battle = Join()
         join_battle.join_main()
         raise urwid.ExitMainLoop()
@@ -33,14 +35,18 @@ class CreateGame:
         blank = urwid.Divider()
 
         # Form fields
-        field = urwid.Edit(caption='Field size: ', edit_text='', multiline=False, align='left', wrap='space', allow_tab=False,)
-        carrier = urwid.Edit(caption='carrier: ', edit_text='', multiline=False, align='left', wrap='space', allow_tab=False,)
-        battleship = urwid.Edit(caption='battleship: ', edit_text='', multiline=False, align='left', wrap='space', allow_tab=False)
-        cruiser = urwid.Edit(caption='cruiser: ', edit_text='', multiline=False, align='left', wrap='space', allow_tab=False)
-        destroyer = urwid.Edit(caption='destroyer: ', edit_text='', multiline=False, align='left', wrap='space', allow_tab=False)
-        submarine = urwid.Edit(caption='submarine: ', edit_text='', multiline=False, align='left', wrap='space', allow_tab=False)
+        length = urwid.Edit(caption='Field size: ', edit_text='10', multiline=False, align='left', wrap='space', allow_tab=False,)
+        carrier = urwid.Edit(caption='carrier: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False,)
+        battleship = urwid.Edit(caption='battleship: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
+        cruiser = urwid.Edit(caption='cruiser: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
+        destroyer = urwid.Edit(caption='destroyer: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
+        submarine = urwid.Edit(caption='submarine: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
 
-        ships_form = urwid.Pile([field, blank, carrier, blank, battleship, blank, cruiser, blank, destroyer, blank, submarine])
+
+        ships = [carrier.get_edit_text(), battleship.get_edit_text(), cruiser.get_edit_text(), destroyer.get_edit_text(), submarine.get_edit_text()]
+        self.game_controller.create_battlefielf([length.get_edit_text(), ships])
+
+        ships_form = urwid.Pile([length, blank, carrier, blank, battleship, blank, cruiser, blank, destroyer, blank, submarine, urwid.Text(ships)])
 
         widget_list = [
             # urwid.Padding(urwid.Text("Create Game"), left=2, right=0, min_width=20),
@@ -53,6 +59,10 @@ class CreateGame:
         header = urwid.AttrWrap(urwid.Text("Battleship+"), 'header')
         listbox = urwid.LineBox(urwid.ListBox(urwid.SimpleListWalker(widget_list)), title='Create Game')
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
+
+        # TODO: legnth = 10, ships = [0, 0, 0, 0, 1]
+        def set_ships():
+            pass
 
         def unhandled(key):
             if key == 'esc':
