@@ -7,8 +7,8 @@ from common.errorHandler.BattleshipError import BattleshipError
 
 def main():
     print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
-    #welcome = Welcome()
-    #welcome.main_welcome()
+    welcome = Welcome()
+    welcome.main_welcome()
 
 	#def msg_callback(msg: ProtocolMessage):
         #if msg.type == ProtocolMessageType.CHAT_RECV:
