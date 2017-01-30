@@ -1,7 +1,7 @@
 import urwid
 from pyfiglet import Figlet
 
-from .lobby.lobby import Lobby
+from .lobby.login import Login
 
 
 class Welcome:
@@ -17,8 +17,8 @@ class Welcome:
 
     def exit_on_q(self, key):
         if key in ('enter'):
-            creat_game = Lobby()
-            creat_game.lobby_main()
+            start_session = Login()
+            start_session.login_main()
             raise urwid.ExitMainLoop()
 
     def main_welcome(self):
