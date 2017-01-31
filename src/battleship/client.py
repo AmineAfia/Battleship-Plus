@@ -1,75 +1,83 @@
 import sys
+import asyncio
 from common.GameController import GameController
 from common.constants import Orientation, Direction, Constants
 from common.protocol import ProtocolMessage, ProtocolMessageType
+from common.network import BattleshipClient
 from frontend.welcome import Welcome
+from frontend.lobby.login import Login
+from frontend.lobby.lobby import Lobby
+from frontend.lobby.create import CreateGame
+from frontend.lobby.join import Join
+from frontend.lobby.waitting import Waiting
+from frontend.game.battle import Battle
 from common.errorHandler.BattleshipError import BattleshipError
+from client.lobby import ClientLobbyController
+from common.states import ClientConnectionState
+
 
 def main():
-    print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
+    # print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
+
+    network_loop = asyncio.get_event_loop()
+
+    async def msg_callback(msg: ProtocolMessage):
+        print("< {}".format(msg))
+        if msg.type == ProtocolMessageType.ERROR:
+            pass
+        # elif msg.type == ProtocolMessageType.GAMES:
+        #     if lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
+        #         battleship_client.waiting.set()
+        #     await lobby_controller.handle_msg(msg)
+        else:
+            lobby_controller.state = ClientConnectionState.CONNECTED
+            pass
+        battleship_client.answer_received.set()
+
+    def closed_callback():
+        print("< server closed connection".format())
+
+    battleship_client = BattleshipClient(Constants.SERVER_IP, Constants.SERVER_PORT, network_loop, msg_callback,
+                                         closed_callback)
+
+    network_loop.run_until_complete(asyncio.ensure_future(battleship_client.connect()))
+
     game_id = 1
-    my_controller = GameController(game_id)
-    welcome = Welcome(my_controller)
+    game_controller = GameController(game_id, battleship_client)
+    lobby_controller = ClientLobbyController(battleship_client)
+
+    welcome = Welcome(game_controller, lobby_controller, network_loop)
     welcome.main_welcome()
 
-	#def msg_callback(msg: ProtocolMessage):
-        #if msg.type == ProtocolMessageType.CHAT_RECV:
-            #print(msg.parameters["sender"])
-            #print(msg.parameters["recipient"])
-            #pass
+    while lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
+        login = Login(game_controller, lobby_controller, network_loop)
+        login.login_main()
 
-    try:
+    create_game = Lobby(game_controller, lobby_controller, network_loop)
+    create_game.lobby_main()
 
-        #CREATE THE BATTLEFIELD
-        length = 10
-        ships = [0, 0, 0, 1, 1]
-        cmd = ["create", length, ships]
-        my_controller.run(cmd)
+    create_game = CreateGame(game_controller, lobby_controller, network_loop)
+    create_game.create_game()
 
-        #PLACE THE SHIPS
-        ship_id = 1
-        x_pos = 0
-        y_pos = 0
-        orientation = Orientation.EAST
-        cmd = ["place", ship_id, x_pos, y_pos, orientation]
-        my_controller.run(cmd)
+    # TODO: was esc pressed?
+    join_battle = Join(game_controller, lobby_controller, network_loop)
+    join_battle.join_main()
 
-        ship_id = 2
-        x_pos = 0
-        y_pos = 1
-        orientation = Orientation.EAST
-        cmd = ["place", ship_id, x_pos, y_pos, orientation]
-        my_controller.run(cmd)
+    # TODO: esc or normal continuation?
+    go_to_game = Waiting(game_controller, lobby_controller, network_loop)
+    # TODO: is this foo nedded in waiting_main?
+    go_to_game.waiting_main("")
 
-        #START
-        cmd = ["start"]
-        my_controller.run(cmd)
+    battle_sessions = Battle(game_controller, lobby_controller, network_loop)
+    battle_sessions.battle_main()
 
-        # MOVE YOUR SHIP
-        ship_id = 1
-        direction = Direction.EAST
-        cmd = ["move", ship_id, direction]
-        my_controller.run(cmd)
+    # TODO: why does "You win" appear twice?
 
-        #STRIKE FROM ENEMY
-        x_pos = 0
-        y_pos = 0
-        cmd = ["strike", x_pos, y_pos]
-        my_controller.run(cmd)
+    print("almost dead")
 
-        #SHOOT AT ENEMY BATTLEFIELD
-        x_pos = 0
-        y_pos = 0
-        cmd = ["shoot", x_pos, y_pos]
-        my_controller.run(cmd)
+    network_loop.run_forever()
 
-        #ABORT
-        cmd = ["abort"]
-        my_controller.run(cmd)
-
-    except BattleshipError as e:
-        print("{}".format(e))
-
+    print("Bye.")
 
 
 if __name__ == '__main__':

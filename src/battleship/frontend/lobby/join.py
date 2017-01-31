@@ -3,6 +3,7 @@ import urwid
 
 from .waitting import Waiting
 from common.GameController import GameController
+from client.lobby import ClientLobbyController
 
 
 class ShipsList:
@@ -54,8 +55,10 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
 
 
 class Join:
-    def __init__(self, game_controller):
+    def __init__(self, game_controller, lobby_controller, loop):
+        self.loop = loop
         self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
         ShipsList.ships = game_controller.ships
         self.field_offset = game_controller.length
         ShipsList.get_ships()
@@ -78,8 +81,7 @@ class Join:
         self.blank = urwid.Divider()
 
     def forward_next(self, foo):
-        go_to_game = Waiting(self.game_controller)
-        go_to_game.waiting_main(foo)
+        # TODO: somehow tell the main client the difference between this and unhandled
         raise urwid.ExitMainLoop()
 
     def unhandled(self, key):
@@ -122,7 +124,8 @@ class Join:
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
 
         urwid.MainLoop(frame, self.palette,
-                       unhandled_input=self.unhandled, pop_ups=True).run()
+                       unhandled_input=self.unhandled, pop_ups=True,
+                       event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
 
 if '__main__' == __name__:
     battle = Join()
