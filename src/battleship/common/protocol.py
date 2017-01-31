@@ -287,7 +287,7 @@ class ProtocolMessage(object):
     def __init__(self, msg_type: ProtocolMessageType, repeating_parameters: list=None):
         self.type = msg_type
         if repeating_parameters is None or repeating_parameters == []:
-            self.repeating_parameters = [{}]
+            self.repeating_parameters = []
         else:
             self.repeating_parameters = repeating_parameters
 

@@ -3,12 +3,15 @@ from pyfiglet import Figlet
 
 from .lobby.login import Login
 from common.GameController import GameController
+from client.lobby import ClientLobbyController
 
 
 class Welcome:
-    def __init__(self, game_controller):
+    def __init__(self, game_controller, lobby_controller, loop):
+        self.loop = loop
         self.wlcm = Figlet(font='big')
         self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
         self.palette = [
             ('banner', '', '', '', '#ffa', '#60a'),
             ('streak', '', '', '', 'g50', '#60a'),
@@ -17,14 +20,13 @@ class Welcome:
             ('bg', '', '', '', 'g7', '#d06')]
 
     def exit_on_q(self, key):
-        if key in ('enter'):
-            start_session = Login(self.game_controller)
-            start_session.login_main()
+        if key == "enter":
             raise urwid.ExitMainLoop()
 
     def main_welcome(self):
         placeholder = urwid.SolidFill()
-        loop = urwid.MainLoop(placeholder, self.palette, unhandled_input=self.exit_on_q)
+        loop = urwid.MainLoop(placeholder, self.palette, unhandled_input=self.exit_on_q,
+                                    event_loop=urwid.AsyncioEventLoop(loop=self.loop))
         loop.screen.set_terminal_properties(colors=256)
         loop.widget = urwid.AttrMap(placeholder, 'bg')
         loop.widget.original_widget = urwid.Filler(urwid.Pile([]))
@@ -39,7 +41,3 @@ class Welcome:
             pile.contents.append((item, pile.options()))
 
         loop.run()
-
-if '__main__' == __name__:
-    welcome = Welcome()
-    welcome.main_welcome()

@@ -3,6 +3,7 @@ import urwid
 
 from .join import Join
 from common.GameController import GameController
+from client.lobby import ClientLobbyController
 
 
 palette = [
@@ -24,8 +25,10 @@ palette = [
 
 
 class CreateGame:
-    def __init__(self, game_controller):
+    def __init__(self, game_controller, lobby_controller, loop):
+        self.loop = loop
         self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
         self.length = None
         self.carrier = None
         self.battleship = None
@@ -40,8 +43,6 @@ class CreateGame:
                                          self.submarine.get_edit_text()]]
         # TODO: handle exception in case user didn't enter numbers into the fields
         self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
-        join_battle = Join(self.game_controller)
-        join_battle.join_main()
         raise urwid.ExitMainLoop()
 
     def create_game(self):
@@ -80,12 +81,9 @@ class CreateGame:
 
         def unhandled(key):
             if key == 'esc':
+                # TODO: the main client needs to know if esc was pressed
                 raise urwid.ExitMainLoop()
 
         urwid.MainLoop(frame, palette,
-                       unhandled_input=unhandled).run()
-
-
-# if '__main__' == __name__:
-#     lobby = CreateGame()
-#     lobby.create_game()
+                       unhandled_input=unhandled,
+                       event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()

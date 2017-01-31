@@ -1,13 +1,15 @@
 from .client import Client
-from common.constants import ErrorCode
-from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig
+from common.constants import ErrorCode, GameOptions
+from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig, NumShips
 from common.states import ClientConnectionState
+from common.GameController import GameController
 
 
 class ServerLobbyController:
     def __init__(self):
         self.users = {}
         self.clients = {}
+        # Games: game_id -> [[username1, game_controller1], [username2, game_controller2]]
         self.games = {}
 
     def add_client(self, client):
@@ -27,8 +29,8 @@ class ServerLobbyController:
     def print_client(self, client, text):
         print("  [{}] {}".format(client.id, text))
 
-    async def msg_to_user(self, msg, user):
-        await self.users[user].send(msg)
+    async def msg_to_user(self, msg, username):
+        await self.users[username].send(msg)
 
     # send message to all logged in users
     async def msg_to_all(self, msg):
@@ -53,6 +55,7 @@ class ServerLobbyController:
                     client.username = msg.parameters["username"]
                     self.users[client.username] = client
                     self.print_client(client, "Client successfully logged in with '{}'".format(client.username))
+                    await self.send_games_to_user(client.username)
 
         elif msg.type == ProtocolMessageType.LOGOUT:
             client.state = ClientConnectionState.NOT_CONNECTED
@@ -79,3 +82,18 @@ class ServerLobbyController:
         if answer is not None:
             print("> [{}] {}".format(client.id, answer))
             await answer.send(client.writer)
+
+    async def send_games_to_user(self, username):
+        repeating_parameters = []
+        for game_id, [[username1, game_controller1], [_, _]] in self.games.items():
+            parameters = {"game_id": game_id, "username": username1, "board_size": game_controller1.length,
+                          "num_ships": game_controller1.ships, "round_time": game_controller1.round_time,
+                          "options": game_controller1.options}
+            repeating_parameters.append(parameters)
+        # TODO: remove dummy game
+        dummy = {"game_id": 42, "username": "foo", "board_size": 10,
+                 "num_ships": NumShips([1,2,3,4,5]), "round_time": 25,
+                 "options": GameOptions.PASSWORD}
+        repeating_parameters.append(dummy)
+        msg = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
+        await self.msg_to_user(msg, username)

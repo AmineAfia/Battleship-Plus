@@ -6,12 +6,14 @@ from .battlefield.battleship.Destroyer import Destroyer
 from .battlefield.battleship.Submarine import Submarine
 from .constants import Orientation, Direction, ErrorCode
 from .errorHandler.BattleshipError import BattleshipError
+from common.network import BattleshipClient
 from common.protocol import ProtocolMessage, ProtocolMessageType
+
 
 # Controller for Battleship
 class GameController:
 
-    def __init__(self, game_id):
+    def __init__(self, game_id, client):
         self._battlefield = object
         self._turn_counter = 0
         self._game_started = False
@@ -21,6 +23,8 @@ class GameController:
         self._options = 0
         self._username = ""
         self._password = ""
+
+        self._client = client
 
     @property
     def ships(self):

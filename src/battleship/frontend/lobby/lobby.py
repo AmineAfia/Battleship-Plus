@@ -2,6 +2,7 @@ import urwid
 
 from .create import CreateGame
 from common.GameController import GameController
+from client.lobby import ClientLobbyController
 
 
 class GamesList:
@@ -36,9 +37,11 @@ class Chat:
 
 class Lobby(urwid.GridFlow):
     # create game method (switch screen)
-    def __init__(self, game_controller):
+    def __init__(self, game_controller, lobby_controller, loop):
+        self.loop = loop
         self.blank = urwid.Divider()
         self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -63,10 +66,7 @@ class Lobby(urwid.GridFlow):
         if key == 'esc':
             raise urwid.ExitMainLoop()
 
-    #@staticmethod
     def forward_create(self, foo):
-        create_game = CreateGame(self.game_controller)
-        create_game.create_game()
         raise urwid.ExitMainLoop()
 
     def get_games(self):
@@ -111,8 +111,5 @@ class Lobby(urwid.GridFlow):
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
 
         urwid.MainLoop(frame, self.palette,
-                       unhandled_input=self.unhandled, pop_ups=True).run()
-
-if '__main__' == __name__:
-    battle = Lobby()
-    battle.lobby_main()
+                       unhandled_input=self.unhandled, pop_ups=True,
+                       event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()

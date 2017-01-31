@@ -43,8 +43,10 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
 
 
 class Battle:
-    def __init__(self, game_controller):
+    def __init__(self, game_controller, lobby_controller, loop):
+        self.loop = loop
         self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
         self.win = Result().show_winner
 
     def unhandled(self, key):
@@ -154,7 +156,8 @@ class Battle:
             screen = urwid.raw_display.Screen()
 
         urwid.MainLoop(frame, palette, screen,
-                       unhandled_input=self.unhandled, pop_ups=True).run()
+                       unhandled_input=self.unhandled, pop_ups=True,
+                       event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
 
     # def setup(self):
     #     urwid.web_display.set_preferences("Urwid Tour")
