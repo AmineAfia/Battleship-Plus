@@ -15,7 +15,7 @@ def main():
     lobby_ctrl = ServerLobbyController()
 
     msgs_for_lobby_controller = [ProtocolMessageType.LOGIN, ProtocolMessageType.LOGOUT, ProtocolMessageType.CHAT_SEND,
-                                 ProtocolMessageType.GET_GAMES]
+                                 ProtocolMessageType.GET_GAMES, ProtocolMessageType.CREATE_GAME]
     #msgs_for_game_controller = []
 
     # This gets called whenever a new client connects. The parameter `client`
