@@ -1,7 +1,7 @@
 import sys
 from common.GameController import GameController
-from common.constants import Orientation, Direction, Constants
-from common.protocol import ProtocolMessage, ProtocolMessageType, ShipPositions, Position, ShipPosition
+from common.constants import Orientation, Direction, Constants, GameOptions
+from common.protocol import ProtocolMessage, ProtocolMessageType, ShipPositions, Position, ShipPosition, NumShips
 from frontend.welcome import Welcome
 from common.errorHandler.BattleshipError import BattleshipError
 
@@ -24,7 +24,11 @@ def main():
         length = 10
         ships = [0, 0, 0, 1, 1]
         cmd = ["create", length, ships]
-        my_controller.run(cmd)
+        msg = ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
+                                            {"board_size": 10, "num_ships": NumShips(ships),
+                                             "round_time": 25, "options": GameOptions.PASSWORD,
+                                             "password": "foo"})
+        my_controller.run(msg)
 
         #PLACE THE SHIPS
         ship_id = 1
@@ -34,44 +38,40 @@ def main():
         x_pos2 = 0
         y_pos2 = 2
         orientation2 = Orientation.EAST
-        ship_positions = ShipPositions([ShipPosition(Position(y_pos, x_pos), orientation),
-                                       ShipPosition(Position(y_pos2, x_pos2), orientation2)])
-        cmd = ["place", ship_positions]
-        #print(cmd)
-        my_controller.run(cmd)
+        msg = ProtocolMessage.create_single(ProtocolMessageType.PLACE,
+                                            {"ship_positions": ShipPositions([
+                       ShipPosition(Position(y_pos, x_pos), orientation),
+                       ShipPosition(Position(y_pos2, x_pos2), orientation2)])})
 
-        #ship_id = 2
-        #x_pos = 0
-        #y_pos = 2
-        #orientation = Orientation.EAST
-        #cmd = ["place", ship_id, x_pos, y_pos, orientation]
-        #my_controller.run(cmd)
+        my_controller.run(msg)
 
-        #START
-        cmd = ["start"]
-        my_controller.run(cmd)
+
+        my_controller.start_game()
 
         # MOVE YOUR SHIP
         ship_id = 2
         direction = Direction.EAST
-        cmd = ["move", ship_id, direction]
-        my_controller.run(cmd)
 
-        #STRIKE FROM ENEMY
+        msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
+                                            { "ship_id": 1, "direction": Direction.EAST })
+        my_controller.run(msg)
+
+        #STRIKE FROM ENEMY = SHOOT
         x_pos = 0
         y_pos = 0
-        cmd = ["strike", x_pos, y_pos]
-        my_controller.run(cmd)
+
+        msg = ProtocolMessage.create_single(ProtocolMessageType.SHOOT,
+                                            { "ship_position": ShipPosition(Position(y_pos, x_pos), orientation  ) })
+        my_controller.run(msg)
 
         #SHOOT AT ENEMY BATTLEFIELD
         x_pos = 0
         y_pos = 0
-        cmd = ["shoot", x_pos, y_pos]
-        my_controller.run(cmd)
+        my_controller.shoot(x_pos, y_pos)
 
         #ABORT
-        cmd = ["abort"]
-        my_controller.run(cmd)
+        msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT)
+        my_controller.run(msg)
 
     except BattleshipError as e:
         print("{}".format(e))

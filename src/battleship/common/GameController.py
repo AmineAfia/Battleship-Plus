@@ -6,6 +6,7 @@ from .battlefield.battleship.Destroyer import Destroyer
 from .battlefield.battleship.Submarine import Submarine
 from .constants import Orientation, Direction, ErrorCode
 from .errorHandler.BattleshipError import BattleshipError
+from common.protocol import ProtocolMessage, ProtocolMessageType
 
 # Controller for Battleship
 class GameController:
@@ -15,6 +16,11 @@ class GameController:
         self._turn_counter = 0
         self._game_started = False
         self._game_id = game_id
+
+        self._round_time = 0
+        self._options = 0
+        self._username = ""
+        self._password = ""
 
     @property
     def ships(self):
@@ -121,21 +127,22 @@ class GameController:
         self = None
 
     # interface to client
-    def run(self, cmd):
+    def run(self, msg: ProtocolMessage):
 
-        if cmd[0] == "create":
-            length = cmd[1]
-            ships_table = cmd[2]
+        if msg.type == ProtocolMessageType.CREATE_GAME:
+            length = msg.parameters["board_size"]
+            ships_table = msg.parameters["num_ships"]
             if 9 < length < 27:
-                if self.create_battlefield(length, ships_table):
+                if self.create_battlefield(length, ships_table.numbers):
                     return True
                 else:
                     return False
             else:
                 raise BattleshipError(ErrorCode.SYNTAX_INVALID_BOARD_SIZE)
 
-        if cmd[0] == "place":
-            ship_positions = cmd[1]
+        #if cmd[0] == "place":
+        if msg.type == ProtocolMessageType.PLACE:
+            ship_positions = msg.parameters["ship_positions"]
             ship_id = 0
             if len(ship_positions.positions) == self._battlefield.count_ships():
                 for ship_position in ship_positions.positions:
@@ -161,14 +168,14 @@ class GameController:
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_WRONG_NUMBER_OF_SHIPS)
 
-        # def start_game()
-        if cmd[0] == "start":
-            self.start_game()
+        #if msg.type == ProtocolMessageType.START_GAME:
+            #self.start_game()
 
         # todo: not the clients turn and turn counter invalid
-        if cmd[0] == "move":
-            ship_id = cmd[1]
-            direction = cmd[2]
+        #if cmd[0] == "move":
+        if msg.type == ProtocolMessageType.MOVE:
+            ship_id = msg.parameters["ship_id"]
+            direction = msg.parameters["direction"]
             if self._game_started:
                 if self._battlefield.ship_id_exists(ship_id):
                     if self._battlefield.ship_is_moveable(ship_id):
@@ -196,23 +203,25 @@ class GameController:
                 print("game not started")
 
         # todo: not the clients turn and turn counter invalid
-        if cmd[0] == "strike":
-            x_pos = cmd[1]
-            y_pos = cmd[2]
+        #if cmd[0] == "strike":
+        if msg.type == ProtocolMessageType.SHOOT:
+            x_pos = msg.parameters["ship_position"].position.horizontal
+            y_pos = msg.parameters["ship_position"].position.vertical
             if self._battlefield.no_border_crossing(x_pos, y_pos):
                 self.strike(x_pos, y_pos)
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
 
-        # todo: not the clients turn and turn counter invalid
-        if cmd[0] == "shoot":
-            x_pos = cmd[1]
-            y_pos = cmd[2]
-            if self._battlefield.no_border_crossing(x_pos, y_pos):
-                self.shoot(x_pos, y_pos)
-            else:
-                raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
+        #if cmd[0] == "shoot":
+        #if msg.type == ProtocolMessageType.SHOOT:
+            #x_pos = cmd[1]
+            #y_pos = cmd[2]
+            #if self._battlefield.no_border_crossing(x_pos, y_pos):
+                #self.shoot(x_pos, y_pos)
+            #else:
+                #raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
 
-        if cmd[0] == "abort":
+        #if cmd[0] == "abort":
+        if msg.type == ProtocolMessageType.ABORT:
             self.abort()
 
