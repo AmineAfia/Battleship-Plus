@@ -1,8 +1,8 @@
 import urwid
 
 from .create import CreateGame
-# from ...common.GameController import GameController
-from ...common.GameController import GameController
+from common.GameController import GameController
+
 
 class GamesList:
     # Games list

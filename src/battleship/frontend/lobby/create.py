@@ -2,7 +2,8 @@
 import urwid
 
 from .join import Join
-#TODO import GameController from ../../common/GameController
+from common.GameController import GameController
+
 
 palette = [
     ('hit', 'black', 'light gray', 'bold'),
