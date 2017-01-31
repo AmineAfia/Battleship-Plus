@@ -1,6 +1,4 @@
-from .battleship import Ship
 from ..constants import Orientation, Direction, ErrorCode
-from ..errorHandler.BattleshipError import BattleshipError
 
 
 class Battlefield:
@@ -9,9 +7,10 @@ class Battlefield:
     # ships = linked list of ships
     # _my_battlefield = my battlefield
     # _enemy_battlefield = enemy battlefield matrix, 0=hidden, 1=hit, 2=miss
-    def __init__(self, length, ships):
+    def __init__(self, length, ships, ships_table):
         self._length = length
         self._ships = ships
+        self._ships_table = ships_table
         self._my_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
         self._enemy_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
 
@@ -23,14 +22,11 @@ class Battlefield:
         if self.no_border_crossing(x_pos, y_pos):
             if not ship.is_hit():
                 if self.no_ship_at_place_but(x_pos, y_pos, ship.get_ship_id()):
-                    #if self.no_strike_at_place(x_pos, y_pos):
                     if ship.move(direction):
                         print("Ship: {} moved to: {}".format(ship._ship_id, ship._ship_state))
                         return True
                     else:
                         return False
-                    #else:
-                        #raise BattleshipError(ErrorCode.PARAMETER_OPTION_NOT_SUPPORTED)
                 else:
                     return False
             else:
@@ -147,6 +143,8 @@ class Battlefield:
                 return ship.get_ship_coordinate()
 
     def get_move_coordinate(self, ship_id, direction):
+        x_pos = 0
+        y_pos = 0
         for ship in self._ships:
             if ship._ship_id == ship_id:
                 ship_coordinates = ship.get_ship_coordinates()
@@ -178,11 +176,13 @@ class Battlefield:
 
     @property
     def ships(self):
-        return self._ships
+        return self._ships_table
 
     @property
     def length(self):
         return self._length
+
+
 
 
 

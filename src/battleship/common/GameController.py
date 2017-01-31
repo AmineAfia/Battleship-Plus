@@ -43,7 +43,7 @@ class GameController:
                         ships.append(Destroyer(id, 0, 0, Orientation.EAST))
                     if i == 4:
                         ships.append(Submarine(id, 0, 0, Orientation.EAST))
-            self._battlefield = Battlefield(length, ships)
+            self._battlefield = Battlefield(length, ships, ships_table)
             print("Battlefield {}x{} created.".format(length, length))
             if length * length * 0.3 > self._battlefield.calc_filled():
                 return True
@@ -147,6 +147,10 @@ class GameController:
                     if self._battlefield.no_border_crossing(x_pos, y_pos):
                         if self._battlefield.ship_id_exists(ship_id):
                             if self._battlefield.no_ship_at_place(x_pos, y_pos):
+                                try:
+                                    orientation = Orientation(orientation)
+                                except ValueError:
+                                    raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
                                 self.place_ship(ship_id, x_pos, y_pos, orientation)
                             else:
                                 raise BattleshipError(ErrorCode.PARAMETER_OVERLAPPING_SHIPS)
@@ -172,6 +176,10 @@ class GameController:
                         if self._battlefield.no_ship_at_place_but(x_pos, y_pos, ship_id):
                             x_pos, y_pos = self._battlefield.get_move_coordinate(ship_id, direction)
                             if self._battlefield.no_border_crossing(x_pos, y_pos):
+                                try:
+                                    direction = Direction(direction)
+                                except ValueError:
+                                    raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
                                 if self.move(ship_id, direction):
                                     return True
                                 else:
