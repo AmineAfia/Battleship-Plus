@@ -2,10 +2,12 @@ import urwid
 from pyfiglet import Figlet
 
 from ..game.battle import Battle
+from common.GameController import GameController
 
 
 class Waiting:
-    def __init__(self):
+    def __init__(self, game_controller):
+        self.game_controller = game_controller
         self.wlcm = Figlet(font='big')
 
         self.palette =[
@@ -15,10 +17,9 @@ class Waiting:
                 ('outside', '', '', '', 'g27', '#a06'),
                 ('bg', '', '', '', 'g7', '#d06')]
 
-    @staticmethod
-    def exit_on_q(key):
+    def exit_on_q(self, key):
         if key == 'enter':
-            battle_sessions = Battle()
+            battle_sessions = Battle(self.game_controller)
             battle_sessions.battle_main()
             raise urwid.ExitMainLoop()
 

@@ -7,7 +7,7 @@ from common.GameController import GameController
 
 class ShipsList:
     ships_list = []
-    ships = (2, 0, 1, 0, 1)
+    ships = [2, 0, 1, 0, 1]
     info_pile = None
 
     @staticmethod
@@ -54,8 +54,10 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
 
 
 class Join:
-    def __init__(self):
-        self.field_offset = 10
+    def __init__(self, game_controller):
+        self.game_controller = game_controller
+        ShipsList.ships = game_controller.ships
+        self.field_offset = game_controller.length
         ShipsList.get_ships()
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
@@ -75,9 +77,8 @@ class Join:
         ]
         self.blank = urwid.Divider()
 
-    @staticmethod
-    def forward_next(foo):
-        go_to_game = Waiting()
+    def forward_next(self, foo):
+        go_to_game = Waiting(self.game_controller)
         go_to_game.waiting_main(foo)
         raise urwid.ExitMainLoop()
 
