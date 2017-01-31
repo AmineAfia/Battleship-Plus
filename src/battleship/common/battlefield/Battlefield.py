@@ -17,37 +17,24 @@ class Battlefield:
 
     # move a ship one position further
     def move(self, ship_id, direction):
-        for ship in self._ships:
-            if ship._ship_id == ship_id:
+        x_pos, y_pos = self.get_move_coordinate(ship_id, direction)
+        ship = self.get_ship(ship_id)
 
-                ship_coordinates = ship.get_ship_coordinates()
-                x_pos = ship_coordinates[0][0]
-                y_pos = ship_coordinates[0][1]
-
-                if direction == Direction.EAST:
-                    x_pos = x_pos + 1
-                if direction == Direction.SOUTH:
-                    y_pos = y_pos + 1
-                if direction == Direction.WEST:
-                    x_pos = x_pos - 1
-                if direction == Direction.NORTH:
-                    y_pos = y_pos - 1
-
-                if self.no_border_crossing(x_pos, y_pos):
-                    if not ship.is_hit():
-                        if self.no_ship_at_place_but(x_pos, y_pos, ship.get_ship_id()):
-                            #if self.no_strike_at_place(x_pos, y_pos):
-                            if ship.move(direction):
-                                print("Ship: {} moved to: {}".format(ship._ship_id, ship._ship_state))
-                                return True
-                            else:
-                                return False
-                            #else:
-                                #raise BattleshipError(ErrorCode.PARAMETER_OPTION_NOT_SUPPORTED)
-                        else:
-                            raise BattleshipError(ErrorCode.PARAMETER_OVERLAPPING_SHIPS)
+        if self.no_border_crossing(x_pos, y_pos):
+            if not ship.is_hit():
+                if self.no_ship_at_place_but(x_pos, y_pos, ship.get_ship_id()):
+                    #if self.no_strike_at_place(x_pos, y_pos):
+                    if ship.move(direction):
+                        print("Ship: {} moved to: {}".format(ship._ship_id, ship._ship_state))
+                        return True
                     else:
-                        raise BattleshipError(ErrorCode.PARAMETER_SHIP_IMMOVABLE)
+                        return False
+                    #else:
+                        #raise BattleshipError(ErrorCode.PARAMETER_OPTION_NOT_SUPPORTED)
+                else:
+                    return False
+            else:
+                return False
         return False
 
     # enemy strike
@@ -94,21 +81,34 @@ class Battlefield:
                 if self.no_ship_at_place(x_pos, y_pos):
                     if ship.place(x_pos, y_pos, orientation):
                         print("Ship: {} placed: {}".format(ship._ship_id, ship._ship_state))
+                        return True
                 else:
-                    print("error a ship is already at this place")
+                    return False
 
 
     def no_ship_at_place(self, x_pos, y_pos):
+        bound_x = [-1, 0, 1]
+        bound_y = [-1, 0, 1]
         for ship in self._ships:
-            if ship.is_ship_at_location(x_pos, y_pos):
-                return False
+            for i in bound_x:
+                for j in bound_y:
+                    check_x = i + x_pos
+                    check_y = j + y_pos
+                    if ship.is_ship_at_location(check_x, check_y):
+                        return False
         return True
 
     def no_ship_at_place_but(self, x_pos, y_pos, ship_id):
+        bound_x = [-1, 0, 1]
+        bound_y = [-1, 0, 1]
         for ship in self._ships:
-            if (ship.is_ship_at_location(x_pos, y_pos)):
-                if not ship.get_ship_id() == ship_id:
-                    return False
+            if not ship.get_ship_id() == ship_id:
+                for i in bound_x:
+                    for j in bound_y:
+                        check_x = i + x_pos
+                        check_y = j + y_pos
+                        if ship.is_ship_at_location(check_x, check_y):
+                            return False
         return True
 
     def no_strike_at_place(self, x_pos, y_pos):
@@ -131,15 +131,50 @@ class Battlefield:
 
     def ship_is_moveable(self, ship_id):
         for ship in self._ships:
-            if ship._ship_id == ship_id:
+            if ship.get_ship_id() == ship_id:
                 return not ship.is_hit()
         return False
 
     def ship_id_exists(self, ship_id):
         for ship in self._ships:
-            if ship._ship_id == ship_id:
+            if ship.get_ship_id() == ship_id:
                 return True
         return False
+
+    def get_ship_coordinate(self, ship_id):
+        for ship in self._ships:
+            if ship.get_ship_id() == ship_id:
+                return ship.get_ship_coordinate()
+
+    def get_move_coordinate(self, ship_id, direction):
+        for ship in self._ships:
+            if ship._ship_id == ship_id:
+                ship_coordinates = ship.get_ship_coordinates()
+                x_pos = ship_coordinates[0][0]
+                y_pos = ship_coordinates[0][1]
+                if direction == Direction.EAST:
+                    x_pos = x_pos + 1
+                if direction == Direction.SOUTH:
+                    y_pos = y_pos + 1
+                if direction == Direction.WEST:
+                    x_pos = x_pos - 1
+                if direction == Direction.NORTH:
+                    y_pos = y_pos - 1
+        return x_pos, y_pos
+
+    def get_ship(self, ship_id):
+        for ship in self._ships:
+            if ship.get_ship_id() == ship_id:
+                return ship
+
+    def count_ships(self):
+        return len(self._ships)
+
+    def calc_filled(self):
+        result = 0
+        for ship in self._ships:
+            result = result + ship.get_ship_length()
+        return result
 
     @property
     def ships(self):
@@ -148,6 +183,8 @@ class Battlefield:
     @property
     def length(self):
         return self._length
+
+
 
 
 

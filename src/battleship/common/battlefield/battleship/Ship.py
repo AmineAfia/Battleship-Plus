@@ -141,3 +141,9 @@ class Ship:
         if hit_counter >= (self._x_length * self._y_length):
             self._sunk = True
             print("{} versenkt!".format(self._ship_type))
+
+    def get_ship_length(self):
+        return len(self._ship_state)
+
+    def get_ship_coordinate(self):
+        return self._x_pos, self._y_pos

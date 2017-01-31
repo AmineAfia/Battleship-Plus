@@ -1,7 +1,7 @@
 import sys
 from common.GameController import GameController
 from common.constants import Orientation, Direction, Constants
-from common.protocol import ProtocolMessage, ProtocolMessageType
+from common.protocol import ProtocolMessage, ProtocolMessageType, ShipPositions, Position, ShipPosition
 from frontend.welcome import Welcome
 from common.errorHandler.BattleshipError import BattleshipError
 
@@ -31,22 +31,28 @@ def main():
         x_pos = 0
         y_pos = 0
         orientation = Orientation.EAST
-        cmd = ["place", ship_id, x_pos, y_pos, orientation]
+        x_pos2 = 0
+        y_pos2 = 2
+        orientation2 = Orientation.EAST
+        ship_positions = ShipPositions([ShipPosition(Position(y_pos, x_pos), orientation),
+                                       ShipPosition(Position(y_pos2, x_pos2), orientation2)])
+        cmd = ["place", ship_positions]
+        #print(cmd)
         my_controller.run(cmd)
 
-        ship_id = 2
-        x_pos = 0
-        y_pos = 1
-        orientation = Orientation.EAST
-        cmd = ["place", ship_id, x_pos, y_pos, orientation]
-        my_controller.run(cmd)
+        #ship_id = 2
+        #x_pos = 0
+        #y_pos = 2
+        #orientation = Orientation.EAST
+        #cmd = ["place", ship_id, x_pos, y_pos, orientation]
+        #my_controller.run(cmd)
 
         #START
         cmd = ["start"]
         my_controller.run(cmd)
 
         # MOVE YOUR SHIP
-        ship_id = 1
+        ship_id = 2
         direction = Direction.EAST
         cmd = ["move", ship_id, direction]
         my_controller.run(cmd)
@@ -69,7 +75,6 @@ def main():
 
     except BattleshipError as e:
         print("{}".format(e))
-
 
 
 if __name__ == '__main__':

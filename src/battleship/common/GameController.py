@@ -25,12 +25,38 @@ class GameController:
         return self._battlefield.length
 
     # create a new battlefield
-    def create_battlefield(self, length, ships):
-        self._battlefield = Battlefield(length, ships)
-        print("Battlefield {}x{} created.".format(length, length))
+    def create_battlefield(self, length, ships_table):
+        if 9 < length < 27:
+            id = 0
+            ships = []
+            for i in range(5):
+                shipCount = ships_table[i]
+                for _ in range(shipCount):
+                    id = id + 1
+                    if i == 0:
+                        ships.append(AircraftCarrier(id, 0, 0, Orientation.EAST))
+                    if i == 1:
+                        ships.append(Battleship(id, 0, 0, Orientation.EAST))
+                    if i == 2:
+                        ships.append(Cruiser(id, 0, 0, Orientation.EAST))
+                    if i == 3:
+                        ships.append(Destroyer(id, 0, 0, Orientation.EAST))
+                    if i == 4:
+                        ships.append(Submarine(id, 0, 0, Orientation.EAST))
+            self._battlefield = Battlefield(length, ships)
+            print("Battlefield {}x{} created.".format(length, length))
+            if length * length * 0.3 > self._battlefield.calc_filled():
+                return True
+            else:
+                return False
+        else:
+            return False
 
     def place_ship(self, ship_id, x_pos, y_pos, orientation):
-        self._battlefield.place(ship_id, x_pos, y_pos, orientation)
+        if self._battlefield.place(ship_id, x_pos, y_pos, orientation):
+            return True
+        else:
+            return False
 
     def start_game(self):
         if self._battlefield.placement_finished():
@@ -45,19 +71,39 @@ class GameController:
     # move your own ship on your battlefield
     def move(self, ship_id, direction):
         if self._game_started:
-            if self._battlefield.move(ship_id, direction):
-                print("ship:{} moved to:{}".format(ship_id, direction))
+            if self._battlefield.ship_is_moveable(ship_id):
+                x_pos, y_pos = self._battlefield.get_ship_coordinate(ship_id)
+                if self._battlefield.no_ship_at_place_but(x_pos, y_pos , ship_id):
+                    x_pos, y_pos = self._battlefield.get_move_coordinate(ship_id, direction)
+                    if self._battlefield.no_border_crossing(x_pos, y_pos):
+                        if self._battlefield.move(ship_id, direction):
+                            print("ship:{} moved to:{}".format(ship_id, direction))
+                            return True
+                        else:
+                            print("error - ship not moved")
+                            return False
+                    else:
+                        return False
+                else:
+                    return False
             else:
-                print("error - ship not moved")
+                return False
+        else:
+            return False
 
     # strike at the coordinates on the enemy battlefield
     def strike(self, x_pos, y_pos):
         if self._game_started:
-            print("strike at x={},y={}".format(x_pos, y_pos))
-            if self._battlefield.strike(x_pos, y_pos):
-                print("got it!")
+            if self._battlefield.no_border_crossing(x_pos, y_pos):
+                print("strike at x={},y={}".format(x_pos, y_pos))
+                if self._battlefield.strike(x_pos, y_pos):
+                    print("got it!")
+                else:
+                    print("fail!")
             else:
-                print("fail!")
+                return False
+        else:
+            return False
 
     # shoot at enemy battlefield
     def shoot(self, x_pos, y_pos):
@@ -65,74 +111,83 @@ class GameController:
             if self._battlefield.no_border_crossing(x_pos, y_pos):
                 print("shoot at x={}, y={}".format(x_pos, y_pos))
                 self._battlefield.shoot(x_pos, y_pos)
+            else:
+                return False
+        else:
+            return False
 
     def abort(self):
         print("Game: {} aborted!".format(self._game_id))
         self = None
 
-    # run the game controller with parameter:
+    # interface to client
     def run(self, cmd):
 
         if cmd[0] == "create":
             length = cmd[1]
             ships_table = cmd[2]
-            if len(ships_table) == 5:
-                if length < 27 and length > 9:
-                    # create ships
-                    id = 0
-                    ships = []
-                    for i in range(5):
-                        shipCount = ships_table[i]
-                        for _ in range(shipCount):
-                            id = id + 1
-                            if i == 0:
-                                ships.append(AircraftCarrier(id, 0, 0, Orientation.EAST))
-                            if i == 1:
-                                ships.append(Battleship(id, 0, 0, Orientation.EAST))
-                            if i == 2:
-                                ships.append(Cruiser(id, 0, 0, Orientation.EAST))
-                            if i == 3:
-                                ships.append(Destroyer(id, 0, 0, Orientation.EAST))
-                            if i == 4:
-                                ships.append(Submarine(id, 0, 0, Orientation.EAST))
-                    # create battlefield
-                    self.create_battlefield(length, ships)
+            if 9 < length < 27:
+                if self.create_battlefield(length, ships_table):
+                    return True
                 else:
-                    raise BattleshipError(ErrorCode.SYNTAX_INVALID_BOARD_SIZE)
+                    return False
             else:
-                pass
+                raise BattleshipError(ErrorCode.SYNTAX_INVALID_BOARD_SIZE)
 
-        # def place(self, ship_id, x_pos, y_pos, orientation):
         if cmd[0] == "place":
-            ship_id = cmd[1]
-            x_pos = cmd[2]
-            y_pos = cmd[3]
-            orientation = cmd[4]
-            if self._battlefield.no_border_crossing(x_pos, y_pos):
-                if self._battlefield.ship_id_exists(ship_id):
-                    self.place_ship(ship_id, x_pos, y_pos, orientation)
-                else:
-                    raise BattleshipError(ErrorCode.PARAMETER_INVALID_SHIP_ID)
+            ship_positions = cmd[1]
+            ship_id = 0
+            if len(ship_positions.positions) == self._battlefield.count_ships():
+                for ship_position in ship_positions.positions:
+                    ship_id = ship_id + 1
+                    x_pos = ship_position.position.horizontal
+                    y_pos = ship_position.position.vertical
+                    orientation = ship_position.orientation
+
+                    if self._battlefield.no_border_crossing(x_pos, y_pos):
+                        if self._battlefield.ship_id_exists(ship_id):
+                            if self._battlefield.no_ship_at_place(x_pos, y_pos):
+                                self.place_ship(ship_id, x_pos, y_pos, orientation)
+                            else:
+                                raise BattleshipError(ErrorCode.PARAMETER_OVERLAPPING_SHIPS)
+                        else:
+                            raise BattleshipError(ErrorCode.PARAMETER_INVALID_SHIP_ID)
+                    else:
+                        raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
             else:
-                raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
+                raise BattleshipError(ErrorCode.PARAMETER_WRONG_NUMBER_OF_SHIPS)
 
         # def start_game()
         if cmd[0] == "start":
             self.start_game()
 
-        # def move(self, ship_id, direction)
+        # todo: not the clients turn and turn counter invalid
         if cmd[0] == "move":
             ship_id = cmd[1]
             direction = cmd[2]
-            if self._battlefield.ship_is_moveable(ship_id):
+            if self._game_started:
                 if self._battlefield.ship_id_exists(ship_id):
-                    self.move(ship_id, direction)
+                    if self._battlefield.ship_is_moveable(ship_id):
+                        x_pos, y_pos = self._battlefield.get_ship_coordinate(ship_id)
+                        if self._battlefield.no_ship_at_place_but(x_pos, y_pos, ship_id):
+                            x_pos, y_pos = self._battlefield.get_move_coordinate(ship_id, direction)
+                            if self._battlefield.no_border_crossing(x_pos, y_pos):
+                                if self.move(ship_id, direction):
+                                    return True
+                                else:
+                                    return False
+                            else:
+                                raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
+                        else:
+                            raise BattleshipError(ErrorCode.PARAMETER_OVERLAPPING_SHIPS)
+                    else:
+                        raise BattleshipError(ErrorCode.PARAMETER_SHIP_IMMOVABLE)
                 else:
                     raise BattleshipError(ErrorCode.PARAMETER_INVALID_SHIP_ID)
             else:
-                raise BattleshipError(ErrorCode.PARAMETER_SHIP_IMMOVABLE)
+                print("game not started")
 
-        # def strike(self, x_pos, y_pos)
+        # todo: not the clients turn and turn counter invalid
         if cmd[0] == "strike":
             x_pos = cmd[1]
             y_pos = cmd[2]
@@ -141,6 +196,7 @@ class GameController:
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
 
+        # todo: not the clients turn and turn counter invalid
         if cmd[0] == "shoot":
             x_pos = cmd[1]
             y_pos = cmd[2]
