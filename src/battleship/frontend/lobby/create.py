@@ -27,7 +27,7 @@ class CreateGame:
     def __init__(self, game_controller):
         self.game_controller = game_controller
 
-    def forward_waiting_room(self):
+    def forward_waiting_room(self, foo):
         join_battle = Join()
         join_battle.join_main()
         raise urwid.ExitMainLoop()
@@ -49,10 +49,13 @@ class CreateGame:
             Who forwards to whom: welcome->login->lobby->create->join->waiting->battle->result
         """
 
-        ships = [carrier.get_edit_text(), battleship.get_edit_text(), cruiser.get_edit_text(), destroyer.get_edit_text(), submarine.get_edit_text()]
-        self.game_controller.create_battlefielf([length.get_edit_text(), ships])
+        ships = [carrier.get_edit_text(), battleship.get_edit_text(), cruiser.get_edit_text(),
+                 destroyer.get_edit_text(), submarine.get_edit_text()]
+        # TODO: handle exception in case user didn't enter numbers into the fields
+        self.game_controller.create_battlefield(int(length.get_edit_text()), ships)
 
-        ships_form = urwid.Pile([length, blank, carrier, blank, battleship, blank, cruiser, blank, destroyer, blank, submarine, urwid.Text(ships)])
+        ships_form = urwid.Pile([length, blank, carrier, blank, battleship, blank, cruiser, blank,
+                                 destroyer, blank, submarine, urwid.Text(ships)])
 
         widget_list = [
             # urwid.Padding(urwid.Text("Create Game"), left=2, right=0, min_width=20),

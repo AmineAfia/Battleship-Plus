@@ -2,6 +2,7 @@
 import urwid
 
 from .waitting import Waiting
+from common.GameController import GameController
 
 
 class ShipsList:

@@ -2,7 +2,7 @@ import urwid
 from pyfiglet import Figlet
 
 from .lobby.login import Login
-# from ..common.GameController import GameController
+from common.GameController import GameController
 
 
 class Welcome:

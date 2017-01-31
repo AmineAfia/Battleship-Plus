@@ -1,7 +1,7 @@
 import urwid
 
 from .lobby import Lobby
-# from ..common.GameController import GameController
+from common.GameController import GameController
 
 class Login:
     def __init__(self, game_controller):

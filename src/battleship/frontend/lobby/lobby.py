@@ -63,9 +63,9 @@ class Lobby(urwid.GridFlow):
         if key == 'esc':
             raise urwid.ExitMainLoop()
 
-    @staticmethod
-    def forward_create(foo):
-        create_game = CreateGame(Lobby.game_controller)
+    #@staticmethod
+    def forward_create(self, foo):
+        create_game = CreateGame(self.game_controller)
         create_game.create_game()
         raise urwid.ExitMainLoop()
 
