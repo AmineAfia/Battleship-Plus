@@ -1,12 +1,15 @@
 import inspect
 import asyncio.streams
-from .protocol import ProtocolMessage, parse_from_stream
+from asyncio import Event
+from .protocol import ProtocolMessage, ProtocolMessageType, parse_from_stream
+from common.constants import ErrorCode
 
 
 # Opens one connection to a server, thus internally has one reader and one writer.
 # Sends protocol messages using the internal writer, listens for incoming messages and
 # calls a callback for the message
 class BattleshipClient:
+
     def __init__(self, server, port, loop, msg_callback, closed_callback):
         if not inspect.iscoroutinefunction(msg_callback):
             raise TypeError("msg_callback must be a coroutine")
@@ -18,11 +21,21 @@ class BattleshipClient:
         self.reader = None
         self.writer = None
         self.receiving_task = None
+        self.answer_received = Event()
+        self.last_msg_was_error = False
+        self.last_error = ErrorCode.UNKNOWN
+
+    async def internal_msg_callback(self, msg):
+        if msg.type == ProtocolMessageType.ERROR:
+            self.last_msg_was_error = True
+            self.last_error = msg.parameters["error_code"]
+        await self.msg_callback(msg)
 
     async def connect(self):
         self.reader, self.writer = await asyncio.streams.open_connection(
             self.server, self.port, loop=self.loop)
-        self.receiving_task = asyncio.Task(parse_from_stream(self.reader, self.writer, self.msg_callback))
+        self.receiving_task = self.loop.create_task(parse_from_stream(self.reader, self.writer,
+                                                                      self.internal_msg_callback))
         self.receiving_task.add_done_callback(self._server_closed_connection)
 
     async def send(self, msg: ProtocolMessage):
