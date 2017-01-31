@@ -56,15 +56,8 @@ class CreateGame:
         self.destroyer = urwid.Edit(caption='destroyer: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
         self.submarine = urwid.Edit(caption='submarine: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
 
-        # TODO: import needed
-        """
-            Who forwards to whom: welcome->login->lobby->create->join->waiting->battle->result
-        """
-
         ships = [self.carrier.get_edit_text(), self.battleship.get_edit_text(), self.cruiser.get_edit_text(),
                  self.destroyer.get_edit_text(), self.submarine.get_edit_text()]
-        # TODO: handle exception in case user didn't enter numbers into the fields
-        #self.game_controller.create_battlefield(int(length.get_edit_text()), [int(_) for _ in ships])
 
         ships_form = urwid.Pile([self.length, blank, self.carrier, blank, self.battleship, blank, self.cruiser, blank,
                                  self.destroyer, blank, self.submarine, urwid.Text(ships)])
