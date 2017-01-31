@@ -2,6 +2,7 @@ from .battleship import Ship
 from ..constants import Orientation, Direction, ErrorCode
 from ..errorHandler.BattleshipError import BattleshipError
 
+
 class Battlefield:
 
     # length = battlefield length <length> x <length>
@@ -140,10 +141,13 @@ class Battlefield:
                 return True
         return False
 
-    
+    @property
+    def ships(self):
+        return self._ships
 
-
-
+    @property
+    def length(self):
+        return self._length
 
 
 

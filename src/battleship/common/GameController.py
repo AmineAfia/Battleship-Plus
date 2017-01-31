@@ -16,6 +16,14 @@ class GameController:
         self._game_started = False
         self._game_id = game_id
 
+    @property
+    def ships(self):
+        return self._battlefield.ships
+
+    @property
+    def length(self):
+        return self._battlefield.length
+
     # create a new battlefield
     def create_battlefield(self, length, ships):
         self._battlefield = Battlefield(length, ships)

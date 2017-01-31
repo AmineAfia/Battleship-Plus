@@ -1,6 +1,7 @@
 import urwid
 
 from .create import CreateGame
+from common.GameController import GameController
 
 
 class GamesList:
@@ -8,20 +9,36 @@ class GamesList:
     def __init__(self):
         self.game_1 = urwid.Text('Game 1')
 
-    # def create_games_list(self):
-    #     list = urwid.ListBox(self.game_1)
+
+class Chat:
+    messages = urwid.Text("SHIIT")
+    write_message = urwid.Edit("YOU")
+
+    chat_pile = urwid.LineBox(urwid.Pile([messages, write_message]), title='Chat')
+
+    @staticmethod
+    def send_chat_message(text_edit):
+        Chat.messages.set_text(text_edit)
+
+    # TODO implement when server sends messages
+    @staticmethod
+    def receive_messages():
+        pass
 
 
-class Chat(urwid.GridFlow):
-    # chat window
-    def __init__(self):
-        self.chat = urwid.Text('Chat')
-
+# class ChatDialog(urwid.Filler):
+#     def keypress(self, size, key):
+#         if key != 'enter':
+#             return super(ChatDialog, self).keypress(size, key)
+#         self.original_widget = urwid.Text(
+#             u"Nice to meet you,\n%s.\n\nPress Q to exit." %
+#             edit.edit_text)
 
 class Lobby(urwid.GridFlow):
     # create game method (switch screen)
-    def __init__(self):
+    def __init__(self, game_controller):
         self.blank = urwid.Divider()
+        self.game_controller = game_controller
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -46,9 +63,9 @@ class Lobby(urwid.GridFlow):
         if key == 'esc':
             raise urwid.ExitMainLoop()
 
-    @staticmethod
-    def forward_create(foo):
-        create_game = CreateGame()
+    #@staticmethod
+    def forward_create(self, foo):
+        create_game = CreateGame(self.game_controller)
         create_game.create_game()
         raise urwid.ExitMainLoop()
 
@@ -57,12 +74,19 @@ class Lobby(urwid.GridFlow):
             self.games_list.append(urwid.Button(g, on_press=self.forward_create))
         return self.games_list
 
+    def begin_chat(self):
+        # Chat.send_chat_message()
+        urwid.connect_signal(Chat.messages, 'change', Chat.receive_messages())
+        urwid.connect_signal(Chat.write_message, 'change', Chat.send_chat_message())
+
+        return Chat.chat_pile
+
     def lobby_main(self):
-
-        # games_pile = urwid.LineBox(urwid.Pile([urwid.Text('Fuck You')]), title='Games List')
         games_pile = urwid.LineBox(urwid.GridFlow(self.get_games(), 60, 1, 1, 'center'), title='Games List')
+        edit = urwid.Edit(u"What is your name?\n")
+        # chat_pile = ChatDialog(edit)
 
-        chat_pile = urwid.LineBox(urwid.Pile([urwid.Text('Fuck Me')]), title='Chat')
+        chat_pile = urwid.LineBox(urwid.Pile([urwid.Text("message 1"), urwid.Text("message 2"), urwid.Text("message 3")]), 'Chat')
 
         widget_list = [
             urwid.Columns([

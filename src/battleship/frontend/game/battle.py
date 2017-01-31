@@ -3,6 +3,7 @@ import urwid.raw_display
 import urwid.web_display
 
 from .result import Result
+from common.GameController import GameController
 
 
 class PopUpDialog(urwid.WidgetWrap):
@@ -42,7 +43,8 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
 
 
 class Battle:
-    def __init__(self):
+    def __init__(self, game_controller):
+        self.game_controller = game_controller
         self.win = Result().show_winner
 
     def unhandled(self, key):
@@ -51,7 +53,7 @@ class Battle:
 
     def battle_main(self):
         shoots = [(1, 1), (2, 2), (3, 5), (1, 2), (2, 1), (1, 3), (3, 1), (1, 4)]
-        field_offset = 10
+        field_offset = self.game_controller.length
         text_button_list = {}
 
         def foward_result(foo):
