@@ -42,7 +42,7 @@ class GameController:
             for i in range(5):
                 shipCount = ships_table[i]
                 for _ in range(shipCount):
-                    id = id + 1
+                    id += 1
                     if i == 0:
                         ships.append(AircraftCarrier(id, 0, 0, Orientation.EAST))
                     if i == 1:
@@ -119,8 +119,14 @@ class GameController:
     def shoot(self, x_pos, y_pos):
         if self._game_started:
             if self._battlefield.no_border_crossing(x_pos, y_pos):
-                print("shoot at x={}, y={}".format(x_pos, y_pos))
-                self._battlefield.shoot(x_pos, y_pos)
+                if self._battlefield.no_hit_at_place(x_pos, y_pos):
+                    print("shoot at x={}, y={}".format(x_pos, y_pos))
+                    if self._battlefield.shoot(x_pos, y_pos):
+                        return True
+                    else:
+                        return False
+                else:
+                    return False
             else:
                 return False
         else:
@@ -145,7 +151,7 @@ class GameController:
                 raise BattleshipError(ErrorCode.SYNTAX_INVALID_BOARD_SIZE)
 
         #if cmd[0] == "place":
-        if msg.type == ProtocolMessageType.PLACE:
+        elif msg.type == ProtocolMessageType.PLACE:
             ship_positions = msg.parameters["ship_positions"]
             ship_id = 0
             if len(ship_positions.positions) == self._battlefield.count_ships():
@@ -176,8 +182,7 @@ class GameController:
             #self.start_game()
 
         # todo: not the clients turn and turn counter invalid
-        #if cmd[0] == "move":
-        if msg.type == ProtocolMessageType.MOVE:
+        elif msg.type == ProtocolMessageType.MOVE:
             ship_id = msg.parameters["ship_id"]
             direction = msg.parameters["direction"]
             if self._game_started:
@@ -207,12 +212,17 @@ class GameController:
                 print("game not started")
 
         # todo: not the clients turn and turn counter invalid
-        #if cmd[0] == "strike":
-        if msg.type == ProtocolMessageType.SHOOT:
+        elif msg.type == ProtocolMessageType.SHOOT:
             x_pos = msg.parameters["ship_position"].position.horizontal
             y_pos = msg.parameters["ship_position"].position.vertical
             if self._battlefield.no_border_crossing(x_pos, y_pos):
-                self.strike(x_pos, y_pos)
+                if self._battlefield.no_strike_at_place(x_pos, y_pos):
+                    if self.strike(x_pos, y_pos):
+                        return True
+                    else:
+                        return False
+                else:
+                    raise BattleshipError(ErrorCode.PARAMETER_ALREADY_HIT_POSITION)
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
 
@@ -226,6 +236,9 @@ class GameController:
                 #raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
 
         #if cmd[0] == "abort":
-        if msg.type == ProtocolMessageType.ABORT:
+        elif msg.type == ProtocolMessageType.ABORT:
             self.abort()
 
+        # todo: unknown MessageType
+        # else:
+            # error
