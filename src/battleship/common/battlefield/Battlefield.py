@@ -149,3 +149,23 @@ class Battlefield:
     @property
     def length(self):
         return self._length
+
+    def get_ship_id_from_location(self, x_pos, y_pos):
+        for ship in self._ships:
+            if ship.is_ship_at_location(x_pos, y_pos):
+                return ship.get_ship_id()
+        # no ship at locaton
+        return 0
+
+    def get_next_ship_id_to_place(self):
+        for ship in self._ships:
+            if not ship.is_placed():
+                return ship.get_ship_id()
+        # no more ships to place
+        return 0
+
+    def get_ship_type_by_id(self, ship_id):
+        for ship in self._ships:
+            if ship.get_ship_id() == ship_id:
+                return ship.get_ship_type()
+

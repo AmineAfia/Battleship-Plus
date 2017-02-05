@@ -91,13 +91,15 @@ def main():
                                              "password": "foo"})
         game_controller.run(msg)
         #PLACE THE SHIPS
-        ship_id = 1
         x_pos = 0
         y_pos = 0
         orientation = Orientation.EAST
         x_pos2 = 0
-        y_pos2 = 2
+        y_pos2 = 3
         orientation2 = Orientation.EAST
+        ship_id = game_controller.get_next_ship_id_to_place()
+        ship_type = game_controller.get_ship_type_by_id(ship_id)
+        print("next ship to place: {}, ship type:  {}".format(ship_id, ship_type))
         msg = ProtocolMessage.create_single(ProtocolMessageType.PLACE,
                                             {"ship_positions": ShipPositions([
                        ShipPosition(Position(y_pos, x_pos), orientation),

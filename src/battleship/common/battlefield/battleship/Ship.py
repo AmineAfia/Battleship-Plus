@@ -24,22 +24,31 @@ class Ship:
         print("{} created. ship_id: {}. size = {}x{}. orientation={}".format(self._ship_type, self._ship_id, self._x_length, self._y_length, self._orientation))
 
     def move(self, direction):
+        flag_is_moved = False
         if direction == Direction.EAST or direction == Direction.NORTH or direction == Direction.SOUTH or direction == Direction.WEST:
             for i in range(self._x_length):
                 for j in range(self._y_length):
                     (x, y), state = self._ship_state[i][j]
                     if direction == Direction.NORTH:
                         self._ship_state[i][j] = [(x, y - 1), state]
-                        self._y_pos -= 1
+                        if not flag_is_moved:
+                            self._y_pos -= 1
+                            flag_is_moved = True
                     elif direction == Direction.EAST:
                         self._ship_state[i][j] = [(x + 1, y), state]
-                        self._x_pos += 1
+                        if not flag_is_moved:
+                            self._x_pos += 1
+                            flag_is_moved = True
                     elif direction == Direction.SOUTH:
                         self._ship_state[i][j] = [(x, y + 1), state]
-                        self._y_pos += 1
+                        if not flag_is_moved:
+                            self._y_pos += 1
+                            flag_is_moved = True
                     elif direction == Direction.WEST:
                         self._ship_state[i][j] = [(x - 1, y), state]
-                        self._x_pos -= 1
+                        if not flag_is_moved:
+                            self._x_pos -= 1
+                            flag_is_moved = True
             return True
         return False
 
