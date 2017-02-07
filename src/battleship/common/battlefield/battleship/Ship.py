@@ -21,7 +21,6 @@ class Ship:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
                 elif self._orientation == Orientation.EAST:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
-        print("{} created. ship_id: {}. size = {}x{}. orientation={}".format(self._ship_type, self._ship_id, self._x_length, self._y_length, self._orientation))
 
     def move(self, direction):
         flag_is_moved = False
@@ -133,7 +132,6 @@ class Ship:
                     hit_counter += 1
         if hit_counter >= self._x_length * self._y_length:
             self._sunk = True
-            print("{} versenkt!".format(self._ship_type))
         if damaged:
             return True
         else:
@@ -144,3 +142,6 @@ class Ship:
 
     def get_ship_coordinate(self):
         return self._x_pos, self._y_pos
+
+    def get_ship_state(self):
+        return self._ship_state
