@@ -257,7 +257,7 @@ ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
     ProtocolMessageType.CHAT_SEND: [_field_username_with_length, _field_text],
     ProtocolMessageType.CREATE_GAME: [_field_board_size, _field_num_ships, _field_round_time,
                                       _field_options, _field_password],
-    ProtocolMessageType.CANCEL: [_field_game_id],
+    ProtocolMessageType.CANCEL: [],
     ProtocolMessageType.JOIN: [_field_game_id, _field_password],
     ProtocolMessageType.GET_GAMES: [],
     # Game, Server messages
