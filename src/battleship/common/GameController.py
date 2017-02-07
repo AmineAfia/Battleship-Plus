@@ -54,13 +54,14 @@ class GameController:
                     if i == 4:
                         ships.append(Submarine(id, 0, 0, Orientation.EAST))
             self._battlefield = Battlefield(length, ships, ships_table)
-            print("Battlefield {}x{} created.".format(length, length))
+            #print("Battlefield {}x{} created.".format(length, length))
             if length * length * 0.3 > self._battlefield.calc_filled():
                 return True
             else:
                 return False
         else:
-            return False
+            #return False
+            raise BattleshipError(ErrorCode.SYNTAX_INVALID_BOARD_SIZE)
 
     def place_ship(self, ship_id, x_pos, y_pos, orientation):
         if self._battlefield.place(ship_id, x_pos, y_pos, orientation):
@@ -71,11 +72,11 @@ class GameController:
     def start_game(self):
         if self._battlefield.placement_finished():
             self._game_started = True
-            print("All ships are well placed. Game: {} started!".format(self._game_id))
+            #print("All ships are well placed. Game: {} started!".format(self._game_id))
             return True
         else:
             self._game_started = False
-            print("Placement not finished.")
+            #print("Placement not finished.")
             return False
 
     # move your own ship on your battlefield
@@ -87,10 +88,10 @@ class GameController:
                     x_pos, y_pos = self._battlefield.get_move_coordinate(ship_id, direction)
                     if self._battlefield.no_border_crossing(x_pos, y_pos):
                         if self._battlefield.move(ship_id, direction):
-                            print("ship:{} moved to:{}".format(ship_id, direction))
+                            ##print("ship:{} moved to:{}".format(ship_id, direction))
                             return True
                         else:
-                            print("error - ship not moved")
+                            ##print("error - ship not moved")
                             return False
                     else:
                         return False
@@ -105,11 +106,13 @@ class GameController:
     def strike(self, x_pos, y_pos):
         if self._game_started:
             if self._battlefield.no_border_crossing(x_pos, y_pos):
-                print("strike at x={},y={}".format(x_pos, y_pos))
+                #print("strike at x={},y={}".format(x_pos, y_pos))
                 if self._battlefield.strike(x_pos, y_pos):
-                    print("got it!")
+                    # print("got it!")
+                    pass
                 else:
-                    print("fail!")
+                    # print("fail!")
+                    pass
             else:
                 return False
         else:
@@ -119,7 +122,7 @@ class GameController:
     def shoot(self, x_pos, y_pos):
         if self._game_started:
             if self._battlefield.no_border_crossing(x_pos, y_pos):
-                print("shoot at x={}, y={}".format(x_pos, y_pos))
+                #print("shoot at x={}, y={}".format(x_pos, y_pos))
                 self._battlefield.shoot(x_pos, y_pos)
             else:
                 return False
@@ -127,7 +130,7 @@ class GameController:
             return False
 
     def abort(self):
-        print("Game: {} aborted!".format(self._game_id))
+        #print("Game: {} aborted!".format(self._game_id))
         self = None
 
     # interface to client
@@ -204,7 +207,8 @@ class GameController:
                 else:
                     raise BattleshipError(ErrorCode.PARAMETER_INVALID_SHIP_ID)
             else:
-                print("game not started")
+                #print("game not started")
+                pass
 
         # todo: not the clients turn and turn counter invalid
         #if cmd[0] == "strike":

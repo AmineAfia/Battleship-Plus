@@ -29,7 +29,7 @@ class Ship:
                 elif self._orientation == Orientation.EAST:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), (0)]
 
-        print("{} created. ship_id: {}. size = {}x{}. orientation={}".format(self._ship_type, self._ship_id, self._x_length, self._y_length, self._orientation))
+        #print("{} created. ship_id: {}. size = {}x{}. orientation={}".format(self._ship_type, self._ship_id, self._x_length, self._y_length, self._orientation))
 
     # move the ship to 0=north 1=east 2=south 3=west
     def move(self, direction):
@@ -140,7 +140,7 @@ class Ship:
 
         if hit_counter >= (self._x_length * self._y_length):
             self._sunk = True
-            print("{} versenkt!".format(self._ship_type))
+            #print("{} versenkt!".format(self._ship_type))
 
     def get_ship_length(self):
         return len(self._ship_state)

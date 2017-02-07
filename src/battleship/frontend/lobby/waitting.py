@@ -24,7 +24,8 @@ class Waiting:
         if key == 'enter':
             raise urwid.ExitMainLoop()
 
-    def waiting_main(self, foo):
+    @staticmethod
+    def waiting_main(foo):
         placeholder = urwid.SolidFill()
         loop = urwid.MainLoop(placeholder, self.palette, unhandled_input=self.exit_on_q, pop_ups=True,
                               event_loop=urwid.AsyncioEventLoop(loop=self.loop))

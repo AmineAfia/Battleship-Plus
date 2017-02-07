@@ -54,8 +54,10 @@ def main():
         login = Login(game_controller, lobby_controller, network_loop)
         login.login_main()
 
+
     create_game = Lobby(game_controller, lobby_controller, network_loop)
     create_game.lobby_main()
+
 
     create_game = CreateGame(game_controller, lobby_controller, network_loop)
     create_game.create_game()
@@ -67,13 +69,13 @@ def main():
     # TODO: esc or normal continuation?
     go_to_game = Waiting(game_controller, lobby_controller, network_loop)
     # TODO: is this foo nedded in waiting_main?
-    go_to_game.waiting_main("")
+    go_to_game.waiting_main
 
     battle_sessions = Battle(game_controller, lobby_controller, network_loop)
     battle_sessions.battle_main()
 
-    # TODO: why does "You win" appear twice?
 
+    # TODO: why does "You win" appear twice? --> you start two clients and one of them still have his loop running(connected).
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print("almost dead")

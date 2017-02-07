@@ -23,7 +23,8 @@ class Battlefield:
             if not ship.is_hit():
                 if self.no_ship_at_place_but(x_pos, y_pos, ship.get_ship_id()):
                     if ship.move(direction):
-                        print("Ship: {} moved to: {}".format(ship._ship_id, ship._ship_state))
+                        # print("Ship: {} moved to: {}".format(ship._ship_id, ship._ship_state))
+                        pass
                         return True
                     else:
                         return False
@@ -38,10 +39,10 @@ class Battlefield:
     def strike(self, x_pos, y_pos):
         if self.no_border_crossing(x_pos, y_pos):
             if self._my_battlefield[x_pos][y_pos] == 1:
-                print("already shot at this part of a ship")
+                #print("already shot at this part of a ship")
                 return False
             elif self._my_battlefield[x_pos][y_pos] == 2:
-                print("already missed at this place")
+                #print("already missed at this place")
                 return False
             #shoot at hidden place
             elif self._my_battlefield[x_pos][y_pos] == 0:
@@ -76,7 +77,7 @@ class Battlefield:
             if ship.get_ship_id() == ship_id:
                 if self.no_ship_at_place(x_pos, y_pos):
                     if ship.place(x_pos, y_pos, orientation):
-                        print("Ship: {} placed: {}".format(ship._ship_id, ship._ship_state))
+                        #print("Ship: {} placed: {}".format(ship._ship_id, ship._ship_state))
                         return True
                 else:
                     return False
