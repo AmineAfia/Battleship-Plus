@@ -27,7 +27,7 @@ class Login:
         if type(e) is BattleshipError:
             if e.error_code == ErrorCode.PARAMETER_INVALID_USERNAME:
                 # TODO: popup
-                print("invalid username")
+                print("username cannot be empty")
             elif e.error_code == ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS:
                 # TODO: popup
                 print("username already exists")
