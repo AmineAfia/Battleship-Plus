@@ -5,6 +5,8 @@ from .lobby import Lobby
 from common.GameController import GameController
 from client.lobby import ClientLobbyController
 from common.states import ClientConnectionState
+from common.errorHandler.BattleshipError import BattleshipError
+from common.constants import ErrorCode
 
 
 class Login:
@@ -13,20 +15,29 @@ class Login:
         self.lobby_controller = lobby_controller
         self.loop = loop
         self.username = urwid.Edit("Username: ")
-        self.login_task = None
 
     def forward_lobby(self, key):
         if key == 'enter':
-            self.login_task = asyncio.Task(self.lobby_controller.try_login(self.username.get_edit_text()),
-                                           loop=self.lobby_controller.client.loop)
-            self.login_task.add_done_callback(self.login_result)
+            login_task = self.loop.create_task(self.lobby_controller.try_login(self.username.get_edit_text()))
+            login_task.add_done_callback(self.login_result)
 
-    def login_result(self, _):
-        if not self.lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
+    def login_result(self, future):
+        # check if there is an error message to display
+        e = future.exception()
+        if type(e) is BattleshipError:
+            if e.error_code == ErrorCode.PARAMETER_INVALID_USERNAME:
+                # TODO: popup
+                print("invalid username")
+            elif e.error_code == ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS:
+                # TODO: popup
+                print("username already exists")
+        # and check if we are really logged in
+        elif not self.lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
+            # ok, we are logged in
             raise urwid.ExitMainLoop()
         else:
-            # TODO: some kind of feedback…
-            raise urwid.ExitMainLoop()
+            # TODO: popup
+            print("some other weird login error")
 
     def login_main(self):
 

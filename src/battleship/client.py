@@ -33,7 +33,6 @@ def main():
         else:
             lobby_controller.state = ClientConnectionState.CONNECTED
             pass
-        battleship_client.answer_received.set()
 
     def closed_callback():
         print("< server closed connection".format())
@@ -53,6 +52,7 @@ def main():
     while lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
         login = Login(game_controller, lobby_controller, network_loop)
         login.login_main()
+        input()
 
     create_game = Lobby(game_controller, lobby_controller, network_loop)
     create_game.lobby_main()

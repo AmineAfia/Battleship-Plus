@@ -29,7 +29,10 @@ class BattleshipClient:
         if msg.type == ProtocolMessageType.ERROR:
             self.last_msg_was_error = True
             self.last_error = msg.parameters["error_code"]
+        else:
+            self.last_msg_was_error = False
         await self.msg_callback(msg)
+        self.answer_received.set()
 
     async def connect(self):
         self.reader, self.writer = await asyncio.streams.open_connection(
@@ -40,6 +43,11 @@ class BattleshipClient:
 
     async def send(self, msg: ProtocolMessage):
         await msg.send(self.writer)
+
+    async def send_and_wait_for_answer(self, msg: ProtocolMessage):
+        await self.send(msg)
+        await self.answer_received.wait()
+        self.answer_received.clear()
 
     def _server_closed_connection(self, task):
         self.closed_callback()
