@@ -70,7 +70,6 @@ class GameController:
             for i in range(5):
                 ship_count = ships_table[i]
                 for _ in range(ship_count):
-                    identification += 1
                     if i == 0:
                         ships.append(AircraftCarrier(identification, 0, 0, Orientation.EAST))
                     elif i == 1:
@@ -81,10 +80,11 @@ class GameController:
                         ships.append(Destroyer(identification, 0, 0, Orientation.EAST))
                     elif i == 4:
                         ships.append(Submarine(identification, 0, 0, Orientation.EAST))
+                    identification += 1
             self._battlefield = Battlefield(length, ships, ships_table)
-            print("Battlefield {}x{} created.".format(length, length))
             if length * length * 0.3 > self._battlefield.calc_filled():
-                return True
+                # needs to return the battlefield for the cmd-line downside
+                return self._battlefield
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_TOO_MANY_SHIPS)
         else:
@@ -133,12 +133,8 @@ class GameController:
                                 direction = Direction(direction)
                             except ValueError:
                                 raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
-                            if self._battlefield.move(ship_id, direction):
-                                print("ship:{} moved to:{}".format(ship_id, direction))
-                                return True
-                            else:
-                                print("ship not moved")
-                                return False
+                            self._battlefield.move(ship_id, direction)
+                            print("ship moved")
                         else:
                             raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
                     else:
@@ -191,61 +187,113 @@ class GameController:
     def all_ships_sunk(self):
         return self._battlefield.all_ships_sunk()
 
+    def increase_turn_counter(self):
+        if self._turn_counter >= 256:
+            self._turn_counter = 0
+        else:
+            self._turn_counter += 1
+
     def abort(self):
         print("Game: {} aborted!".format(self._game_id))
-        self = None
+        #self = None
         return True
 
-    # interface to client
-    # DO NOT CHANGE THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # interface to client and server
     def run(self, msg: ProtocolMessage):
 
+        # CLIENT -> SERVER
+        # CLIENT MESSAGES: CREATE_GAME, PLACE, MOVE, SHOOT, ABORT
         if msg.type == ProtocolMessageType.CREATE_GAME:
             length = msg.parameters["board_size"]
-            ships_table = msg.parameters["num_ships"]
+            ships_table = msg.parameters["num_ships"].numbers
+            opponent_name = msg.parameters["opponent_name"]
+            round_time = msg.parameters["round_time"]
             self._battlefield = self.create_battlefield(length, ships_table)
 
-
+        # Sends the server a list of ship placements. The list MUST be ordered by ship type as specified in the instruction.
         elif msg.type == ProtocolMessageType.PLACE:
             ship_positions = msg.parameters["ship_positions"]
             ship_id = 0
-            result = True
             if len(ship_positions.positions) == self._battlefield.count_ships():
                 for ship_position in ship_positions.positions:
-                    ship_id += 1
                     x_pos = ship_position.position.horizontal
                     y_pos = ship_position.position.vertical
                     orientation = ship_position.orientation
-                    if not self._battlefield.place(ship_id, x_pos, y_pos, orientation):
-                        result = False
+                    self.place_ship(ship_id, x_pos, y_pos, orientation)
+                    ship_id += 1
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_WRONG_NUMBER_OF_SHIPS)
-            return result
 
-        #if msg.type == ProtocolMessageType.START_GAME:
-            #self.start_game()
-
-        # todo: not the clients turn and turn counter invalid
+        # Moves a ship
         elif msg.type == ProtocolMessageType.MOVE:
             ship_id = msg.parameters["ship_id"]
             direction = msg.parameters["direction"]
-            if self.move(ship_id, direction):
-                return True
-            else:
-                return False
+            turn_counter = msg.parameters["turn_counter"]
+            self.move(ship_id, direction)
 
-
-        # todo: not the clients turn and turn counter invalid
+        # Shoots the specified position of the opponents board.
         elif msg.type == ProtocolMessageType.SHOOT:
             x_pos = msg.parameters["ship_position"].position.horizontal
             y_pos = msg.parameters["ship_position"].position.vertical
-            if self._battlefield.strike(x_pos, y_pos):
-                # todo call UI for strike(x,y)
+            turn_counter = msg.parameters["turn_counter"]
+            if self.strike(x_pos, y_pos):
+                # todo HIT
+                # todo call UI for HIT(x,y)
                 return True
             else:
+                # todo FAIL
+                # todo call UI for FAIL(x,y)
                 return False
 
+        # This message tells the server that the client wants to abort the game. The user may communicate via the chat.
         elif msg.type == ProtocolMessageType.ABORT:
+            turn_counter = msg.parameters["turn_counter"]
+            self.abort()
+
+        # SERVER -> CLIENTS
+        # SERVER MESSAGES: STARTGAME, PLACED, YOUSTART, WAIT, HIT, FAIL, MOVED, TIMEOUT, ENDGAME
+
+        # Initial message to start the game. The message MUST be sent to both clients
+        elif msg.type == ProtocolMessageType.STARTGAME:
+            length = msg.parameters["board_size"]
+            ships_table = msg.parameters["num_ships"]
+            opponent_name = msg.parameters["opponent_name"]
+            round_time = msg.parameters["round_time"]
+
+        # This message MUST be sent to the client who has the first turn. It is sent only once after the STARTGAME message.
+        elif msg.type == ProtocolMessageType.YOUSTART:
+            pass
+
+        # This message MUST be sent to the client who hast to wait for the opponent's first turn. It is sent only once after the STARTGAME message
+        elif msg.type == ProtocolMessageType.WAIT:
+            pass
+
+        # This message is sent to both clients
+        elif msg.type == ProtocolMessageType.HIT:
+            sunk = msg.parameters["sunk"]
+            position = msg.parameters["position"]
+            self.increase_turn_counter()
+
+        # The last shot was unsuccessful. This message is sent to both clients.
+        elif msg.type == ProtocolMessageType.FAIL:
+            position = msg.parameters["position"]
+            self.increase_turn_counter()
+
+        # A ship was moved. If the ship was moved to already shot fields, these fields are mentioned in the positions. This message is sent to both clients.
+        elif msg.type == ProtocolMessageType.MOVED:
+            self.increase_turn_counter()
+
+        # The current turn ended because of a timeout. This message is sent to both clients.
+        elif msg.type == ProtocolMessageType.TIMEOUT:
+            self.increase_turn_counter()
+
+        # The opponent placed ships
+        elif msg.type == ProtocolMessageType.PLACED:
+            pass
+
+        # The current game ended because of a known reason. This message is sent to both clients
+        elif msg.type == ProtocolMessageType.ENDGAME:
+            reason = msg.parameters["reason"]
             self.abort()
 
         # unknown command

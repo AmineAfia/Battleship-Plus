@@ -15,7 +15,6 @@ class Battlefield:
         x_pos, y_pos = self.get_move_coordinate(ship_id, direction)
         ship = self.get_ship(ship_id)
         if ship.move(direction):
-            print("Ship: {} moved to: {}".format(ship._ship_id, ship._ship_state))
             return True
         else:
             return False
@@ -43,7 +42,6 @@ class Battlefield:
     def place(self, ship_id, x_pos, y_pos, orientation):
         ship = self.get_ship(ship_id)
         if ship.place(x_pos, y_pos, orientation):
-            print("Ship: {} placed: {}".format(ship._ship_id, ship._ship_state))
             return True
         return False
 
