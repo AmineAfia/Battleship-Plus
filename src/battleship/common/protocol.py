@@ -8,7 +8,7 @@ import asyncio.streams
 
 
 class ProtocolConfig:
-    BYTEORDER = 'little'
+    BYTEORDER = 'big'
     STR_ENCODING = 'utf-8'
     PAYLOAD_LENGTH_BYTES = 2
     CHAT_MAX_TEXT_LENGTH = 63
