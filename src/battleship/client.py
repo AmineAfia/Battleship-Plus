@@ -79,13 +79,10 @@ def main():
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print("almost dead")
-
     network_loop.run_forever()
-
     print("Bye.")
 
     try:
-
         #CREATE THE BATTLEFIELD
         length = 10
         ships = [0, 0, 0, 1, 1]
@@ -95,46 +92,38 @@ def main():
                                              "round_time": 25, "options": GameOptions.PASSWORD,
                                              "password": "foo"})
         game_controller.run(msg)
-
         #PLACE THE SHIPS
-        ship_id = 1
         x_pos = 0
         y_pos = 0
         orientation = Orientation.EAST
         x_pos2 = 0
-        y_pos2 = 2
+        y_pos2 = 3
         orientation2 = Orientation.EAST
+        ship_id = game_controller.get_next_ship_id_to_place()
+        ship_type = game_controller.get_ship_type_by_id(ship_id)
+        print("next ship to place: {}, ship type:  {}".format(ship_id, ship_type))
         msg = ProtocolMessage.create_single(ProtocolMessageType.PLACE,
                                             {"ship_positions": ShipPositions([
                        ShipPosition(Position(y_pos, x_pos), orientation),
                        ShipPosition(Position(y_pos2, x_pos2), orientation2)])})
-
         game_controller.run(msg)
-
-
         game_controller.start_game()
-
         # MOVE YOUR SHIP
         ship_id = 2
         direction = Direction.EAST
-
         msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
                                             { "ship_id": 1, "direction": Direction.EAST })
         game_controller.run(msg)
-
         #STRIKE FROM ENEMY = SHOOT
         x_pos = 0
         y_pos = 0
-
         msg = ProtocolMessage.create_single(ProtocolMessageType.SHOOT,
                                             { "ship_position": ShipPosition(Position(y_pos, x_pos), orientation  ) })
         game_controller.run(msg)
-
         #SHOOT AT ENEMY BATTLEFIELD
         x_pos = 0
         y_pos = 0
         game_controller.shoot(x_pos, y_pos)
-
         #ABORT
         msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT)
         game_controller.run(msg)
