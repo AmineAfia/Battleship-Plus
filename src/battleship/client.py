@@ -89,9 +89,10 @@ def main():
         msg = ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
                                             {"board_size": 10, "num_ships": NumShips(ships),
                                              "round_time": 25, "options": GameOptions.PASSWORD,
-                                             "password": "foo",
-                                             "opponent_name" : "Enemy"})
-        game_controller.run(msg)
+                                             "password": "foo"})
+
+        game_controller = GameController.create_from_msg(msg, 1, None, "yoloswag")
+        #game_controller.run(msg)
         #PLACE THE SHIPS
         x_pos = 0
         y_pos = 0
@@ -128,6 +129,7 @@ def main():
         x_pos = 0
         y_pos = 0
         game_controller.shoot(x_pos, y_pos)
+        print(game_controller.all_ships_sunk())
         #ABORT
         msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT,
                                             {"turn_counter": 0 })
