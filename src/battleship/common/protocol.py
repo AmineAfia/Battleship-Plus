@@ -467,20 +467,8 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
 
             if parameter.type is str:
                 parameters[parameter.name] = _str_from_bytes(data)
-            elif parameter.type is int:
+            elif parameter.type in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
                 parameters[parameter.name] = _int_from_bytes(data)
-            # TODO: this is a lot of repetition, can this be generalized?
-            # TODO: return plain ints here
-            elif parameter.type is Orientation:
-                parameters[parameter.name] = Orientation(_int_from_bytes(data))
-            elif parameter.type is Direction:
-                parameters[parameter.name] = Direction(_int_from_bytes(data))
-            elif parameter.type is EndGameReason:
-                parameters[parameter.name] = EndGameReason(_int_from_bytes(data))
-            elif parameter.type is ErrorCode:
-                parameters[parameter.name] = ErrorCode(_int_from_bytes(data))
-            elif parameter.type is GameOptions:
-                parameters[parameter.name] = GameOptions(_int_from_bytes(data))
             elif parameter.type is NumShips:
                 parameters[parameter.name] = NumShips.from_bytes(data)
             else:
