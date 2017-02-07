@@ -395,9 +395,11 @@ class ProtocolMessage(object):
         #print("> {}".format(self))
         writer.write(msg_bytes_type)
         #print("type({})".format(msg_bytes_type))
+
+        writer.write(msg_bytes_length)
+        #print("length({})".format(msg_bytes_length))
+
         if num_fields > 0:
-            writer.write(msg_bytes_length)
-            #print("length({})".format(msg_bytes_length))
             writer.write(msg_bytes_payload)
             #print("payload({})".format(msg_bytes_payload))
 
@@ -468,6 +470,7 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
             elif parameter.type is int:
                 parameters[parameter.name] = _int_from_bytes(data)
             # TODO: this is a lot of repetition, can this be generalized?
+            # TODO: return plain ints here
             elif parameter.type is Orientation:
                 parameters[parameter.name] = Orientation(_int_from_bytes(data))
             elif parameter.type is Direction:
@@ -485,15 +488,17 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
 
         # prepare the next loop
         if waiting_for_msg_type:
-            # Check if this message type has payload.
-            # If so, there will be a global length field
-            if len(ProtocolMessageParameters[msg_type]) > 0:
-                waiting_for_payload_length = True
-                waiting_for_msg_type = False
-                bytes_to_read_next = ProtocolConfig.PAYLOAD_LENGTH_BYTES
-            # If not, the message is already complete
-            else:
-                await finalize_msg_and_prepare_for_next()
+            # Now we always have a payload length field
+            # # Check if this message type has payload.
+            # # If so, there will be a global length field
+
+            # if len(ProtocolMessageParameters[msg_type]) > 0:
+            waiting_for_payload_length = True
+            waiting_for_msg_type = False
+            bytes_to_read_next = ProtocolConfig.PAYLOAD_LENGTH_BYTES
+            # # If not, the message is already complete
+            # else:
+            #    await finalize_msg_and_prepare_for_next()
 
         elif waiting_for_payload_length or not waiting_for_field_length:
             waiting_for_payload_length = False
