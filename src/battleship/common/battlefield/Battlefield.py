@@ -7,6 +7,7 @@ class Battlefield:
         self._length = length
         self._ships = ships
         self._ships_table = ships_table
+        self._ships_table_not_placed = ships_table
         self._my_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
         self._enemy_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
 
@@ -42,6 +43,17 @@ class Battlefield:
     def place(self, ship_id, x_pos, y_pos, orientation):
         ship = self.get_ship(ship_id)
         if ship.place(x_pos, y_pos, orientation):
+            ship_type = ship.get_ship_type()
+            if ship_type == "carrier":
+                self._ships_table_not_placed[0] -= 1
+            elif ship_type == "battleship":
+                self._ships_table_not_placed[1] -= 1
+            elif ship_type == "cruiser":
+                self._ships_table_not_placed[2] -= 1
+            elif ship_type == "destroyer":
+                self._ships_table_not_placed[3] -= 1
+            elif ship_type == "submarine":
+                self._ships_table_not_placed[4] -= 1
             return True
         return False
 
@@ -148,6 +160,10 @@ class Battlefield:
     def length(self):
         return self._length
 
+    @property
+    def ships_not_placed(self):
+        return self._ships_table_not_placed
+
     def get_ship_id_from_location(self, x_pos, y_pos):
         for ship in self._ships:
             if ship.is_ship_at_location(x_pos, y_pos):
@@ -173,3 +189,9 @@ class Battlefield:
             if not ship.is_sunk():
                 return False
         return True
+
+    def get_all_ship_states(self):
+        ship_states = []
+        for ship in self._ships:
+            ship_states.append(ship.get_ship_state())
+        return ship_states

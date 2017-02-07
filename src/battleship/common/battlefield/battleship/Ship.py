@@ -142,3 +142,6 @@ class Ship:
 
     def get_ship_coordinate(self):
         return self._x_pos, self._y_pos
+
+    def get_ship_state(self):
+        return self._ship_state

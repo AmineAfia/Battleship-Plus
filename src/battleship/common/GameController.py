@@ -22,6 +22,7 @@ class GameController:
         self._round_time = 0
         self._options = 0
         self._username = ""
+        self._opponent_name = ""
         self._password = ""
 
         self._client = client
@@ -33,6 +34,10 @@ class GameController:
     @property
     def length(self):
         return self._battlefield.length
+
+    @property
+    def ships_not_placed(self):
+        return self._battlefield.ships_not_placed
 
     def get_ship_id_from_location(self, pos_x, pos_y):
         result = self._battlefield.get_ship_id_from_location(pos_x, pos_y)
@@ -61,6 +66,9 @@ class GameController:
             return result
         else:
             raise BattleshipError(ErrorCode.INTERN_SHIP_ID_DOES_NOT_EXIST)
+
+    def get_ship_list_to_place(self):
+        return
 
     # create a new battlefield
     def create_battlefield(self, length, ships_table):
@@ -113,11 +121,9 @@ class GameController:
     def start_game(self):
         if self._battlefield.placement_finished():
             self._game_started = True
-            print("All ships are well placed. Game: {} started!".format(self._game_id))
             return True
         else:
             self._game_started = False
-            print("Placement not finished.")
             return False
 
     # move your own ship on your battlefield
@@ -134,7 +140,6 @@ class GameController:
                             except ValueError:
                                 raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
                             self._battlefield.move(ship_id, direction)
-                            print("ship moved")
                         else:
                             raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
                     else:
@@ -144,7 +149,6 @@ class GameController:
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_INVALID_SHIP_ID)
         else:
-            print("game not started")
             return False
 
     # strike at the coordinates on the enemy battlefield
@@ -152,18 +156,17 @@ class GameController:
         if self._game_started:
             if self._battlefield.no_border_crossing(x_pos, y_pos):
                 if self._battlefield.no_strike_at_place(x_pos, y_pos):
-                    print("strike at x={},y={}".format(x_pos, y_pos))
                     if self._battlefield.strike(x_pos, y_pos):
-                        # todo call UI strike(x,y)
-                        print("got it!")
+                        # todo call UI for a successful enemy strike(x,y)
+                        pass
                     else:
-                        print("fail!")
+                        # todo call UI for a missed enemy strike(x,y)
+                        pass
                 else:
                     raise BattleshipError(ErrorCode.PARAMETER_ALREADY_HIT_POSITION)
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
         else:
-            print("game not started")
             return False
 
     # shoot at enemy battlefield
@@ -172,7 +175,6 @@ class GameController:
             if self._battlefield.no_border_crossing(x_pos, y_pos):
                 if self._battlefield.no_hit_at_place(x_pos, y_pos):
                     if self._battlefield.shoot(x_pos, y_pos):
-                        print("shoot at x={}, y={}".format(x_pos, y_pos))
                         return True
                     else:
                         return False
@@ -181,11 +183,13 @@ class GameController:
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
         else:
-            print("game not started")
             return False
 
     def all_ships_sunk(self):
         return self._battlefield.all_ships_sunk()
+
+    def get_all_ship_states(self):
+        return self._battlefield.get_all_ship_states()
 
     def increase_turn_counter(self):
         if self._turn_counter >= 256:
@@ -194,7 +198,6 @@ class GameController:
             self._turn_counter += 1
 
     def abort(self):
-        print("Game: {} aborted!".format(self._game_id))
         #self = None
         return True
 
@@ -208,7 +211,11 @@ class GameController:
             ships_table = msg.parameters["num_ships"].numbers
             opponent_name = msg.parameters["opponent_name"]
             round_time = msg.parameters["round_time"]
+            password = msg.parameters["password"]
             self._battlefield = self.create_battlefield(length, ships_table)
+            self._round_time = round_time
+            self._password = password
+            self._opponent_name = opponent_name
 
         # Sends the server a list of ship placements. The list MUST be ordered by ship type as specified in the instruction.
         elif msg.type == ProtocolMessageType.PLACE:
@@ -255,10 +262,10 @@ class GameController:
 
         # Initial message to start the game. The message MUST be sent to both clients
         elif msg.type == ProtocolMessageType.STARTGAME:
-            length = msg.parameters["board_size"]
-            ships_table = msg.parameters["num_ships"]
-            opponent_name = msg.parameters["opponent_name"]
-            round_time = msg.parameters["round_time"]
+            self._length = msg.parameters["board_size"]
+            self._ships_table = msg.parameters["num_ships"]
+            self._opponent_name = msg.parameters["opponent_name"]
+            self._round_time = msg.parameters["round_time"]
 
         # This message MUST be sent to the client who has the first turn. It is sent only once after the STARTGAME message.
         elif msg.type == ProtocolMessageType.YOUSTART:

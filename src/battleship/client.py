@@ -80,6 +80,7 @@ def main():
     network_loop.run_forever()
     print("Bye.")
 
+    # ITS ONLY FOR DEBUGGING THE GAMECONTROLER
     try:
         #CREATE THE BATTLEFIELD
         length = 10
@@ -100,6 +101,7 @@ def main():
         orientation2 = Orientation.EAST
         ship_id = game_controller.get_next_ship_id_to_place()
         ship_type = game_controller.get_ship_type_by_id(ship_id)
+        print(game_controller.ships_not_placed)
         print("next ship to place: {}, ship type:  {}".format(ship_id, ship_type))
         msg = ProtocolMessage.create_single(ProtocolMessageType.PLACE,
                                             {"ship_positions": ShipPositions([
@@ -121,6 +123,7 @@ def main():
                                             { "ship_position": ShipPosition(Position(y_pos, x_pos), orientation)
                                                                             ,"turn_counter": 1})
         game_controller.run(msg)
+        print(game_controller.get_all_ship_states())
         #SHOOT AT ENEMY BATTLEFIELD
         x_pos = 0
         y_pos = 0
