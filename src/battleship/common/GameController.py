@@ -18,14 +18,29 @@ class GameController:
         self._turn_counter = 0
         self._game_started = False
         self._game_id = game_id
-
         self._round_time = 0
         self._options = 0
         self._username = ""
         self._opponent_name = ""
         self._password = ""
-
         self._client = client
+
+    @classmethod
+    def create_from_msg(cls, msg: ProtocolMessage, game_id, client, username):
+        controller = cls(game_id, client)
+        length = msg.parameters["board_size"]
+        ships_table = msg.parameters["num_ships"].numbers
+        controller._round_time = msg.parameters["round_time"]
+        controller._password = msg.parameters["password"]
+        controller._username = username
+
+        try:
+            controller._battlefield = controller.create_battlefield(length, ships_table)
+        except BattleshipError as e:
+            # answer client the error
+            print("{}".format(e))
+            # answer client OK
+        return controller
 
     @property
     def ships(self):
@@ -66,9 +81,6 @@ class GameController:
             return result
         else:
             raise BattleshipError(ErrorCode.INTERN_SHIP_ID_DOES_NOT_EXIST)
-
-    def get_ship_list_to_place(self):
-        return
 
     # create a new battlefield
     def create_battlefield(self, length, ships_table):
@@ -139,6 +151,8 @@ class GameController:
                                 direction = Direction(direction)
                             except ValueError:
                                 raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
+                            # todo differentiate if called from UI -> SEND MSG TO SERVER AND WAIT FOR ANSWER -> Set new state
+                            # todo if called from CLIENT -> set new state and answer to Client OK
                             self._battlefield.move(ship_id, direction)
                         else:
                             raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
@@ -151,7 +165,7 @@ class GameController:
         else:
             return False
 
-    # strike at the coordinates on the enemy battlefield
+    # strike at the coordinates on my own battlefield
     def strike(self, x_pos, y_pos):
         if self._game_started:
             if self._battlefield.no_border_crossing(x_pos, y_pos):
@@ -198,7 +212,7 @@ class GameController:
             self._turn_counter += 1
 
     def abort(self):
-        #self = None
+        self = None
         return True
 
     # interface to client and server
@@ -206,19 +220,20 @@ class GameController:
 
         # CLIENT -> SERVER
         # CLIENT MESSAGES: CREATE_GAME, PLACE, MOVE, SHOOT, ABORT
-        if msg.type == ProtocolMessageType.CREATE_GAME:
-            length = msg.parameters["board_size"]
-            ships_table = msg.parameters["num_ships"].numbers
-            opponent_name = msg.parameters["opponent_name"]
-            round_time = msg.parameters["round_time"]
-            password = msg.parameters["password"]
-            self._battlefield = self.create_battlefield(length, ships_table)
-            self._round_time = round_time
-            self._password = password
-            self._opponent_name = opponent_name
+        # if msg.type == ProtocolMessageType.CREATE_GAME:
+            # length = msg.parameters["board_size"]
+            # ships_table = msg.parameters["num_ships"].numbers
+            # self._round_time = msg.parameters["round_time"]
+            # self._password = msg.parameters["password"]
+            # try:
+                # self._battlefield = self.create_battlefield(length, ships_table)
+            # except BattleshipError as e:
+                # answer client the error
+                # print("{}".format(e))
+            # answer client OK
 
         # Sends the server a list of ship placements. The list MUST be ordered by ship type as specified in the instruction.
-        elif msg.type == ProtocolMessageType.PLACE:
+        if msg.type == ProtocolMessageType.PLACE:
             ship_positions = msg.parameters["ship_positions"]
             ship_id = 0
             if len(ship_positions.positions) == self._battlefield.count_ships():
@@ -245,11 +260,9 @@ class GameController:
             turn_counter = msg.parameters["turn_counter"]
             if self.strike(x_pos, y_pos):
                 # todo HIT
-                # todo call UI for HIT(x,y)
                 return True
             else:
                 # todo FAIL
-                # todo call UI for FAIL(x,y)
                 return False
 
         # This message tells the server that the client wants to abort the game. The user may communicate via the chat.
@@ -262,10 +275,11 @@ class GameController:
 
         # Initial message to start the game. The message MUST be sent to both clients
         elif msg.type == ProtocolMessageType.STARTGAME:
-            self._length = msg.parameters["board_size"]
-            self._ships_table = msg.parameters["num_ships"]
+            length = msg.parameters["board_size"]
+            ships_table = msg.parameters["num_ships"].numbers
             self._opponent_name = msg.parameters["opponent_name"]
             self._round_time = msg.parameters["round_time"]
+            self._battlefield = self.create_battlefield(length, ships_table)
 
         # This message MUST be sent to the client who has the first turn. It is sent only once after the STARTGAME message.
         elif msg.type == ProtocolMessageType.YOUSTART:

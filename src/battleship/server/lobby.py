@@ -17,6 +17,12 @@ class ServerLobbyController:
 
     def remove_client(self, client):
         # TODO: end all games of the user
+        if not client.username == "":
+            try:
+                del self.users[client.username]
+            except KeyError:
+                # then the user is already logged out
+                pass
         del self.clients[client.id]
 
     def login_user(self, username, client: Client) -> bool:

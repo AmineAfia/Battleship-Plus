@@ -8,7 +8,7 @@ import asyncio.streams
 
 
 class ProtocolConfig:
-    BYTEORDER = 'little'
+    BYTEORDER = 'big'
     STR_ENCODING = 'utf-8'
     PAYLOAD_LENGTH_BYTES = 2
     CHAT_MAX_TEXT_LENGTH = 63
@@ -257,7 +257,7 @@ ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
     ProtocolMessageType.CHAT_SEND: [_field_username_with_length, _field_text],
     ProtocolMessageType.CREATE_GAME: [_field_board_size, _field_num_ships, _field_round_time,
                                       _field_options, _field_password],
-    ProtocolMessageType.CANCEL: [_field_game_id],
+    ProtocolMessageType.CANCEL: [],
     ProtocolMessageType.JOIN: [_field_game_id, _field_password],
     ProtocolMessageType.GET_GAMES: [],
     # Game, Server messages
@@ -395,9 +395,11 @@ class ProtocolMessage(object):
         #print("> {}".format(self))
         writer.write(msg_bytes_type)
         #print("type({})".format(msg_bytes_type))
+
+        writer.write(msg_bytes_length)
+        #print("length({})".format(msg_bytes_length))
+
         if num_fields > 0:
-            writer.write(msg_bytes_length)
-            #print("length({})".format(msg_bytes_length))
             writer.write(msg_bytes_payload)
             #print("payload({})".format(msg_bytes_payload))
 
@@ -465,19 +467,8 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
 
             if parameter.type is str:
                 parameters[parameter.name] = _str_from_bytes(data)
-            elif parameter.type is int:
+            elif parameter.type in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
                 parameters[parameter.name] = _int_from_bytes(data)
-            # TODO: this is a lot of repetition, can this be generalized?
-            elif parameter.type is Orientation:
-                parameters[parameter.name] = Orientation(_int_from_bytes(data))
-            elif parameter.type is Direction:
-                parameters[parameter.name] = Direction(_int_from_bytes(data))
-            elif parameter.type is EndGameReason:
-                parameters[parameter.name] = EndGameReason(_int_from_bytes(data))
-            elif parameter.type is ErrorCode:
-                parameters[parameter.name] = ErrorCode(_int_from_bytes(data))
-            elif parameter.type is GameOptions:
-                parameters[parameter.name] = GameOptions(_int_from_bytes(data))
             elif parameter.type is NumShips:
                 parameters[parameter.name] = NumShips.from_bytes(data)
             else:
@@ -485,15 +476,17 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
 
         # prepare the next loop
         if waiting_for_msg_type:
-            # Check if this message type has payload.
-            # If so, there will be a global length field
-            if len(ProtocolMessageParameters[msg_type]) > 0:
-                waiting_for_payload_length = True
-                waiting_for_msg_type = False
-                bytes_to_read_next = ProtocolConfig.PAYLOAD_LENGTH_BYTES
-            # If not, the message is already complete
-            else:
-                await finalize_msg_and_prepare_for_next()
+            # Now we always have a payload length field
+            # # Check if this message type has payload.
+            # # If so, there will be a global length field
+
+            # if len(ProtocolMessageParameters[msg_type]) > 0:
+            waiting_for_payload_length = True
+            waiting_for_msg_type = False
+            bytes_to_read_next = ProtocolConfig.PAYLOAD_LENGTH_BYTES
+            # # If not, the message is already complete
+            # else:
+            #    await finalize_msg_and_prepare_for_next()
 
         elif waiting_for_payload_length or not waiting_for_field_length:
             waiting_for_payload_length = False
