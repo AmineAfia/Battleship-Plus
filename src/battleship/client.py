@@ -52,7 +52,6 @@ def main():
     while lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
         login = Login(game_controller, lobby_controller, network_loop)
         login.login_main()
-        input()
 
 
     create_game = Lobby(game_controller, lobby_controller, network_loop)

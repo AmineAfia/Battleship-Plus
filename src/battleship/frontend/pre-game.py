@@ -1,74 +1,51 @@
-# import urwid
-#
-#
-# def main():
-#     term = urwid.Terminal(None)
-#
-#     mainframe = urwid.LineBox(
-#         urwid.Pile([
-#             ('weight', 70, term),
-#             ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
-#         ]),
-#     )
-#
-#     def set_title(widget, title):
-#         mainframe.set_title(title)
-#
-#     def quit(*args, **kwargs):
-#         raise urwid.ExitMainLoop()
-#
-#     def handle_key(key):
-#         if key in ('q', 'Q'):
-#             quit()
-#
-#     urwid.connect_signal(term, 'title', set_title)
-#     urwid.connect_signal(term, 'closed', quit)
-#
-#     loop = urwid.MainLoop(
-#         mainframe,
-#         handle_mouse=False,
-#         unhandled_input=handle_key)
-#
-#     term.main_loop = loop
-#     loop.run()
-#
-# if __name__ == '__main__':
-#     main()
-
-# import urwid
-#
-# def exit_on_q(key):
-#     if key in ('q', 'Q'):
-#         raise urwid.ExitMainLoop()
-#
-# class QuestionBox(urwid.Filler):
-#     def keypress(self, size, key):
-#         if key != 'enter':
-#             return super(QuestionBox, self).keypress(size, key)
-#         self.original_widget = urwid.Text(
-#             u"Nice to meet you,\n%s.\n\nPress Q to exit." %
-#             edit.edit_text)
-#
-# edit = urwid.Edit(u"What is your name?\n")
-# fill = QuestionBox(edit)
-# loop = urwid.MainLoop(fill, unhandled_input=exit_on_q)
-# loop.run()
-
 import urwid
+import asyncio
 
-def exit_on_q(key):
-    if key in ('q', 'Q'):
-        raise urwid.ExitMainLoop()
+from .lobby import Lobby
+from common.GameController import GameController
+from client.lobby import ClientLobbyController
+from common.states import ClientConnectionState
+from common.errorHandler.BattleshipError import BattleshipError
+from common.constants import ErrorCode
 
-class QuestionBox(urwid.Filler):
-    def keypress(self, size, key):
-        if key != 'enter':
-            return super(QuestionBox, self).keypress(size, key)
-        self.original_widget = urwid.Text(
-            u"Nice to meet you,\n%s.\n\nPress Q to exit." %
-            edit.edit_text)
 
-edit = urwid.Edit(u"What is your name?\n")
-fill = QuestionBox(edit)
-loop = urwid.MainLoop(fill, unhandled_input=exit_on_q)
-loop.run()
+class Login:
+    def __init__(self, game_controller, lobby_controller, loop):
+        self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
+        self.loop = loop
+        self.username = urwid.Edit("Username: ")
+
+    def forward_lobby(self, key):
+        if key == 'enter':
+            login_task = self.loop.create_task(self.lobby_controller.try_login(self.username.get_edit_text()))
+            login_task.add_done_callback(self.login_result)
+
+    def login_result(self, future):
+        # check if there is an error message to display
+        e = future.exception()
+        if type(e) is BattleshipError:
+            if e.error_code == ErrorCode.PARAMETER_INVALID_USERNAME:
+                # TODO: popup
+                print("username cannot be empty")
+            elif e.error_code == ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS:
+                # TODO: popup
+                print("username already exists")
+        # and check if we are really logged in
+        elif not self.lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
+            # ok, we are logged in
+            raise urwid.ExitMainLoop()
+        else:
+            # TODO: popup
+            print("some other weird login error")
+
+    def login_main(self):
+        dialog = urwid.Columns([
+                    urwid.Text(""),
+                    urwid.LineBox(urwid.Pile([self.username]), 'Login'),
+                    urwid.Text("")
+                    ], 2)
+        f = urwid.Filler(dialog)
+        # f.render((1, 1))
+        urwid.MainLoop(f, unhandled_input=self.forward_lobby,
+                       event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
