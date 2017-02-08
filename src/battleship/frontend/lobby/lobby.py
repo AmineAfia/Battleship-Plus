@@ -42,6 +42,8 @@ class Lobby(urwid.GridFlow):
         self.blank = urwid.Divider()
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
+        self.lobby_controller.ui_game_callback = self.game_callback
+        self.lobby_controller.ui_delete_game_callback = self.delete_game_callback
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -60,7 +62,11 @@ class Lobby(urwid.GridFlow):
         ]
         # TODO: build kind of a table
         self.games = [str(game) for game_id, game in lobby_controller.games.items()]
+        self.game_ids = [game_id for game_id, game in lobby_controller.games.items()]
         self.games_list = []
+
+        self.games_pile = None
+        self.games_pile_gridflow = None
 
     @staticmethod
     def unhandled(key):
@@ -76,6 +82,25 @@ class Lobby(urwid.GridFlow):
             self.games_list.append(urwid.Button(g, on_press=self.forward_create))
         return self.games_list
 
+    def game_callback(self, game):
+        try:
+            self.games_pile_gridflow.contents.append((urwid.Button(str(game), on_press=self.forward_create), self.games_pile_gridflow.options()))
+            self.game_ids.append(game.game_id)
+        except Exception as e:
+            print(type(e))
+            print(e)
+
+    def delete_game_callback(self, game_id):
+        try:
+            for i, gid in enumerate(self.game_ids):
+                if gid == game_id:
+                    del self.games_pile_gridflow.contents[i]
+                    del self.game_ids[i]
+                    break
+        except Exception as e:
+            print(type(e))
+            print(e)
+
     def begin_chat(self):
         # Chat.send_chat_message()
         urwid.connect_signal(Chat.messages, 'change', Chat.receive_messages())
@@ -84,7 +109,10 @@ class Lobby(urwid.GridFlow):
         return Chat.chat_pile
 
     def lobby_main(self):
-        games_pile = urwid.LineBox(urwid.GridFlow(self.get_games(), 60, 1, 1, 'center'), title='Games List')
+        # TODO: make some kind of table with columns and GridFlows or whatever
+        self.games_pile_gridflow = urwid.GridFlow(self.get_games(), 60, 1, 1, 'center')
+        self.games_pile = urwid.LineBox(self.games_pile_gridflow, title='Games List')
+
         edit = urwid.Edit(u"What is your name?\n")
         # chat_pile = ChatDialog(edit)
 
@@ -98,7 +126,7 @@ class Lobby(urwid.GridFlow):
             self.blank,
 
             urwid.Columns([
-                games_pile,
+                self.games_pile,
                 chat_pile,
             ], 2),
             self.blank,

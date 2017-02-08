@@ -18,14 +18,26 @@ class ServerLobbyController:
     def add_client(self, client):
         self.clients[client.id] = client
 
-    def remove_client(self, client):
-        # TODO: end all games of the user
+    async def remove_client(self, client):
         if not client.username == "":
+            # we first delete the user, so they don't receive DELETE msgs and such
             try:
                 del self.users[client.username]
             except KeyError:
                 # then the user is already logged out
                 pass
+
+            # TODO: end all games of the user, according to their state
+            game_ids_to_delete = []
+            for game_id, [[username1, game_controller1], [username2, game_controller2]] in self.games.items():
+                # TODO: this only affects games the user started, beware, if it's a game in progress, the other user wins or something like that
+                if username1 == client.username:
+                    game_ids_to_delete.append(game_id)
+                    del_msg = ProtocolMessage.create_single(ProtocolMessageType.DELETE_GAME, {"game_id": game_id})
+                    await self.msg_to_all(del_msg)
+            for game_id in game_ids_to_delete:
+                del self.games[game_id]
+
         del self.clients[client.id]
 
     def login_user(self, username, client: Client) -> bool:
@@ -97,7 +109,7 @@ class ServerLobbyController:
             game_controller = await GameController.create_from_msg(msg, game_id, client, client.username)
             if game_controller is not None:
                 print(type(game_controller))
-                self.games[game_id] = [[client.username, game_controller], []]
+                self.games[game_id] = [[client.username, game_controller], [None, None]]
                 # and send the game to all users
                 msg = game_controller.to_game_msg()
                 await self.msg_to_all(msg)
@@ -110,7 +122,7 @@ class ServerLobbyController:
         repeating_parameters = []
         for game_id, [[username1, game_controller1], [_, _]] in self.games.items():
             parameters = {"game_id": game_id, "username": username1, "board_size": game_controller1.length,
-                          "num_ships": game_controller1.ships, "round_time": game_controller1.round_time,
+                          "num_ships": NumShips(game_controller1.ships), "round_time": game_controller1.round_time,
                           "options": game_controller1.options}
             repeating_parameters.append(parameters)
         # TODO: remove dummy game

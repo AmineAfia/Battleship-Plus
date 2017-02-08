@@ -88,7 +88,9 @@ class BattleshipServer:
             await external_msg_callback(msg)
 
         def internal_client_done(task):
-            external_disconnected_callback()
+            # can't use await here, because we are not in a coroutine
+            self.loop.create_task(external_disconnected_callback())
+            #await external_disconnected_callback()
             del self.clients[task]
 
         # start a new Task to handle this specific client connection
@@ -98,6 +100,7 @@ class BattleshipServer:
                                                                                                client_writer)
         if not inspect.iscoroutinefunction(external_msg_callback):
             raise TypeError("msg_callback must be a coroutine")
+
         task.add_done_callback(internal_client_done)
 
     def start(self):

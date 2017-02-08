@@ -16,6 +16,8 @@ class ClientLobbyController:
         self.loop = loop
         self.games = {}
         self.game_controller = game_controller
+        self.ui_game_callback = None
+        self.ui_delete_game_callback = None
 
     async def try_login(self, server, port, username):
         if not self.client.connected:
@@ -52,6 +54,19 @@ class ClientLobbyController:
         else:
             game = GameLobbyData(params["game_id"], params["username"], params["board_size"], params["num_ships"], params["round_time"], params["options"])
             self.games[params["game_id"]] = game
+            if self.ui_game_callback is not None:
+                self.ui_game_callback(game)
+
+    async def handle_delete_game(self, msg):
+        params = msg.parameters
+        # TODO: what to do with a game that is already started?
+        try:
+            del self.games[params["game_id"]]
+            if self.ui_delete_game_callback is not None:
+                self.ui_delete_game_callback(params["game_id"])
+        except KeyError:
+            # then the game did not exist, so what.
+            pass
 
     async def handle_msg(self, msg):
         pass

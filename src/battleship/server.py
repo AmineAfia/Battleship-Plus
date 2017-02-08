@@ -31,9 +31,9 @@ def main():
         client = Client(reader=client_reader, writer=client_writer)
         lobby_ctrl.add_client(client)
 
-        def client_disconnected():
+        async def client_disconnected():
             print("< [{}] client disconnected".format(client.id))
-            lobby_ctrl.remove_client(client)
+            await lobby_ctrl.remove_client(client)
 
         async def msg_callback(msg: ProtocolMessage):
             nonlocal client
