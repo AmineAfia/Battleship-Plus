@@ -67,8 +67,7 @@ def main():
     battle_sessions = Battle(game_controller, lobby_controller, loop)
     battle_sessions.battle_main()
 
-    # TODO: why does "You win" appear twice?
-
+    # TODO: why does "You win" appear twice? --> you start two clients and one of them still have his loop running(connected).
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print("almost dead")

@@ -4,7 +4,7 @@ import urwid
 from .join import Join
 from common.GameController import GameController
 from client.lobby import ClientLobbyController
-
+from common.errorHandler.BattleshipError import BattleshipError
 
 palette = [
     ('hit', 'black', 'light gray', 'bold'),
@@ -37,13 +37,29 @@ class CreateGame:
         self.submarine = None
 
     def forward_waiting_room(self, foo):
-        # read the contents of the text fields
-        ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
-                                         self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
-                                         self.submarine.get_edit_text()]]
-        # TODO: handle exception in case user didn't enter numbers into the fields
-        self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
-        raise urwid.ExitMainLoop()
+        # TODO: controller doesn't handle empty ships array
+        # check the text fields content
+        # if int(self.length.get_edit_text()):
+        #     self.create_game()
+        # else:
+            # read the contents of the text fields
+            ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
+                                            self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
+                                            self.submarine.get_edit_text()]]
+            # TODO: handle exception in case user didn't enter numbers into the fields
+            try:
+                self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
+                raise urwid.ExitMainLoop()
+            except BattleshipError as e:
+                print("{}".format(e))
+
+        # ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
+        #                                  self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
+        #                                  self.submarine.get_edit_text()]]
+        # # TODO: handle exception in case user didn't enter numbers into the fields
+        # self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
+        # raise urwid.ExitMainLoop()
+
 
     def create_game(self):
         # The rendered layout
@@ -60,8 +76,8 @@ class CreateGame:
         ships = [self.carrier.get_edit_text(), self.battleship.get_edit_text(), self.cruiser.get_edit_text(),
                  self.destroyer.get_edit_text(), self.submarine.get_edit_text()]
 
-        ships_form = urwid.Pile([self.length, blank, self.carrier, blank, self.battleship, blank, self.cruiser, blank,
-                                 self.destroyer, blank, self.submarine, urwid.Text(ships)])
+        ships_form = urwid.Columns([urwid.Pile([self.length, blank, self.carrier, blank, self.battleship, blank]), urwid.Pile([self.cruiser, blank,
+                                    self.destroyer, blank, self.submarine])])
 
         widget_list = [
             # urwid.Padding(urwid.Text("Create Game"), left=2, right=0, min_width=20),

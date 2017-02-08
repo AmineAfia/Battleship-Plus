@@ -3,6 +3,7 @@ import urwid
 
 from .waitting import Waiting
 from common.GameController import GameController
+from common.constants import Orientation
 from client.lobby import ClientLobbyController
 
 
@@ -10,8 +11,13 @@ class ShipsList:
     ships_list = []
     ships = [0, 0, 0, 0, 0]
     info_pile = None
+    # pile of ships typs with how much we have (shown in Available Ships)
     info_pile_2 = None
+    # pile to be shown in the popup for placing ships
+    info_pile_3 = None
     ships_info_length_list = []
+    # button show in the ships placing popup
+    ships_categories_place = []
     length_dictionary = {"carrier": 5, "battleship": 5, "cruiser":  4, "destroyer":  3, "submarine": 2}
     buttons_list = {}
 
@@ -26,9 +32,11 @@ class ShipsList:
         i = 0
         for k, v in ShipsList.length_dictionary.items():
             ShipsList.ships_info_length_list.append(urwid.Button(("You have {} {} with length {}".format(ShipsList.ships[i], k, v))))
+            ShipsList.ships_categories_place.append(urwid.Button(k))
             i += 1
 
         ShipsList.info_pile_2 = urwid.Pile(ShipsList.ships_info_length_list)
+        ShipsList.info_pile_3 = urwid.Pile(ShipsList.ships_categories_place)
 
 
 class PopUpDialog(urwid.WidgetWrap):
@@ -36,6 +44,7 @@ class PopUpDialog(urwid.WidgetWrap):
     signals = ['close']
 
     def __init__(self, button_with_pop_up, x_pos, y_pos):
+        # self.game_controller = game_controller
         self.button_with_pop_up = button_with_pop_up
         self.x_pos = x_pos
         self.y_pos = y_pos
@@ -47,28 +56,31 @@ class PopUpDialog(urwid.WidgetWrap):
                              lambda button: self._emit("close"))
 
         urwid.connect_signal(self.h_button, 'click',
-                             lambda button: self.set_orientation("H", 5))
+                             lambda button: self.set_orientation(Orientation.EAST, 3))
 
         urwid.connect_signal(self.v_button, 'click',
-                             lambda button: self.set_orientation("V", 5))
+                             lambda button: self.set_orientation(Orientation.NORTH, 3))
 
         # function to shoot the opponents field
         # def place(self):
         #     self.set_label('X')
 
         orientation_pile = urwid.LineBox(urwid.Pile([self.self_exit_button, urwid.Columns([self.h_button, self.v_button], 2)]), 'Direction')
-        ships_pile = urwid.LineBox(ShipsList.info_pile_2, 'Ships')
-        pile = urwid.Pile([orientation_pile, ships_pile])
+        ships_pile = urwid.LineBox(ShipsList.info_pile_3, 'Ships')
+        pile = urwid.Pile([ships_pile, orientation_pile])
         fill = urwid.Filler(pile)
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
     def set_orientation(self, orientation, length):
-        self.button_with_pop_up.place(orientation, length)
+        self.button_with_pop_up.place_ship_in_position(orientation, length)
+        self.button_with_pop_up.game_controller.place_ship(4, self.x_pos, self.y_pos, orientation)
+        print(orientation)
         self._emit("close")
 
 
 class ButtonWithAPopUp(urwid.PopUpLauncher):
-    def __init__(self, x_pos, y_pos):
+    def __init__(self, x_pos, y_pos, game_controller):
+        self.game_controller = game_controller
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.b = urwid.Button("_")
@@ -82,12 +94,12 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
                              lambda button: self.close_pop_up())
         return pop_up
 
-    def place(self, orientation, length):
+    def place_ship_in_position(self, orientation, length):
         # self.b.set_label("X")
         for i in range(length):
-                if orientation == "V":
+                if orientation == Orientation.NORTH:
                     ShipsList.buttons_list[(self.x_pos, self.y_pos + i)].b.set_label("X")
-                elif orientation == "H":
+                elif orientation == Orientation.EAST:
                     ShipsList.buttons_list[(self.x_pos + i, self.y_pos)].b.set_label("X")
                 # else:
                     # ShipsList.buttons_list[(self.x_pos, self.y_pos)].b.set_label("X")
@@ -126,6 +138,8 @@ class Join:
 
     def forward_next(self, foo):
         # TODO: somehow tell the main client the difference between this and unhandled
+        # Why should the client know about unhandlded? it is just for testing purposes, to exit the game at this time
+        # It can be used as and exit for players as well but needs a warning + communication termination for an appropriate exit
         raise urwid.ExitMainLoop()
 
     def unhandled(self, key):
@@ -138,10 +152,9 @@ class Join:
         ship_f = []
         for y_pos in range(self.field_offset):
             for x_pos in range(self.field_offset):
-                ship_cell = ButtonWithAPopUp(x_pos, y_pos)
+                ship_cell = ButtonWithAPopUp(x_pos, y_pos, self.game_controller)
                 ship_button_list.append(ship_cell)
                 ShipsList.buttons_list[(x_pos, y_pos)] = ship_cell
-                print(ShipsList.buttons_list)
             ship_zeil = urwid.GridFlow(ship_button_list, 1, 1, 0, 'center')
             ship_f.append(ship_zeil)
             ship_button_list.clear()
