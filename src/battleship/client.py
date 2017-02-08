@@ -26,12 +26,11 @@ def main():
         print("< {}".format(msg))
         if msg.type == ProtocolMessageType.ERROR:
             pass
-        # elif msg.type == ProtocolMessageType.GAMES:
-        #     if lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
-        #         battleship_client.waiting.set()
-        #     await lobby_controller.handle_msg(msg)
+        elif msg.type == ProtocolMessageType.GAMES:
+            await lobby_controller.handle_games(msg)
+        elif msg.type == ProtocolMessageType.GAME:
+            await lobby_controller.handle_game(msg)
         else:
-            lobby_controller.state = ClientConnectionState.CONNECTED
             pass
 
     def closed_callback():
@@ -49,7 +48,6 @@ def main():
     while lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
-        input()
 
     create_game = Lobby(game_controller, lobby_controller, loop)
     create_game.lobby_main()

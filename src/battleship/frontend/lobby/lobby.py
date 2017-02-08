@@ -58,7 +58,8 @@ class Lobby(urwid.GridFlow):
             ('buttnf', 'white', 'dark blue', 'bold'),
             ('popbg', 'white', 'dark gray')
         ]
-        self.games = ['Game 1', 'Game 2', 'Game 3', 'Game 4']
+        # TODO: build kind of a table
+        self.games = [str(game) for game_id, game in lobby_controller.games.items()]
         self.games_list = []
 
     @staticmethod
@@ -71,6 +72,7 @@ class Lobby(urwid.GridFlow):
 
     def get_games(self):
         for g in self.games:
+            # TODO: this should forward to join, with the appropriate game_id
             self.games_list.append(urwid.Button(g, on_press=self.forward_create))
         return self.games_list
 

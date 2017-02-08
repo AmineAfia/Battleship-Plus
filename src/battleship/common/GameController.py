@@ -8,19 +8,17 @@ from .constants import Orientation, Direction, ErrorCode
 from .errorHandler.BattleshipError import BattleshipError
 from common.network import BattleshipClient
 from common.protocol import ProtocolMessage, ProtocolMessageType
+from common.game import GameLobbyData
 
 
 # Controller for Battleship
-class GameController:
+class GameController(GameLobbyData):
 
     def __init__(self, game_id, client):
+        super().__init__(game_id)
         self._battlefield = object
         self._turn_counter = 0
         self._game_started = False
-        self._game_id = game_id
-        self._round_time = 0
-        self._options = 0
-        self._username = ""
         self._opponent_name = ""
         self._password = ""
         self._client = client

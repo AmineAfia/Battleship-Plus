@@ -85,6 +85,9 @@ class ServerLobbyController:
                 await self.msg_to_user(forward, recipient)
                 self.print_client(client, "Forwarding chat message to '{}'".format(recipient))
 
+        elif msg.type == ProtocolMessageType.CREATE_GAME:
+            pass
+
         if answer is not None:
             print("> [{}] {}".format(client.id, answer))
             await answer.send(client.writer)
@@ -100,6 +103,10 @@ class ServerLobbyController:
         dummy = {"game_id": 42, "username": "foo", "board_size": 10,
                  "num_ships": NumShips([1,2,3,4,5]), "round_time": 25,
                  "options": GameOptions.PASSWORD}
+        dummy2 = {"game_id": 43, "username": "bar", "board_size": 8,
+                 "num_ships": NumShips([1,2,5,4,5]), "round_time": 30,
+                 "options": 0}
         repeating_parameters.append(dummy)
+        repeating_parameters.append(dummy2)
         msg = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
         await self.msg_to_user(msg, username)
