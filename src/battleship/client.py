@@ -20,7 +20,7 @@ from common.states import ClientConnectionState
 def main():
     # print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
 
-    network_loop = asyncio.get_event_loop()
+    loop = asyncio.get_event_loop()
 
     async def msg_callback(msg: ProtocolMessage):
         print("< {}".format(msg))
@@ -37,39 +37,36 @@ def main():
     def closed_callback():
         print("< server closed connection".format())
 
-    battleship_client = BattleshipClient(Constants.SERVER_IP, Constants.SERVER_PORT, network_loop, msg_callback,
-                                         closed_callback)
-
-    network_loop.run_until_complete(asyncio.ensure_future(battleship_client.connect()))
+    battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
 
     game_id = 1
     game_controller = GameController(game_id, battleship_client)
-    lobby_controller = ClientLobbyController(battleship_client)
+    lobby_controller = ClientLobbyController(battleship_client, loop)
 
-    welcome = Welcome(game_controller, lobby_controller, network_loop)
+    welcome = Welcome(game_controller, lobby_controller, loop)
     welcome.main_welcome()
 
     while lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
-        login = Login(game_controller, lobby_controller, network_loop)
+        login = Login(game_controller, lobby_controller, loop)
         login.login_main()
         input()
 
-    create_game = Lobby(game_controller, lobby_controller, network_loop)
+    create_game = Lobby(game_controller, lobby_controller, loop)
     create_game.lobby_main()
 
-    create_game = CreateGame(game_controller, lobby_controller, network_loop)
+    create_game = CreateGame(game_controller, lobby_controller, loop)
     create_game.create_game()
 
     # TODO: was esc pressed?
-    join_battle = Join(game_controller, lobby_controller, network_loop)
+    join_battle = Join(game_controller, lobby_controller, loop)
     join_battle.join_main()
 
     # TODO: esc or normal continuation?
-    go_to_game = Waiting(game_controller, lobby_controller, network_loop)
+    go_to_game = Waiting(game_controller, lobby_controller, loop)
     # TODO: is this foo nedded in waiting_main?
     go_to_game.waiting_main("")
 
-    battle_sessions = Battle(game_controller, lobby_controller, network_loop)
+    battle_sessions = Battle(game_controller, lobby_controller, loop)
     battle_sessions.battle_main()
 
     # TODO: why does "You win" appear twice?
@@ -77,7 +74,7 @@ def main():
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print("almost dead")
-    network_loop.run_forever()
+    loop.run_forever()
     print("Bye.")
 
     # ITS ONLY FOR DEBUGGING THE GAMECONTROLER
