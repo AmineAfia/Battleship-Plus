@@ -4,10 +4,10 @@ from .battlefield.battleship.Battleship import Battleship
 from .battlefield.battleship.Cruiser import Cruiser
 from .battlefield.battleship.Destroyer import Destroyer
 from .battlefield.battleship.Submarine import Submarine
-from .constants import Orientation, Direction, ErrorCode
+from common.constants import Orientation, Direction, ErrorCode, GameOptions
 from .errorHandler.BattleshipError import BattleshipError
 from common.network import BattleshipClient
-from common.protocol import ProtocolMessage, ProtocolMessageType
+from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips
 from common.game import GameLobbyData
 
 
@@ -21,24 +21,63 @@ class GameController(GameLobbyData):
         self._game_started = False
         self._opponent_name = ""
         self._password = ""
-        self._client = client
+        self.client = client
 
     @classmethod
-    def create_from_msg(cls, msg: ProtocolMessage, game_id, client, username):
+    async def create_from_msg(cls, msg: ProtocolMessage, game_id, client, username):
         controller = cls(game_id, client)
-        length = msg.parameters["board_size"]
-        ships_table = msg.parameters["num_ships"].numbers
-        controller._round_time = msg.parameters["round_time"]
-        controller._password = msg.parameters["password"]
+
         controller._username = username
 
+        params = msg.parameters
+
+        board_size, num_ships = params["board_size"], params["num_ships"].numbers
+
         try:
-            controller._battlefield = controller.create_battlefield(length, ships_table)
+            controller.round_time, controller.options = params["round_time"], params["options"]
         except BattleshipError as e:
-            # answer client the error
-            print("{}".format(e))
-            # answer client OK
+            if e.error_code in [ErrorCode.PARAMETER_OPTION_NOT_SUPPORTED, ErrorCode.SYNTAX_INVALID_PARAMETER]:
+                answer = ProtocolMessage.create_error(e.error_code)
+                await client.send(answer)
+                return None
+
+        if controller.options == GameOptions.PASSWORD:
+            try:
+                controller.password = msg.parameters["password"]
+            except KeyError:
+                # If it is set, the password field MUST NOT be empty, otherwise the server replies with an ERROR code 10 message.
+                answer = ProtocolMessage.create_error(ErrorCode.SYNTAX_MISSING_OR_UNKNOWN_PARAMETER)
+                await client.send(answer)
+                return None
+            except BattleshipError as e:
+                if e.error_code in [ErrorCode.SYNTAX_PASSWORD_TOO_LONG, ErrorCode.SYNTAX_MISSING_OR_UNKNOWN_PARAMETER]:
+                    answer = ProtocolMessage.create_error(e.error_code)
+                    await client.send(answer)
+                    return None
+
+        try:
+            controller._battlefield = controller.create_battlefield(board_size, num_ships)
+        except BattleshipError as e:
+            if e.error_code in [ErrorCode.PARAMETER_TOO_MANY_SHIPS, ErrorCode.SYNTAX_INVALID_BOARD_SIZE]:
+                answer = ProtocolMessage.create_error(e.error_code)
+                await client.send(answer)
+                return None
+
+        # answer client OK
         return controller
+
+    @property
+    def password(self):
+        return self._password
+
+    @password.setter
+    def password(self, password):
+        if len(password) > 255:
+            raise BattleshipError(ErrorCode.SYNTAX_PASSWORD_TOO_LONG)
+        elif self.options == GameOptions.PASSWORD and len(password) == 0:
+            raise BattleshipError(ErrorCode.SYNTAX_MISSING_OR_UNKNOWN_PARAMETER)
+        else:
+            self._password = password
 
     @property
     def ships(self):
@@ -79,6 +118,20 @@ class GameController(GameLobbyData):
             return result
         else:
             raise BattleshipError(ErrorCode.INTERN_SHIP_ID_DOES_NOT_EXIST)
+
+    async def create_on_server(self, board_size, num_ships, round_time, options, password):
+        self.round_time = round_time
+        self.options = options
+        self.password = password
+        self._battlefield = self.create_battlefield(board_size, num_ships)
+
+        # if we reach this point, no exception was raised on we can try
+        # to send this game to the server
+        await self.client.send_and_wait_for_answer(self.to_create_game_msg())
+
+        # TODO: timeouts
+        if self.client.last_msg_was_error:
+            raise BattleshipError(self.client.last_error)
 
     # create a new battlefield
     def create_battlefield(self, length, ships_table):
@@ -318,3 +371,16 @@ class GameController(GameLobbyData):
         # unknown command
         else:
             raise BattleshipError(ErrorCode.UNKNOWN)
+
+    def to_create_game_msg(self):
+        params = {"board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}
+        if self.options == GameOptions.PASSWORD:
+            params["password"] = self.password
+        msg = ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME, params)
+        print("{}".format(msg))
+        return msg
+
+    def to_game_msg(self):
+        # TODO: property and setter for username
+        params = {"game_id": self.game_id, "username": self._username, "board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}
+        return ProtocolMessage.create_single(ProtocolMessageType.GAME, params)

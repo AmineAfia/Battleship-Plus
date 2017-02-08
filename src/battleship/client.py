@@ -40,7 +40,7 @@ def main():
 
     game_id = 1
     game_controller = GameController(game_id, battleship_client)
-    lobby_controller = ClientLobbyController(battleship_client, loop)
+    lobby_controller = ClientLobbyController(battleship_client, game_controller, loop)
 
     welcome = Welcome(game_controller, lobby_controller, loop)
     welcome.main_welcome()

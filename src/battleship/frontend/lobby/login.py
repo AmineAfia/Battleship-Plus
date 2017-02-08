@@ -77,7 +77,7 @@ class Login:
             if type(e) is ConnectionRefusedError:
                 print("Server not reachable")
             else:
-                print("Error of type {}: {}".format(type(e), e))
+                raise e
         # and check if we are really logged in
         elif not self.lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
             # ok, we are logged in

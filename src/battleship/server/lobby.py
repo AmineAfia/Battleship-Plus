@@ -6,6 +6,9 @@ from common.GameController import GameController
 
 
 class ServerLobbyController:
+
+    next_game_id = 1
+
     def __init__(self):
         self.users = {}
         self.clients = {}
@@ -45,6 +48,7 @@ class ServerLobbyController:
 
     async def handle_msg(self, client, msg: ProtocolMessage):
 
+        params = msg.parameters
         answer: ProtocolMessage = None
 
         if msg.type == ProtocolMessageType.LOGIN:
@@ -52,13 +56,13 @@ class ServerLobbyController:
                 answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
                 self.print_client(client, "Client already logged in")
             else:
-                login_successful = self.login_user(msg.parameters["username"], client)
+                login_successful = self.login_user(params["username"], client)
                 if not login_successful:
                     answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS)
                     self.print_client(client, "User name already exists")
                 else:
                     client.state = ClientConnectionState.CONNECTED
-                    client.username = msg.parameters["username"]
+                    client.username = params["username"]
                     self.users[client.username] = client
                     self.print_client(client, "Client successfully logged in with '{}'".format(client.username))
                     await self.send_games_to_user(client.username)
@@ -70,8 +74,7 @@ class ServerLobbyController:
             # TODO: end all games of the user
 
         elif msg.type == ProtocolMessageType.CHAT_SEND:
-            text = msg.parameters["text"]
-            recipient = msg.parameters["username"]
+            text, recipient = params["text"], params["username"]
             if len(text) > ProtocolConfig.CHAT_MAX_TEXT_LENGTH:
                 answer = ProtocolMessage.create_error(ErrorCode.SYNTAX_MESSAGE_TEXT_TOO_LONG)
                 self.print_client(client, "Max text length exceeded")
@@ -86,7 +89,18 @@ class ServerLobbyController:
                 self.print_client(client, "Forwarding chat message to '{}'".format(recipient))
 
         elif msg.type == ProtocolMessageType.CREATE_GAME:
-            pass
+            #board_size, num_ships, round_time, options = params["board_size"], params["num_ships"], params["round_time"], params["options"]
+
+            game_id = ServerLobbyController.next_game_id
+            ServerLobbyController.next_game_id += 1
+
+            game_controller = await GameController.create_from_msg(msg, game_id, client, client.username)
+            if game_controller is not None:
+                print(type(game_controller))
+                self.games[game_id] = [[client.username, game_controller], []]
+                # and send the game to all users
+                msg = game_controller.to_game_msg()
+                await self.msg_to_all(msg)
 
         if answer is not None:
             print("> [{}] {}".format(client.id, answer))
