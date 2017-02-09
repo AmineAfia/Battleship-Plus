@@ -60,63 +60,76 @@ class ServerLobbyController:
 
     async def handle_msg(self, client, msg: ProtocolMessage):
 
-        params = msg.parameters
-        answer: ProtocolMessage = None
-
         if msg.type == ProtocolMessageType.LOGIN:
-            if client.state is not ClientConnectionState.NOT_CONNECTED:
-                answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
-                self.print_client(client, "Client already logged in")
-            else:
-                login_successful = self.login_user(params["username"], client)
-                if not login_successful:
-                    answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS)
-                    self.print_client(client, "User name already exists")
-                else:
-                    client.state = ClientConnectionState.CONNECTED
-                    client.username = params["username"]
-                    self.users[client.username] = client
-                    self.print_client(client, "Client successfully logged in with '{}'".format(client.username))
-                    await self.send_games_to_user(client.username)
+            await self.handle_login(client, msg)
 
         elif msg.type == ProtocolMessageType.LOGOUT:
-            client.state = ClientConnectionState.NOT_CONNECTED
-            del self.users[client.username]
-            self.print_client(client, "Client '{}' logged out".format(client.username))
-            # TODO: end all games of the user
+            await self.handle_logout(client, msg)
 
         elif msg.type == ProtocolMessageType.CHAT_SEND:
-            text, recipient = params["text"], params["username"]
-            if len(text) > ProtocolConfig.CHAT_MAX_TEXT_LENGTH:
-                answer = ProtocolMessage.create_error(ErrorCode.SYNTAX_MESSAGE_TEXT_TOO_LONG)
-                self.print_client(client, "Max text length exceeded")
-            elif recipient not in self.users:
-                answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_DOES_NOT_EXIST)
-                self.print_client(client, "Chat error: username '{}' does not exist".format(recipient))
-            else:
-                forward = ProtocolMessage.create_single(ProtocolMessageType.CHAT_RECV,
-                                                        {"sender": client.username, "recipient": recipient,
-                                                         "text": text})
-                await self.msg_to_user(forward, recipient)
-                self.print_client(client, "Forwarding chat message to '{}'".format(recipient))
+            await self.handle_chat_send(client, msg)
 
         elif msg.type == ProtocolMessageType.CREATE_GAME:
-            #board_size, num_ships, round_time, options = params["board_size"], params["num_ships"], params["round_time"], params["options"]
+            await self.handle_create_game(client, msg)
 
-            game_id = ServerLobbyController.next_game_id
-            ServerLobbyController.next_game_id += 1
+    async def handle_login(self, client, msg):
+        params = msg.parameters
+        answer: ProtocolMessage = None
+        if client.state is not ClientConnectionState.NOT_CONNECTED:
+            answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
+            self.print_client(client, "Client already logged in")
+        else:
+            login_successful = self.login_user(params["username"], client)
+            if not login_successful:
+                answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS)
+                self.print_client(client, "User name already exists")
+            else:
+                client.state = ClientConnectionState.CONNECTED
+                client.username = params["username"]
+                self.users[client.username] = client
+                self.print_client(client, "Client successfully logged in with '{}'".format(client.username))
+                await self.send_games_to_user(client.username)
+        if answer is not None:
+            print("> [{}] {}".format(client.id, answer))
+            await answer.send(client.writer)
 
-            game_controller = await GameController.create_from_msg(msg, game_id, client, client.username)
-            if game_controller is not None:
-                print(type(game_controller))
-                self.games[game_id] = [[client.username, game_controller], [None, None]]
-                # and send the game to all users
-                msg = game_controller.to_game_msg()
-                await self.msg_to_all(msg)
+    async def handle_logout(self, client, msg):
+        client.state = ClientConnectionState.NOT_CONNECTED
+        del self.users[client.username]
+        self.print_client(client, "Client '{}' logged out".format(client.username))
+        # TODO: end all games of the user
+
+    async def handle_chat_send(self, client, msg):
+        params = msg.parameters
+        answer: ProtocolMessage = None
+        text, recipient = params["text"], params["username"]
+        if len(text) > ProtocolConfig.CHAT_MAX_TEXT_LENGTH:
+            answer = ProtocolMessage.create_error(ErrorCode.SYNTAX_MESSAGE_TEXT_TOO_LONG)
+            self.print_client(client, "Max text length exceeded")
+        elif recipient not in self.users:
+            answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_DOES_NOT_EXIST)
+            self.print_client(client, "Chat error: username '{}' does not exist".format(recipient))
+        else:
+            forward = ProtocolMessage.create_single(ProtocolMessageType.CHAT_RECV,
+                                                    {"sender": client.username, "recipient": recipient,
+                                                     "text": text})
+            await self.msg_to_user(forward, recipient)
+            self.print_client(client, "Forwarding chat message to '{}'".format(recipient))
 
         if answer is not None:
             print("> [{}] {}".format(client.id, answer))
             await answer.send(client.writer)
+
+    async def handle_create_game(self, client, msg):
+        game_id = ServerLobbyController.next_game_id
+        ServerLobbyController.next_game_id += 1
+
+        game_controller = await GameController.create_from_msg(msg, game_id, client, client.username)
+        if game_controller is not None:
+            self.games[game_id] = [[client.username, game_controller], [None, None]]
+            # and send the game to all users
+            msg = game_controller.to_game_msg()
+            await self.msg_to_all(msg)
 
     async def send_games_to_user(self, username):
         repeating_parameters = []
