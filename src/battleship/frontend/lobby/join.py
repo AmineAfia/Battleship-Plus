@@ -30,6 +30,7 @@ class ShipsList:
     # Dictionary to get chips length
     length_dictionary = {"carrier": 5, "battleship": 5, "cruiser":  4, "destroyer":  3, "submarine": 2}
     buttons_list = {}
+    list_of_placed_cells = []
 
     @staticmethod
     def get_ships():
@@ -138,20 +139,29 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         for i in range(length):
                 if orientation == Orientation.NORTH:
                     ShipsList.buttons_list[(self.x_pos, self.y_pos + i)].b.set_label("X")
+                    # fake list of Xs coordinations to forward to join
+                    ShipsList.list_of_placed_cells.append((self.x_pos, self.y_pos + i))
                 elif orientation == Orientation.EAST:
                     ShipsList.buttons_list[(self.x_pos + i, self.y_pos)].b.set_label("X")
+                    # fake list of Xs coordinations to forward to join
+                    ShipsList.list_of_placed_cells.append((self.x_pos + i, self.y_pos))
 
         if ship_type == "carrier":
             for i in range(length):
                     if orientation == Orientation.NORTH:
                         ShipsList.buttons_list[(self.x_pos+1, self.y_pos + i)].b.set_label("X")
+                        # fake list of Xs coordinations to forward to join
+                        ShipsList.list_of_placed_cells.append((self.x_pos+1, self.y_pos + i))
                     elif orientation == Orientation.EAST:
                         ShipsList.buttons_list[(self.x_pos + i, self.y_pos + 1)].b.set_label("X")
+                        # fake list of Xs coordinations to forward to join
+                        ShipsList.list_of_placed_cells.append((self.x_pos + i, self.y_pos + 1))
 
     def get_pop_up_parameters(self):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 8}
 
-#main class to place ships
+
+# Main class to place ships
 class Join:
     def __init__(self, game_controller, lobby_controller, loop):
         self.loop = loop

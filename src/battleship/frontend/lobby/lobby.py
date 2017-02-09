@@ -4,7 +4,7 @@ import re
 from .create import CreateGame
 from common.GameController import GameController
 from client.lobby import ClientLobbyController
-
+from .join import Join
 
 class Lobby(urwid.GridFlow):
     # create game method (switch screen)
@@ -35,6 +35,7 @@ class Lobby(urwid.GridFlow):
         # TODO: build kind of a table
         self.games = [str(game) for game_id, game in lobby_controller.games.items()]
         self.game_ids = [game_id for game_id, game in lobby_controller.games.items()]
+        self.game_ids1 = [str(game_id) for game_id, game in lobby_controller.games.items()]
         self.games_list = []
 
         self.games_pile = None
@@ -54,10 +55,16 @@ class Lobby(urwid.GridFlow):
         raise urwid.ExitMainLoop()
 
     def get_games(self):
-        for g in self.games:
+        for g in self.game_ids1:
             # TODO: this should forward to join, with the appropriate game_id
-            self.games_list.append(urwid.Button(g, on_press=self.forward_create))
+            self.games_list.append(urwid.Button(g, on_press=self.go_to_join_the_game()))
         return self.games_list
+
+    def go_to_join_the_game(self):
+        # join_game = Join(self.game_controller, self.lobby_controller, self.loop)
+        # join_game.join_main()
+        # raise urwid.ExitMainLoop()
+        pass
 
     def game_callback(self, game):
         try:
