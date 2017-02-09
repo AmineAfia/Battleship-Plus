@@ -105,7 +105,7 @@ class PopUpDialog(urwid.WidgetWrap):
         ShipsList.ship_id = self.button_with_pop_up.game_controller.get_next_ship_id_by_type_to_place(ShipsList.ship_type)
         ShipsList.ship_x_pos = self.x_pos
         ShipsList.ship_y_pos = self.y_pos
-        self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length)
+        self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length, ShipsList.ship_type)
         self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, ShipsList.ship_orientation)
 
         for ship_type_button in ShipsList.ships_categories_place:
@@ -133,17 +133,20 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
                              lambda button: self.close_pop_up())
         return pop_up
 
-    def place_ship_in_position(self, orientation, length):
+    def place_ship_in_position(self, orientation, length, ship_type):
         # self.b.set_label("X")
         for i in range(length):
                 if orientation == Orientation.NORTH:
                     ShipsList.buttons_list[(self.x_pos, self.y_pos + i)].b.set_label("X")
                 elif orientation == Orientation.EAST:
                     ShipsList.buttons_list[(self.x_pos + i, self.y_pos)].b.set_label("X")
-                # else:
-                    # ShipsList.buttons_list[(self.x_pos, self.y_pos)].b.set_label("X")
-    # def get_pop_up_coordinations(self):
-    #     return self.x, self.y
+
+        if ship_type == "carrier":
+            for i in range(length):
+                    if orientation == Orientation.NORTH:
+                        ShipsList.buttons_list[(self.x_pos+1, self.y_pos + i)].b.set_label("X")
+                    elif orientation == Orientation.EAST:
+                        ShipsList.buttons_list[(self.x_pos + i, self.y_pos + 1)].b.set_label("X")
 
     def get_pop_up_parameters(self):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 8}
