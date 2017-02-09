@@ -1,4 +1,5 @@
 from common.constants import GameOptions, ErrorCode
+from common.errorHandler.BattleshipError import BattleshipError
 
 class GameLobbyData:
     def __init__(self, game_id, username="", board_size=0, num_ships=[], round_time=0, options=0):
@@ -40,6 +41,7 @@ class GameLobbyData:
 
     @round_time.setter
     def round_time(self, round_time):
+        print(round_time)
         if round_time not in range(25, 65, 5):
             raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
         else:
