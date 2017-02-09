@@ -8,6 +8,7 @@ class Client:
 
     def __init__(self, username="", state=ClientConnectionState.NOT_CONNECTED, reader=None, writer=None):
         self.username = username
+        self.game_id = 0
         self.state = state
         self.reader = reader
         self.writer = writer
