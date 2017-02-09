@@ -200,7 +200,7 @@ class ServerLobbyController:
             pass
 
     async def handle_get_games(self, client, msg):
-        await self.send_games_to_user(client, msg)
+        await self.send_games_to_user(client)
 
     async def handle_join(self, client, msg):
         answer: ProtocolMessage = None
@@ -366,19 +366,19 @@ class ServerLobbyController:
 
     async def send_games_to_user(self, client):
         repeating_parameters = []
-        for game_id, [[username1, game_controller1], [_, _]] in self.games.items():
-            parameters = {"game_id": game_id, "username": username1, "board_size": game_controller1.length,
+        for game_id, [game_controller1, game_controller2] in self.games.items():
+            parameters = {"game_id": game_id, "username": game_controller1.username, "board_size": game_controller1.length,
                           "num_ships": NumShips(game_controller1.ships), "round_time": game_controller1.round_time,
                           "options": game_controller1.options}
             repeating_parameters.append(parameters)
         # TODO: remove dummy game
-        dummy = {"game_id": 42, "username": "foo", "board_size": 10,
-                 "num_ships": NumShips([1,2,3,4,5]), "round_time": 25,
-                 "options": GameOptions.PASSWORD}
-        dummy2 = {"game_id": 43, "username": "bar", "board_size": 8,
-                 "num_ships": NumShips([1,2,5,4,5]), "round_time": 30,
-                 "options": 0}
-        repeating_parameters.append(dummy)
-        repeating_parameters.append(dummy2)
+        #dummy = {"game_id": 42, "username": "foo", "board_size": 10,
+        #         "num_ships": NumShips([1,2,3,4,5]), "round_time": 25,
+        #         "options": GameOptions.PASSWORD}
+        #dummy2 = {"game_id": 43, "username": "bar", "board_size": 8,
+        #         "num_ships": NumShips([1,2,5,4,5]), "round_time": 30,
+        #         "options": 0}
+        #repeating_parameters.append(dummy)
+        #repeating_parameters.append(dummy2)
         msg = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
         await client.send(msg)

@@ -87,15 +87,19 @@ class Lobby(urwid.GridFlow):
 
     def chat_recv_callback(self, sender, recipient, text):
         message_to_append = urwid.Text("")
-        message_to_append.set_text("{}: {}".format(sender, text))
+        if recipient == "":
+            message_to_append.set_text("{}: {}".format(sender, text))
+        else:
+            message_to_append.set_text("{}: @{} {}".format(sender, recipient, text))
+
         self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
 
     def append_message(self):
 
         if '@' in self.chat_message.get_edit_text():
             self.username = re.search('@(.+?) ', self.chat_message.get_edit_text()).group(1)
-            #self.message_without_username = self.chat_message.get_edit_text().replace("@{}".format(self.username), "")
-            self.message_without_username = self.chat_message.get_edit_text()
+            # TODO: fix this double space thingy
+            self.message_without_username = self.chat_message.get_edit_text().replace("@{} ".format(self.username), "")
         else:
             self.username = ""
             self.message_without_username = self.chat_message.get_edit_text()

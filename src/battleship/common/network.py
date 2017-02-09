@@ -38,7 +38,6 @@ class BattleshipClient:
     async def connect(self, server, port):
         self.server = server
         self.port = port
-        print("in connect")
         try:
             self.reader, self.writer = await asyncio.streams.open_connection(
                 self.server, self.port, loop=self.loop)

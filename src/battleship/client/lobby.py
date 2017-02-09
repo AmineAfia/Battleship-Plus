@@ -49,9 +49,14 @@ class ClientLobbyController:
 
         self.state = ClientConnectionState.CONNECTED
 
-        for params in msg.repeating_parameters:
-            game = GameLobbyData(params["game_id"], params["username"], params["board_size"], params["num_ships"], params["round_time"], params["options"])
-            self.games[params["game_id"]] = game
+        # TODO: fix this. Why is the [{}] in an empty message?
+        if not msg.repeating_parameters == [] or not msg.repeating_parameters == [{}]:
+            for params in msg.repeating_parameters:
+                # TODO: this is a dirty hack.
+                if not "game_id" in params.keys():
+                    continue
+                game = GameLobbyData(params["game_id"], params["username"], params["board_size"], params["num_ships"], params["round_time"], params["options"])
+                self.games[params["game_id"]] = game
 
     async def handle_game(self, msg):
         # check if this is our game

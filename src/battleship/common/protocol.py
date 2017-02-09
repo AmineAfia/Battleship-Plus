@@ -399,7 +399,7 @@ class ProtocolMessage(object):
         writer.write(msg_bytes_length)
         # print("length({})".format(msg_bytes_length))
 
-        if num_fields > 0:
+        if msg_bytes_payload_length > 0:
             writer.write(msg_bytes_payload)
             # print("payload({})".format(msg_bytes_payload))
 
@@ -499,51 +499,56 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
         elif waiting_for_payload_length or not waiting_for_field_length or (waiting_for_field_length and bytes_to_read_next == 0):
             waiting_for_payload_length = False
 
-            # the next thing to do is read the length field of a parameter,
-            # or the content of a parameter
-            parameter_index += 1
-
-            # check if we have a repeating message type and
-            # if we are currently at the end, and there is more to come
-            if msg_type in ProtocolMessageRepeatingTypes:
-                if parameter_index == parameter_count:
-                    if msg_remaining_payload_bytes > 0:
-                        parameter_index = 0
-                        msg.append_parameters(parameters)
-                        parameters = {}
-
-            # Is there is a next parameter?
-            if parameter_index < parameter_count:
-
-                waiting_for_msg_type = False
-
-                parameter = ProtocolMessageParameters[msg_type][parameter_index]
-
-                # If it's fixed length, we read the payload as a next step.
-                if parameter.fixed_length:
-                    waiting_for_field_length = False
-                    bytes_to_read_next = parameter.length
-
-                # If it's variable length, we might have a length field to read.
-                # We have a length field if it's _not_ the last parameter
-                # elif parameter_index < parameter_count-1:
-                elif not parameter.implicit_length:
-                    waiting_for_field_length = True
-                    bytes_to_read_next = parameter.length_bytes
-
-                # If it's variable length _and_ the last field, all the remaining
-                # bytes belong to this field
-                else:
-                    waiting_for_field_length = False
-                    bytes_to_read_next = get_implicit_length()
-                    # If there are no more bytes, apparently the message is finished.
-                    # This can be the case when no password is set.
-                    if bytes_to_read_next == 0:
-                        await finalize_msg_and_prepare_for_next()
-
-            # there is no next parameter, so prepare for the next protocol message
-            else:
+            if msg_payload_bytes == 0:
+                # for example empty GAMES message
                 await finalize_msg_and_prepare_for_next()
+            else:
+
+                # the next thing to do is read the length field of a parameter,
+                # or the content of a parameter
+                parameter_index += 1
+
+                # check if we have a repeating message type and
+                # if we are currently at the end, and there is more to come
+                if msg_type in ProtocolMessageRepeatingTypes:
+                    if parameter_index == parameter_count:
+                        if msg_remaining_payload_bytes > 0:
+                            parameter_index = 0
+                            msg.append_parameters(parameters)
+                            parameters = {}
+
+                # Is there is a next parameter?
+                if parameter_index < parameter_count:
+
+                    waiting_for_msg_type = False
+
+                    parameter = ProtocolMessageParameters[msg_type][parameter_index]
+
+                    # If it's fixed length, we read the payload as a next step.
+                    if parameter.fixed_length:
+                        waiting_for_field_length = False
+                        bytes_to_read_next = parameter.length
+
+                    # If it's variable length, we might have a length field to read.
+                    # We have a length field if it's _not_ the last parameter
+                    # elif parameter_index < parameter_count-1:
+                    elif not parameter.implicit_length:
+                        waiting_for_field_length = True
+                        bytes_to_read_next = parameter.length_bytes
+
+                    # If it's variable length _and_ the last field, all the remaining
+                    # bytes belong to this field
+                    else:
+                        waiting_for_field_length = False
+                        bytes_to_read_next = get_implicit_length()
+                        # If there are no more bytes, apparently the message is finished.
+                        # This can be the case when no password is set.
+                        if bytes_to_read_next == 0:
+                            await finalize_msg_and_prepare_for_next()
+
+                # there is no next parameter, so prepare for the next protocol message
+                else:
+                    await finalize_msg_and_prepare_for_next()
 
         elif waiting_for_field_length:
             # next is to read the actual data
