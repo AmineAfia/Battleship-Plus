@@ -394,14 +394,14 @@ class ProtocolMessage(object):
 
         #print("> {}".format(self))
         writer.write(msg_bytes_type)
-        #print("type({})".format(msg_bytes_type))
+        # print("type({})".format(msg_bytes_type))
 
         writer.write(msg_bytes_length)
-        #print("length({})".format(msg_bytes_length))
+        # print("length({})".format(msg_bytes_length))
 
         if num_fields > 0:
             writer.write(msg_bytes_payload)
-            #print("payload({})".format(msg_bytes_payload))
+            # print("payload({})".format(msg_bytes_payload))
 
         await writer.drain()
 
@@ -452,6 +452,7 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
         if waiting_for_msg_type:
             msg_type = _msg_type_from_bytes(data)
             msg = ProtocolMessage(msg_type)
+            # print("start parsing type {}".format(msg_type))
             parameter_count = len(ProtocolMessageParameters[msg_type])
 
         elif waiting_for_payload_length:
@@ -461,6 +462,13 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
         elif waiting_for_field_length:
             msg_remaining_payload_bytes -= bytes_to_read_next
             bytes_to_read_next = _int_from_bytes(data)
+
+            # we have an empty parameter
+            if bytes_to_read_next == 0:
+                if parameter.type is str:
+                    parameters[parameter.name] = ""
+                else:
+                    print("ERROR(parse_from_stream): empty parameter for type: {}".format(parameter.type))
 
         else:
             msg_remaining_payload_bytes -= bytes_to_read_next
@@ -488,7 +496,7 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
             # else:
             #    await finalize_msg_and_prepare_for_next()
 
-        elif waiting_for_payload_length or not waiting_for_field_length:
+        elif waiting_for_payload_length or not waiting_for_field_length or (waiting_for_field_length and bytes_to_read_next == 0):
             waiting_for_payload_length = False
 
             # the next thing to do is read the length field of a parameter,

@@ -15,6 +15,14 @@ class GameLobbyData:
         return "#{} from '{}', size {}, {}s, ships {}, {}".format(self._game_id, self._username, self._board_size, self._round_time, self._num_ships, "passwd" if self._options == GameOptions.PASSWORD else "")
 
     @property
+    def username(self):
+        return self._username
+
+    @username.setter
+    def username(self, username):
+        self._username = username
+
+    @property
     def game_id(self):
         return self._game_id
 

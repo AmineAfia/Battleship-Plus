@@ -7,6 +7,7 @@ from common.GameController import GameController
 
 class ServerLobbyController:
 
+    # we base some tests on the fact that game_id 0 does never exist…
     next_game_id = 1
 
     def __init__(self):
@@ -16,7 +17,7 @@ class ServerLobbyController:
         self.user_gid = {}
         # clients: client_id -> client
         self.clients = {}
-        # games: game_id -> [[username1, game_controller1], [username2, game_controller2]]
+        # games: game_id -> [game_controller1, game_controller2]
         self.games = {}
 
     def add_client(self, client):
@@ -32,14 +33,15 @@ class ServerLobbyController:
                 pass
 
             # TODO: end all games of the user, according to their state
-            game_ids_to_delete = []
-            for game_id, [[username1, game_controller1], [username2, game_controller2]] in self.games.items():
+            game_id_to_delete = 0
+            for game_id, [game_controller1, game_controller2] in self.games.items():
                 # TODO: this only affects games the user started, beware, if it's a game in progress, the other user wins or something like that
-                if username1 == client.username:
+                if game_controller1.username == client.username:
                     game_ids_to_delete.append(game_id)
                     await self.send_delete_game(game_id)
-            for game_id in game_ids_to_delete:
-                del self.games[game_id]
+            if not game_id_to_delete == 0:
+                del self.games[game_id_to_delete]
+                del self.user_gid[client.username]
 
         del self.clients[client.id]
 
@@ -60,6 +62,12 @@ class ServerLobbyController:
     async def msg_to_all(self, msg):
         for username, user in self.users.items():
             await user.send(msg)
+
+    # send message to all logged in users but the one mentioned in the last parameter
+    async def msg_to_all_but_one(self, msg, except_username):
+        for username, user in self.users.items():
+            if not username == except_username:
+                await user.send(msg)
 
     async def send_delete_game(self, game_id):
         del_msg = ProtocolMessage.create_single(ProtocolMessageType.DELETE_GAME, {"game_id": game_id})
@@ -82,6 +90,12 @@ class ServerLobbyController:
 
         elif msg.type == ProtocolMessageType.CANCEL:
             await self.handle_cancel(client, msg)
+
+        elif msg.type == ProtocolMessageType.GET_GAMES:
+            await self.handle_get_games(client, msg)
+
+        elif msg.type == ProtocolMessageType.JOIN:
+            await self.handle_join(client, msg)
 
     async def handle_login(self, client, msg):
         params = msg.parameters
@@ -118,9 +132,18 @@ class ServerLobbyController:
         if len(text) > ProtocolConfig.CHAT_MAX_TEXT_LENGTH:
             answer = ProtocolMessage.create_error(ErrorCode.SYNTAX_MESSAGE_TEXT_TOO_LONG)
             self.print_client(client, "Max text length exceeded")
+        # check if the message is for all users
+        elif recipient == "":
+            forward = ProtocolMessage.create_single(ProtocolMessageType.CHAT_RECV,
+                                                    {"sender": client.username, "recipient": "",
+                                                     "text": text})
+            await self.msg_to_all_but_one(forward, client.username)
+            self.print_client(client, "Forwarding chat message to all logged in users but {}".format(client.username))
+
         elif recipient not in self.users:
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_DOES_NOT_EXIST)
             self.print_client(client, "Chat error: username '{}' does not exist".format(recipient))
+
         else:
             forward = ProtocolMessage.create_single(ProtocolMessageType.CHAT_RECV,
                                                     {"sender": client.username, "recipient": recipient,
@@ -140,7 +163,7 @@ class ServerLobbyController:
         if game_controller is not None:
             client.state = ClientConnectionState.GAME_CREATED
             self.user_gid[client.username] = game_id
-            self.games[game_id] = [[client.username, game_controller], [None, None]]
+            self.games[game_id] = [game_controller, None]
             # and send the game to all users
             msg = game_controller.to_game_msg()
             await self.msg_to_all(msg)
@@ -158,6 +181,23 @@ class ServerLobbyController:
 
     async def handle_get_games(self, client, msg):
         await self.send_games_to_user(client, msg)
+
+    async def handle_join(self, client, msg):
+        answer: ProtocolMessage = None
+
+        game_id = msg.parameters["game_id"]
+
+        # there is no available game with the specified game_ID (error code 104)
+        if not game_id in self.games.keys():
+            answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_UNKNOWN_GAME_ID)
+        elif self.games[game_id][0].options == GameOptions.PASSWORD and not "password" in msg.parameters:
+            answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_PASSWORD_REQUIRED)
+        elif self.games[game_id][0].options == GameOptions.PASSWORD and not msg.parameters["password"] == self.games[game_id][0].password == msg.parameters["password"]:
+            answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_INVALID_PASSWORD)
+
+
+        if answer is not None:
+            await client.send(answer)
 
     async def send_games_to_user(self, client):
         repeating_parameters = []

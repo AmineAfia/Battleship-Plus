@@ -27,8 +27,8 @@ def main():
             if seconds_to_wait > 0:
                 await asyncio.sleep(seconds_to_wait)
 
-        battleship_client = BattleshipClient(Constants.SERVER_IP, Constants.SERVER_PORT, loop, msg_callback, closed_callback)
-        await battleship_client.connect()
+        battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
+        await battleship_client.connect(Constants.SERVER_IP, Constants.SERVER_PORT)
 
         # the following messages are just to test
         # normally you can just call `await battleship_client.send(msg)`
@@ -53,6 +53,7 @@ def main():
         #                                      }))
 
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "testuser{}".format((client_id + 1) % 2), "text": "hurz from client {}".format(client_id)}))
+        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "", "text": "z"}))
         #
         # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.MOVE, {"turn_counter": 2, "ship_id": 146579, "direction": Orientation.EAST}))
         #

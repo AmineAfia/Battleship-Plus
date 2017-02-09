@@ -27,7 +27,7 @@ class GameController(GameLobbyData):
     async def create_from_msg(cls, msg: ProtocolMessage, game_id, client, username):
         controller = cls(game_id, client)
 
-        controller._username = username
+        controller.username = username
 
         params = msg.parameters
 
