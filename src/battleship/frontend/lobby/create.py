@@ -6,6 +6,7 @@ from .join import Join
 from common.GameController import GameController
 from client.lobby import ClientLobbyController
 from common.errorHandler.BattleshipError import BattleshipError
+from common.constants import GameOptions
 
 palette = [
     ('hit', 'black', 'light gray', 'bold'),
@@ -29,10 +30,10 @@ class RoundTimePopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with nothing but a close button """
     signals = ['close']
 
-    def __init__(self, button_with_pop_up):
+    def __init__(self, popup_launcher, button_with_pop_up):
         self.button_with_pop_up = button_with_pop_up
         self.round_time_choices = []
-        self.buttons_signals = []
+        self.popup_launcher = popup_launcher
         # buttons list with time rounds
         for i in range(25, 65, 5):
             self.round_time_choices.append(urwid.Button(str(i)))
@@ -48,24 +49,32 @@ class RoundTimePopUpDialog(urwid.WidgetWrap):
     def set_round_time(self, label):
         # TODO: link label with a controller method
         self.button_with_pop_up.set_label(label)
+        self.popup_launcher.set_roundtime(int(label))
         self._emit("close")
 
 
 class RoundTimeButtonWithAPopUp(urwid.PopUpLauncher):
     def __init__(self):
+        self.roundtime = None
         self.b = urwid.Button("round time")
         super().__init__(self.b)
         urwid.connect_signal(self.original_widget, 'click',
                              lambda button: self.open_pop_up())
 
     def create_pop_up(self):
-        pop_up = RoundTimePopUpDialog(self.original_widget)
+        pop_up = RoundTimePopUpDialog(self, self.original_widget)
         urwid.connect_signal(pop_up, 'close',
                              lambda button: self.close_pop_up())
         return pop_up
 
     def get_pop_up_parameters(self):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 7}
+
+    def set_roundtime(self, roundtime):
+        self.roundtime = roundtime
+
+    def get_roundtime(self):
+        return self.roundtime
 
 
 class CreateGame:
@@ -80,7 +89,8 @@ class CreateGame:
         self.destroyer = None
         self.submarine = None
         self.password = None
-        self.round_time = None
+        self.round_time = RoundTimeButtonWithAPopUp()
+        self.password_checkbox = None
 
     def forward_waiting_room(self, foo):
         # TODO: controller doesn't handle empty ships array
@@ -105,7 +115,11 @@ class CreateGame:
         # # TODO: handle exception in case user didn't enter numbers into the fields
         # self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
         # raise urwid.ExitMainLoop()
-        create_task = self.loop.create_task(self.game_controller.create_on_server(int(self.length.get_edit_text()), ship_numbers, 25, 0, ""))
+        create_task = self.loop.create_task(self.game_controller.create_on_server(
+                                                int(self.length.get_edit_text()), ship_numbers, int(self.round_time.get_roundtime()),
+                                                GameOptions.PASSWORD if self.password_checkbox.state else 0,
+                                                self.password.get_edit_text()))
+
         create_task.add_done_callback(self.create_result)
 
     def create_result(self, future):
@@ -124,10 +138,10 @@ class CreateGame:
 
         # Form fields
         self.length = urwid.Edit(caption='Field size: ', edit_text='10', multiline=False, align='left', wrap='space', allow_tab=False,)
-        self.round_time = urwid.Edit(caption='round time: ', edit_text='15', multiline=False, align='left', wrap='space', allow_tab=False)
-        self.round_time = urwid.Columns([urwid.Text("Round time: "), RoundTimeButtonWithAPopUp()])
-        self.password = urwid.Edit(caption='password: ', edit_text='', multiline=False, align='left', wrap='space', allow_tab=False)
-
+        self.round_time_line = urwid.Columns([urwid.Text("Round time: "), self.round_time])
+        self.password = urwid.Edit(caption='password: ', edit_text='gggg', multiline=False, align='left', wrap='space', allow_tab=False)
+        self.password_checkbox = urwid.CheckBox("Password")
+        print(self.password_checkbox.state)
         self.carrier = urwid.Edit(caption='carrier: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False,)
         self.battleship = urwid.Edit(caption='battleship: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
         self.cruiser = urwid.Edit(caption='cruiser: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
@@ -138,7 +152,7 @@ class CreateGame:
                  self.destroyer.get_edit_text(), self.submarine.get_edit_text()]
 
         # Screen Layout
-        game_settings = urwid.LineBox(urwid.Pile([self.length, blank, self.round_time, blank, self.password]), 'Game Settings')
+        game_settings = urwid.LineBox(urwid.Pile([self.length, blank, self.round_time_line, blank, self.password_checkbox, self.password]), 'Game Settings')
         ships_columns = urwid.Columns([urwid.Pile([self.destroyer, blank, self.submarine]), urwid.Pile([self.carrier, blank, self.battleship, blank, self.cruiser])])
         ships_edit_box = urwid.LineBox(ships_columns, 'Ships')
         ships_form = urwid.Columns([game_settings, ships_edit_box])
