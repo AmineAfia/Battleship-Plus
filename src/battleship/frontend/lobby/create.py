@@ -24,6 +24,49 @@ palette = [
     ]
 
 
+class RoundTimePopUpDialog(urwid.WidgetWrap):
+    """A dialog that appears with nothing but a close button """
+    signals = ['close']
+
+    def __init__(self, button_with_pop_up):
+        self.button_with_pop_up = button_with_pop_up
+        self.round_time_choices = []
+        self.buttons_signals = []
+        # buttons list with time rounds
+        for i in range(25, 65, 5):
+            self.round_time_choices.append(urwid.Button(str(i)))
+        # connect each button to set_round_time() method
+        for i in self.round_time_choices:
+            urwid.connect_signal(i, 'click', lambda button: self.set_round_time(button.get_label()))
+
+        pile = urwid.Pile(self.round_time_choices)
+        fill = urwid.Filler(pile)
+        self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
+
+    # set round time
+    def set_round_time(self, label):
+        # TODO: link label with a controller method
+        self.button_with_pop_up.set_label(label)
+        self._emit("close")
+
+
+class RoundTimeButtonWithAPopUp(urwid.PopUpLauncher):
+    def __init__(self):
+        self.b = urwid.Button("round time")
+        super().__init__(self.b)
+        urwid.connect_signal(self.original_widget, 'click',
+                             lambda button: self.open_pop_up())
+
+    def create_pop_up(self):
+        pop_up = RoundTimePopUpDialog(self.original_widget)
+        urwid.connect_signal(pop_up, 'close',
+                             lambda button: self.close_pop_up())
+        return pop_up
+
+    def get_pop_up_parameters(self):
+        return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 7}
+
+
 class CreateGame:
     def __init__(self, game_controller, lobby_controller, loop):
         self.loop = loop
@@ -35,6 +78,8 @@ class CreateGame:
         self.cruiser = None
         self.destroyer = None
         self.submarine = None
+        self.password = None
+        self.round_time = None
 
     def forward_waiting_room(self, foo):
         # TODO: controller doesn't handle empty ships array
@@ -60,13 +105,16 @@ class CreateGame:
         # self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
         # raise urwid.ExitMainLoop()
 
-
     def create_game(self):
         # The rendered layout
         blank = urwid.Divider()
 
         # Form fields
         self.length = urwid.Edit(caption='Field size: ', edit_text='10', multiline=False, align='left', wrap='space', allow_tab=False,)
+        self.round_time = urwid.Edit(caption='round time: ', edit_text='15', multiline=False, align='left', wrap='space', allow_tab=False)
+        self.round_time = urwid.Columns([urwid.Text("Round time: "), RoundTimeButtonWithAPopUp()])
+        self.password = urwid.Edit(caption='password: ', edit_text='', multiline=False, align='left', wrap='space', allow_tab=False)
+
         self.carrier = urwid.Edit(caption='carrier: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False,)
         self.battleship = urwid.Edit(caption='battleship: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
         self.cruiser = urwid.Edit(caption='cruiser: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
@@ -76,8 +124,11 @@ class CreateGame:
         ships = [self.carrier.get_edit_text(), self.battleship.get_edit_text(), self.cruiser.get_edit_text(),
                  self.destroyer.get_edit_text(), self.submarine.get_edit_text()]
 
-        ships_form = urwid.Columns([urwid.Pile([self.length, blank, self.carrier, blank, self.battleship, blank]), urwid.Pile([self.cruiser, blank,
-                                    self.destroyer, blank, self.submarine])])
+        # Screen Layout
+        game_settings = urwid.LineBox(urwid.Pile([self.length, blank, self.round_time, blank, self.password]), 'Game Settings')
+        ships_columns = urwid.Columns([urwid.Pile([self.destroyer, blank, self.submarine]), urwid.Pile([self.carrier, blank, self.battleship, blank, self.cruiser])])
+        ships_edit_box = urwid.LineBox(ships_columns, 'Ships')
+        ships_form = urwid.Columns([game_settings, ships_edit_box])
 
         widget_list = [
             # urwid.Padding(urwid.Text("Create Game"), left=2, right=0, min_width=20),
@@ -102,4 +153,4 @@ class CreateGame:
 
         urwid.MainLoop(frame, palette,
                        unhandled_input=unhandled,
-                       event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
+                       event_loop=urwid.AsyncioEventLoop(loop=self.loop), pop_ups=True).run()

@@ -1,4 +1,3 @@
-# ships: carrier, battleship, cruiser, destroyer, submarine
 import urwid
 
 from .waitting import Waiting
@@ -7,7 +6,17 @@ from common.constants import Orientation
 from client.lobby import ClientLobbyController
 
 
+# common variables to place ships
 class ShipsList:
+    # parameters to place a ship
+    ship_id = None
+    ship_type = None
+    ship_length = None
+    ship_orientation = None
+    ship_x_pos = None
+    ship_y_pos = None
+
+    # Variables for UI
     ships_list = []
     ships = [0, 0, 0, 0, 0]
     info_pile = None
@@ -18,18 +27,20 @@ class ShipsList:
     ships_info_length_list = []
     # button show in the ships placing popup
     ships_categories_place = []
+    # Dictionary to get chips length
     length_dictionary = {"carrier": 5, "battleship": 5, "cruiser":  4, "destroyer":  3, "submarine": 2}
     buttons_list = {}
 
     @staticmethod
     def get_ships():
-        ShipsList.ships_list.append(urwid.Button(("carrier {}".format(ShipsList.ships[0]))))
-        ShipsList.ships_list.append(urwid.Button(('battleship {}'.format(ShipsList.ships[1]))))
-        ShipsList.ships_list.append(urwid.Button(('cruiser {}'.format(ShipsList.ships[2]))))
-        ShipsList.ships_list.append(urwid.Button(('destroyer {}'.format(ShipsList.ships[3]))))
-        ShipsList.ships_list.append(urwid.Button(('submarine {}'.format(ShipsList.ships[4]))))
-        ShipsList.info_pile = urwid.Pile(ShipsList.ships_list)
+        # ShipsList.ships_list.append(urwid.Button(("carrier {}".format(ShipsList.ships[0]))))
+        # ShipsList.ships_list.append(urwid.Button(('battleship {}'.format(ShipsList.ships[1]))))
+        # ShipsList.ships_list.append(urwid.Button(('cruiser {}'.format(ShipsList.ships[2]))))
+        # ShipsList.ships_list.append(urwid.Button(('destroyer {}'.format(ShipsList.ships[3]))))
+        # ShipsList.ships_list.append(urwid.Button(('submarine {}'.format(ShipsList.ships[4]))))
+        # ShipsList.info_pile = urwid.Pile(ShipsList.ships_list)
         i = 0
+
         for k, v in ShipsList.length_dictionary.items():
             ShipsList.ships_info_length_list.append(urwid.Button(("You have {} {} with length {}".format(ShipsList.ships[i], k, v))))
             ShipsList.ships_categories_place.append(urwid.Button(k))
@@ -38,7 +49,18 @@ class ShipsList:
         ShipsList.info_pile_2 = urwid.Pile(ShipsList.ships_info_length_list)
         ShipsList.info_pile_3 = urwid.Pile(ShipsList.ships_categories_place)
 
+    @staticmethod
+    def get_remaining_ships():
+        ShipsList.ships_info_length_list.clear()
+        ShipsList.info_pile_2.contents.clear()
+        i = 0
+        for k, v in ShipsList.length_dictionary.items():
+            ShipsList.ships_info_length_list.append(urwid.Button(("You have {} {} with length {}".format(ShipsList.ships[i], k, v))))
+            i += 1
 
+        ShipsList.info_pile_2.contents.append((urwid.Pile(ShipsList.ships_info_length_list),ShipsList.info_pile_2.options()))
+
+#Popup for each cell in the matrix
 class PopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with North, South, West and East buttons """
     signals = ['close']
@@ -48,36 +70,53 @@ class PopUpDialog(urwid.WidgetWrap):
         self.button_with_pop_up = button_with_pop_up
         self.x_pos = x_pos
         self.y_pos = y_pos
-        self.h_button = urwid.Button("Horizontal")
-        self.v_button = urwid.Button("Vertical")
+        self.h_button = urwid.Button("East")
+        self.v_button = urwid.Button("North")
         self.self_exit_button = urwid.Button("Exit")
 
+        # connect direction buttons to set the orientation
         urwid.connect_signal(self.self_exit_button, 'click',
                              lambda button: self._emit("close"))
 
         urwid.connect_signal(self.h_button, 'click',
-                             lambda button: self.set_orientation(Orientation.EAST, 3))
+                             lambda button: self.set_ship_position(Orientation.EAST))
 
         urwid.connect_signal(self.v_button, 'click',
-                             lambda button: self.set_orientation(Orientation.NORTH, 3))
-
-        # function to shoot the opponents field
-        # def place(self):
-        #     self.set_label('X')
+                             lambda button: self.set_ship_position(Orientation.NORTH))
 
         orientation_pile = urwid.LineBox(urwid.Pile([self.self_exit_button, urwid.Columns([self.h_button, self.v_button], 2)]), 'Direction')
+        # TODO: change buttons to radio buttons
         ships_pile = urwid.LineBox(ShipsList.info_pile_3, 'Ships')
+
+        for ship_type_button in ShipsList.ships_categories_place:
+            urwid.connect_signal(ship_type_button, 'click', lambda ship: self.set_ship_type_to_place(ship.get_label()))
+
         pile = urwid.Pile([ships_pile, orientation_pile])
         fill = urwid.Filler(pile)
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
-    def set_orientation(self, orientation, length):
-        self.button_with_pop_up.place_ship_in_position(orientation, length)
-        self.button_with_pop_up.game_controller.place_ship(4, self.x_pos, self.y_pos, orientation)
-        print(orientation)
+    @staticmethod
+    def set_ship_type_to_place(ship_type_button):
+        ShipsList.ship_type = ship_type_button
+        ShipsList.ship_length = ShipsList.length_dictionary[ship_type_button]
+
+    def set_ship_position(self, orientation):
+        ShipsList.ship_orientation = orientation
+        ShipsList.ship_id = self.button_with_pop_up.game_controller.get_next_ship_id_by_type_to_place(ShipsList.ship_type)
+        ShipsList.ship_x_pos = self.x_pos
+        ShipsList.ship_y_pos = self.y_pos
+        self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length)
+        self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, ShipsList.ship_orientation)
+
+        for ship_type_button in ShipsList.ships_categories_place:
+            urwid.connect_signal(ship_type_button, 'click', lambda ship: self.set_ship_type_to_place(ship.get_label()))
+
+        ShipsList.ships = self.button_with_pop_up.game_controller.ships
+        ShipsList.get_remaining_ships()
         self._emit("close")
 
 
+# structuring one cell
 class ButtonWithAPopUp(urwid.PopUpLauncher):
     def __init__(self, x_pos, y_pos, game_controller):
         self.game_controller = game_controller
@@ -109,15 +148,19 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
     def get_pop_up_parameters(self):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 8}
 
-
+#main class to place ships
 class Join:
     def __init__(self, game_controller, lobby_controller, loop):
         self.loop = loop
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
+
+        # get ships from controller
         ShipsList.ships = game_controller.ships
         self.field_offset = game_controller.length
+
         ShipsList.get_ships()
+
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -136,10 +179,16 @@ class Join:
         ]
         self.blank = urwid.Divider()
 
+    # def get_ships_to_place(self):
+    #     self.game_controller.
+
     def forward_next(self, foo):
         # TODO: somehow tell the main client the difference between this and unhandled
         # Why should the client know about unhandlded? it is just for testing purposes, to exit the game at this time
         # It can be used as and exit for players as well but needs a warning + communication termination for an appropriate exit
+
+        # TODO: check if all ships are placed to start the game and go to the next screen
+        self.game_controller.start_game()
         raise urwid.ExitMainLoop()
 
     def unhandled(self, key):
@@ -171,7 +220,7 @@ class Join:
 
             urwid.Columns([
                 ship_pile,
-                urwid.LineBox(ShipsList.info_pile_2, 'Available Ships')
+                urwid.LineBox(ShipsList.info_pile_2, 'Ships')
             ], 2),
             self.blank,
             forward_button,
@@ -181,9 +230,9 @@ class Join:
         listbox = urwid.ListBox(urwid.SimpleListWalker(widget_list))
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
 
-        urwid.MainLoop(frame, self.palette,
-                       unhandled_input=self.unhandled, pop_ups=True,
-                       event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
+        loop = urwid.MainLoop(frame, self.palette,
+                              unhandled_input=self.unhandled, pop_ups=True,
+                              event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
 
 if '__main__' == __name__:
     battle = Join()

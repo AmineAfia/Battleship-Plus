@@ -9,6 +9,13 @@ from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode
 
 
+class ErrorMessages:
+    empty = "Empty usernames are not allowed"
+    exist = "Username already exists"
+    other = "Some other network problem :("
+    default = None
+
+
 class LoginPopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with nothing but a close button """
     signals = ['close']
@@ -16,7 +23,7 @@ class LoginPopUpDialog(urwid.WidgetWrap):
     def __init__(self):
         close_button = urwid.Button("close")
         urwid.connect_signal(close_button, 'click', self.reenter_username)
-        pile = urwid.Pile([urwid.Text("Sorry mate empty usernames are not allowed"), close_button])
+        pile = urwid.Pile([urwid.Text(ErrorMessages.default), close_button])
         fill = urwid.Filler(pile)
         self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
 
@@ -26,15 +33,19 @@ class LoginPopUpDialog(urwid.WidgetWrap):
 
 class LoginButtonWithAPopUp(urwid.PopUpLauncher):
     def __init__(self):
-        # self.show = show
-        #self.create_pop_up()
         self.__super.__init__(urwid.Button(""))
         urwid.connect_signal(self.original_widget, 'click',
                              lambda button: self.open_pop_up())
-        # if self.show == "empty":
-        #     self.open_pop_up()
 
-    def callback_for_popup(self):
+    def callback_for_popup(self, show):
+
+        if show == "empty":
+            ErrorMessages.default = ErrorMessages.empty
+        elif show == "exist":
+            ErrorMessages.default = ErrorMessages.exist
+        elif show == "other":
+            ErrorMessages.default = ErrorMessages.other
+
         self.open_pop_up()
 
     def create_pop_up(self):
@@ -68,11 +79,12 @@ class Login:
         if type(e) is BattleshipError:
             if e.error_code == ErrorCode.PARAMETER_INVALID_USERNAME:
                 # TODO: popup
-                self.popup.callback_for_popup()
+                self.popup.callback_for_popup("empty")
                 #print("username cannot be empty")
             elif e.error_code == ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS:
                 # TODO: popup
-                print("username already exists")
+                self.popup.callback_for_popup("exist")
+                #print("username already exists")
         # and check if we are really logged in
         elif not self.lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
             # ok, we are logged in
@@ -84,7 +96,7 @@ class Login:
     def login_main(self):
         dialog = urwid.Columns([
                     urwid.Text(""),
-                    urwid.LineBox(urwid.Pile([self.popup, self.username, urwid.Text(""), self.server_ip, self.server_port]), 'Login'),
+                    urwid.LineBox(urwid.Pile([self.username, self.popup, self.server_ip, self.server_port]), 'Login'),
                     urwid.Text(""),
                     ], 2)
         f = urwid.Filler(dialog)
