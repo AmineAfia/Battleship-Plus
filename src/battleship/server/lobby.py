@@ -10,9 +10,13 @@ class ServerLobbyController:
     next_game_id = 1
 
     def __init__(self):
+        # users: username -> client
         self.users = {}
+        # user_game: username -> game_id
+        self.user_gid = {}
+        # clients: client_id -> client
         self.clients = {}
-        # Games: game_id -> [[username1, game_controller1], [username2, game_controller2]]
+        # games: game_id -> [[username1, game_controller1], [username2, game_controller2]]
         self.games = {}
 
     def add_client(self, client):
@@ -33,8 +37,7 @@ class ServerLobbyController:
                 # TODO: this only affects games the user started, beware, if it's a game in progress, the other user wins or something like that
                 if username1 == client.username:
                     game_ids_to_delete.append(game_id)
-                    del_msg = ProtocolMessage.create_single(ProtocolMessageType.DELETE_GAME, {"game_id": game_id})
-                    await self.msg_to_all(del_msg)
+                    await self.send_delete_game(game_id)
             for game_id in game_ids_to_delete:
                 del self.games[game_id]
 
@@ -58,6 +61,11 @@ class ServerLobbyController:
         for username, user in self.users.items():
             await user.send(msg)
 
+    async def send_delete_game(self, game_id):
+        del_msg = ProtocolMessage.create_single(ProtocolMessageType.DELETE_GAME, {"game_id": game_id})
+        await self.msg_to_all(del_msg)
+
+    # Handling of not being logged in has to be done outside of this function
     async def handle_msg(self, client, msg: ProtocolMessage):
 
         if msg.type == ProtocolMessageType.LOGIN:
@@ -72,6 +80,9 @@ class ServerLobbyController:
         elif msg.type == ProtocolMessageType.CREATE_GAME:
             await self.handle_create_game(client, msg)
 
+        elif msg.type == ProtocolMessageType.CANCEL:
+            await self.handle_cancel(client, msg)
+
     async def handle_login(self, client, msg):
         params = msg.parameters
         answer: ProtocolMessage = None
@@ -84,11 +95,12 @@ class ServerLobbyController:
                 answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS)
                 self.print_client(client, "User name already exists")
             else:
-                client.state = ClientConnectionState.CONNECTED
+                client.state = ClientConnectionState.GAME_SELECTION
+                #self.users[username].state = ClientConnectionState.GAME_SELECTION
                 client.username = params["username"]
                 self.users[client.username] = client
                 self.print_client(client, "Client successfully logged in with '{}'".format(client.username))
-                await self.send_games_to_user(client.username)
+                await self.send_games_to_user(client)
         if answer is not None:
             print("> [{}] {}".format(client.id, answer))
             await answer.send(client.writer)
@@ -126,12 +138,28 @@ class ServerLobbyController:
 
         game_controller = await GameController.create_from_msg(msg, game_id, client, client.username)
         if game_controller is not None:
+            client.state = ClientConnectionState.GAME_CREATED
+            self.user_gid[client.username] = game_id
             self.games[game_id] = [[client.username, game_controller], [None, None]]
             # and send the game to all users
             msg = game_controller.to_game_msg()
             await self.msg_to_all(msg)
 
-    async def send_games_to_user(self, username):
+    async def handle_cancel(self, client, msg):
+        if client.state == ClientConnectionState.GAME_CREATED:
+            game_id = self.user_gid[client.username]
+            del self.user_gid[client.username]
+            del self.games[game_id]
+            client.state = ClientConnectionState.GAME_SELECTION
+            await self.send_delete_game(game_id)
+        else:
+            # TODO: well, thanks RFC, there is no error message for this
+            pass
+
+    async def handle_get_games(self, client, msg):
+        await self.send_games_to_user(client, msg)
+
+    async def send_games_to_user(self, client):
         repeating_parameters = []
         for game_id, [[username1, game_controller1], [_, _]] in self.games.items():
             parameters = {"game_id": game_id, "username": username1, "board_size": game_controller1.length,
@@ -148,4 +176,4 @@ class ServerLobbyController:
         repeating_parameters.append(dummy)
         repeating_parameters.append(dummy2)
         msg = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
-        await self.msg_to_user(msg, username)
+        await client.send(msg)
