@@ -15,6 +15,8 @@ class ServerLobbyController:
         self.users = {}
         # user_game: username -> game_id
         self.user_gid = {}
+        # user_game_ctrl: username -> game_controller
+        self.user_game_ctrl = {}
         # clients: client_id -> client
         self.clients = {}
         # games: game_id -> [game_controller1, game_controller2]
@@ -37,11 +39,14 @@ class ServerLobbyController:
             for game_id, [game_controller1, game_controller2] in self.games.items():
                 # TODO: this only affects games the user started, beware, if it's a game in progress, the other user wins or something like that
                 if game_controller1.username == client.username:
-                    game_ids_to_delete.append(game_id)
+                    game_id_to_delete = game_id
                     await self.send_delete_game(game_id)
+                    break
+
             if not game_id_to_delete == 0:
                 del self.games[game_id_to_delete]
                 del self.user_gid[client.username]
+                del self.user_game_ctrl[client.username]
 
         del self.clients[client.id]
 
@@ -96,6 +101,9 @@ class ServerLobbyController:
 
         elif msg.type == ProtocolMessageType.JOIN:
             await self.handle_join(client, msg)
+
+        elif msg.type == ProtocolMessageType.PLACE:
+            await self.handle_place(client, msg)
 
     async def handle_login(self, client, msg):
         params = msg.parameters
@@ -164,6 +172,7 @@ class ServerLobbyController:
             client.state = ClientConnectionState.GAME_CREATED
             self.user_gid[client.username] = game_id
             self.games[game_id] = [game_controller, None]
+            self.user_game_ctrl[client.username] = game_controller
             # and send the game to all users
             msg = game_controller.to_game_msg()
             await self.msg_to_all(msg)
@@ -172,6 +181,7 @@ class ServerLobbyController:
         if client.state == ClientConnectionState.GAME_CREATED:
             game_id = self.user_gid[client.username]
             del self.user_gid[client.username]
+            del self.user_game_ctrl[client.username]
             del self.games[game_id]
             client.state = ClientConnectionState.GAME_SELECTION
             await self.send_delete_game(game_id)
@@ -221,6 +231,11 @@ class ServerLobbyController:
 
             self.games[game_id][1] = game_controller2
 
+            self.user_gid[client.username] = game_id
+            # this is already done for the other user
+
+            self.user_game_ctrl[client.username] = game_controller2
+
             # set client states
             client.state = ClientConnectionState.PLAYING
             client1.state = ClientConnectionState.PLAYING
@@ -232,6 +247,26 @@ class ServerLobbyController:
 
         if answer is not None:
             await client.send(answer)
+
+    async def handle_place(self, client, msg):
+        # get the game controller for this client
+        # TODO: catch fail (user not playing)
+        game_id = self.user_gid[client.username]
+
+        our_ctrl = self.user_game_ctrl[client.username]
+        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+
+        try:
+            our_ctrl.run(msg)
+        except BattleshipError as e:
+            # TODO: maybe check if it's not an internal error
+            answer = ProtocolMessage.create_error(e.error_code)
+            await client.send(answer)
+        except Exception as e:
+            raise e
+
+
+
 
     async def send_games_to_user(self, client):
         repeating_parameters = []

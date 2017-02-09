@@ -315,6 +315,8 @@ class GameController(GameLobbyData):
                     orientation = ship_position.orientation
                     self.place_ship(ship_id, x_pos, y_pos, orientation)
                     ship_id += 1
+                # if we reach this, the ships have all been successfully placed
+                self.state = GameState.WAITING
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_WRONG_NUMBER_OF_SHIPS)
 

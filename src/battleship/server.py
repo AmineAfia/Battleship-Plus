@@ -16,7 +16,7 @@ def main():
 
     msgs_for_lobby_controller = [ProtocolMessageType.LOGIN, ProtocolMessageType.LOGOUT, ProtocolMessageType.CHAT_SEND,
                                  ProtocolMessageType.GET_GAMES, ProtocolMessageType.CREATE_GAME, ProtocolMessageType.CANCEL]
-    #msgs_for_game_controller = []
+    msgs_for_game_controller = [ProtocolMessageType.PLACE]
 
     # This gets called whenever a new client connects. The parameter `client`
     # is of type BattleshipServerClient and holds a unique id, the reader and the writer.
@@ -47,6 +47,9 @@ def main():
 
             elif msg.type in msgs_for_lobby_controller:
                 await lobby_ctrl.handle_msg(client, msg)
+
+            elif msg.type in msgs_for_game_controller:
+                pass
 
             # If we have a direct answer, send it here
             if answer is not None:
