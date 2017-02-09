@@ -1,8 +1,9 @@
 from .client import Client
-from common.constants import ErrorCode, GameOptions
+from common.constants import ErrorCode, GameOptions, EndGameReason
 from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig, NumShips
 from common.states import ClientConnectionState, GameState
 from common.GameController import GameController
+from random import randrange
 
 
 class ServerLobbyController:
@@ -104,6 +105,9 @@ class ServerLobbyController:
 
         elif msg.type == ProtocolMessageType.PLACE:
             await self.handle_place(client, msg)
+
+        elif msg.type == ProtocolMessageType.ABORT:
+            await self.handle_abort(client, msg)
 
     async def handle_login(self, client, msg):
         params = msg.parameters
@@ -251,7 +255,6 @@ class ServerLobbyController:
     async def handle_place(self, client, msg):
         # get the game controller for this client
         # TODO: catch fail (user not playing)
-        game_id = self.user_gid[client.username]
 
         our_ctrl = self.user_game_ctrl[client.username]
         other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
@@ -265,8 +268,43 @@ class ServerLobbyController:
         except Exception as e:
             raise e
 
+        # notify the other
+        msg = ProtocolMessage.create_single(ProtocolMessageType.PLACED)
+        await other_ctrl.client.send(msg)
 
+        # if both are on waiting, the game can start
+        if our_ctrl.state == GameState.WAITING and other_ctrl.state == GameState.WAITING:
+            # who starts?
+            starting_ctrl, waiting_ctrl = our_ctrl, other_ctrl if randrange(2) == 1 else other_ctrl, our_ctrl
 
+            youstart = ProtocolMessage.create_single(ProtocolMessageType.YOUSTART)
+            await starting_ctrl.client.send(youstart)
+            starting_ctrl.state = GameState.YOUR_TURN
+
+            youwait = ProtocolMessage.create_single(ProtocolMessageType.WAIT)
+            await waiting_ctrl.client.send(youwait)
+            waiting_ctrl.state = GameState.OPPONENTS_TURN
+
+            # TODO: fix this, should be merged with state
+            starting_ctrl._game_started = True
+            waiting_ctrl._game_started = True
+
+    async def handle_abort(self, client, msg):
+        our_ctrl = self.user_game_ctrl[client.username]
+        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+
+        del self.games[our_ctrl.game_id]
+        del self.user_game_ctrl[our_ctrl.username]
+        del self.user_game_ctrl[other_ctrl.username]
+        del self.user_gid[our_ctrl.username]
+        del self.user_gid[other_ctrl.username]
+
+        self.users[our_ctrl.username].state = ClientConnectionState.GAME_SELECTION
+        self.users[other_ctrl.username].state = ClientConnectionState.GAME_SELECTION
+
+        msg = ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": EndGameReason.OPPONENT_ABORT})
+        await other_ctrl.client.send(msg)
+        await our_ctrl.client.send(msg)
 
     async def send_games_to_user(self, client):
         repeating_parameters = []

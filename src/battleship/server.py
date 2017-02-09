@@ -15,8 +15,8 @@ def main():
     lobby_ctrl = ServerLobbyController()
 
     msgs_for_lobby_controller = [ProtocolMessageType.LOGIN, ProtocolMessageType.LOGOUT, ProtocolMessageType.CHAT_SEND,
-                                 ProtocolMessageType.GET_GAMES, ProtocolMessageType.CREATE_GAME, ProtocolMessageType.CANCEL]
-    msgs_for_game_controller = [ProtocolMessageType.PLACE]
+                                 ProtocolMessageType.GET_GAMES, ProtocolMessageType.CREATE_GAME, ProtocolMessageType.CANCEL,
+                                 ProtocolMessageType.PLACE, ProtocolMessageType.ABORT]
 
     # This gets called whenever a new client connects. The parameter `client`
     # is of type BattleshipServerClient and holds a unique id, the reader and the writer.
