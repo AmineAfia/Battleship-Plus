@@ -1,5 +1,6 @@
 from common.constants import GameOptions, ErrorCode
 from common.errorHandler.BattleshipError import BattleshipError
+from common.states import GameState
 
 class GameLobbyData:
     def __init__(self, game_id, username="", board_size=0, num_ships=[], round_time=0, options=0):
@@ -9,6 +10,7 @@ class GameLobbyData:
         self._username = username
         self._board_size = board_size
         self._num_ships = num_ships
+        self._state = GameState.IN_LOBBY
         # TODO: merge some of this with GameController
 
     def __str__(self):
@@ -21,6 +23,15 @@ class GameLobbyData:
     @username.setter
     def username(self, username):
         self._username = username
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, state):
+        # TODO: check if it's a valid state
+        self._state = state
 
     @property
     def game_id(self):

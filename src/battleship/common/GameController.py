@@ -66,6 +66,19 @@ class GameController(GameLobbyData):
         # answer client OK
         return controller
 
+    @classmethod
+    def create_from_existing_for_opponent(cls, other_ctrl, client):
+        new_ctrl = cls(other_ctrl.game_id, client)
+
+        new_ctrl.username = client.username
+        new_ctrl.opponent_name = other_ctrl.username
+        new_ctrl.round_time = other_ctrl.round_time
+        new_ctrl.options = other_ctrl.options
+        new_ctrl.password = other_ctrl.password
+        new_ctrl._battlefield = new_ctrl.create_battlefield(other_ctrl.length, other_ctrl.ships)
+
+        return new_ctrl
+
     @property
     def password(self):
         return self._password
@@ -78,6 +91,14 @@ class GameController(GameLobbyData):
             raise BattleshipError(ErrorCode.SYNTAX_MISSING_OR_UNKNOWN_PARAMETER)
         else:
             self._password = password
+
+    @property
+    def opponent_name(self):
+        return self._opponent_name
+
+    @opponent_name.setter
+    def opponent_name(self, opponent_name):
+        self._opponent_name = opponent_name
 
     @property
     def ships(self):
@@ -381,6 +402,9 @@ class GameController(GameLobbyData):
         return msg
 
     def to_game_msg(self):
-        # TODO: property and setter for username
-        params = {"game_id": self.game_id, "username": self._username, "board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}
+        params = {"game_id": self.game_id, "username": self.username, "board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}
         return ProtocolMessage.create_single(ProtocolMessageType.GAME, params)
+
+    def to_start_game_msg(self):
+        params = {"opponent_name": self.opponent_name, "board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time}
+        return ProtocolMessage.create_single(ProtocolMessageType.STARTGAME, params)

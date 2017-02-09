@@ -1,7 +1,7 @@
 from .client import Client
 from common.constants import ErrorCode, GameOptions
 from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig, NumShips
-from common.states import ClientConnectionState
+from common.states import ClientConnectionState, GameState
 from common.GameController import GameController
 
 
@@ -190,10 +190,44 @@ class ServerLobbyController:
         # there is no available game with the specified game_ID (error code 104)
         if not game_id in self.games.keys():
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_UNKNOWN_GAME_ID)
+
+        # the message lacks the password parameter although a password is required (error code 105)
         elif self.games[game_id][0].options == GameOptions.PASSWORD and not "password" in msg.parameters:
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_PASSWORD_REQUIRED)
-        elif self.games[game_id][0].options == GameOptions.PASSWORD and not msg.parameters["password"] == self.games[game_id][0].password == msg.parameters["password"]:
+
+        # a password is required for the game, but the given password is incorrect (error code 106)
+        elif self.games[game_id][0].options == GameOptions.PASSWORD and not msg.parameters["password"] == self.games[game_id][0].password:
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_INVALID_PASSWORD)
+
+        # the user wants to join his own game (error code 107)
+        elif self.games[game_id][0].username == client.username:
+            answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_ILLEGAL_JOIN)
+
+        # the game has already started (error code 8)
+        elif not self.games[game_id][0].state == GameState.IN_LOBBY:
+            answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_GAME_ALREADY_STARTED)
+
+        # Everything ok, let them play
+        else:
+            # setup a game_controller for the other one
+            game_controller1 = self.games[game_id][0]
+            game_controller1.opponent_name = client.username
+            game_controller1.state = GameState.PLACE_SHIPS
+
+            client1 = self.games[game_id][0].client
+
+            game_controller2 = GameController.create_from_existing_for_opponent(game_controller1, client)
+            game_controller2.state = GameState.PLACE_SHIPS
+
+            self.games[game_id][1] = game_controller2
+
+            # set client states
+            client.state = ClientConnectionState.PLAYING
+            client1.state = ClientConnectionState.PLAYING
+
+            # send startgame messages
+            await client.send(game_controller2.to_start_game_msg())
+            await client1.send(game_controller1.to_start_game_msg())
 
 
         if answer is not None:
