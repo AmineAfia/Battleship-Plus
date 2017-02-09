@@ -1,4 +1,5 @@
 import urwid
+import re
 
 from .create import CreateGame
 from common.GameController import GameController
@@ -14,6 +15,7 @@ class Lobby(urwid.GridFlow):
         self.lobby_controller = lobby_controller
         self.lobby_controller.ui_game_callback = self.game_callback
         self.lobby_controller.ui_delete_game_callback = self.delete_game_callback
+        self.lobby_controller.ui_chat_recv_callback = self.chat_recv_callback
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -40,6 +42,8 @@ class Lobby(urwid.GridFlow):
         self.chat_messages = None
         self.chat_message = None
         self.post_chat_message = None
+        self.username = None
+        self.message_without_username = None
 
     @staticmethod
     def unhandled(key):
@@ -74,12 +78,29 @@ class Lobby(urwid.GridFlow):
             print(type(e))
             print(e)
 
-    def append_message(self):
+    def chat_recv_callback(self, sender, recipient, text):
         message_to_append = urwid.Text("")
-        message_to_append.set_text(self.chat_message.get_edit_text())
-        #print(_message_to_append.text)
+        message_to_append.set_text("{}: {}".format(sender, text))
         self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
-        self.chat_message.set_edit_text("")
+
+    def append_message(self):
+        try:
+            self.username = re.search('@(.+?) ', self.chat_message.get_edit_text()).group(1)
+            self.message_without_username = self.chat_message.get_edit_text().replace("@{}".format(self.username), "")
+        except AttributeError:
+            # TODO: handel not existing users (or not in the string)
+            found = " "
+
+        try:
+            self.loop.create_task(self.lobby_controller.send_chat(self.username, self.message_without_username))
+            self.username = None
+            self.message_without_username = None
+            message_to_append = urwid.Text("")
+            message_to_append.set_text(self.chat_message.get_edit_text())
+            self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
+            self.chat_message.set_edit_text("")
+        except Exception as e:
+            print(e)
 
     def lobby_main(self):
         # TODO: make some kind of table with columns and GridFlows or whatever

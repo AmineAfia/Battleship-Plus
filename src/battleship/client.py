@@ -32,6 +32,8 @@ def main():
             await lobby_controller.handle_game(msg)
         elif msg.type == ProtocolMessageType.DELETE_GAME:
             await lobby_controller.handle_delete_game(msg)
+        elif msg.type == ProtocolMessageType.CHAT_RECV:
+            await lobby_controller.handle_chat_recv(msg)
         else:
             pass
 

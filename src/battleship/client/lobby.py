@@ -35,9 +35,13 @@ class ClientLobbyController:
             raise BattleshipError(self.client.last_error)
 
     # the default value for the username means the message is sent to everyone
-    async def send_chat(self, username="", text):
-        msg = ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username:" username, "text": text})
-        await self.client.send(msg)
+    async def send_chat(self, username, text):
+        try:
+            msg = ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": username, "text": text})
+            print(msg)
+            await self.client.send(msg)
+        except Exception as e:
+            print(e)
 
     async def handle_chat_recv(self, msg):
         self.ui_chat_recv_callback(msg.parameters["sender"], msg.parameters["recipient"], msg.parameters["text"])
