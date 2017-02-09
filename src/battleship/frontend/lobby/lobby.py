@@ -84,17 +84,17 @@ class Lobby(urwid.GridFlow):
         self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
 
     def append_message(self):
-        try:
+
+        if '@' in self.chat_message.get_edit_text():
             self.username = re.search('@(.+?) ', self.chat_message.get_edit_text()).group(1)
-            self.message_without_username = self.chat_message.get_edit_text().replace("@{}".format(self.username), "")
-        except AttributeError:
-            # TODO: handel not existing users (or not in the string)
-            found = " "
+            #self.message_without_username = self.chat_message.get_edit_text().replace("@{}".format(self.username), "")
+            self.message_without_username = self.chat_message.get_edit_text()
+        else:
+            self.username = ""
+            self.message_without_username = self.chat_message.get_edit_text()
 
         try:
             self.loop.create_task(self.lobby_controller.send_chat(self.username, self.message_without_username))
-            self.username = None
-            self.message_without_username = None
             message_to_append = urwid.Text("")
             message_to_append.set_text(self.chat_message.get_edit_text())
             self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
