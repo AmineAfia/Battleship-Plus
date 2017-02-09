@@ -71,6 +71,7 @@ class Battle:
         text_button_list = {}
 
         def foward_result(foo):
+            self.game_controller.abort()
             self.win(foo)
             raise urwid.ExitMainLoop()
             # self.setup()
