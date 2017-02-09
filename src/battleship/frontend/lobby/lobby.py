@@ -5,36 +5,6 @@ from common.GameController import GameController
 from client.lobby import ClientLobbyController
 
 
-class GamesList:
-    # Games list
-    def __init__(self):
-        self.game_1 = urwid.Text('Game 1')
-
-
-class Chat:
-    messages = urwid.Text("SHIIT")
-    write_message = urwid.Edit("YOU")
-
-    chat_pile = urwid.LineBox(urwid.Pile([messages, write_message]), title='Chat')
-
-    @staticmethod
-    def send_chat_message(text_edit):
-        Chat.messages.set_text(text_edit)
-
-    # TODO implement when server sends messages
-    @staticmethod
-    def receive_messages():
-        pass
-
-
-# class ChatDialog(urwid.Filler):
-#     def keypress(self, size, key):
-#         if key != 'enter':
-#             return super(ChatDialog, self).keypress(size, key)
-#         self.original_widget = urwid.Text(
-#             u"Nice to meet you,\n%s.\n\nPress Q to exit." %
-#             edit.edit_text)
-
 class Lobby(urwid.GridFlow):
     # create game method (switch screen)
     def __init__(self, game_controller, lobby_controller, loop):
@@ -67,6 +37,9 @@ class Lobby(urwid.GridFlow):
 
         self.games_pile = None
         self.games_pile_gridflow = None
+        self.chat_messages = None
+        self.chat_message = None
+        self.post_chat_message = None
 
     @staticmethod
     def unhandled(key):
@@ -101,23 +74,28 @@ class Lobby(urwid.GridFlow):
             print(type(e))
             print(e)
 
-    def begin_chat(self):
-        # Chat.send_chat_message()
-        urwid.connect_signal(Chat.messages, 'change', Chat.receive_messages())
-        urwid.connect_signal(Chat.write_message, 'change', Chat.send_chat_message())
-
-        return Chat.chat_pile
+    def append_message(self):
+        message_to_append = urwid.Text("")
+        message_to_append.set_text(self.chat_message.get_edit_text())
+        #print(_message_to_append.text)
+        self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
+        self.chat_message.set_edit_text("")
 
     def lobby_main(self):
         # TODO: make some kind of table with columns and GridFlows or whatever
         self.games_pile_gridflow = urwid.GridFlow(self.get_games(), 60, 1, 1, 'center')
         self.games_pile = urwid.LineBox(self.games_pile_gridflow, title='Games List')
 
-        edit = urwid.Edit(u"What is your name?\n")
-        # chat_pile = ChatDialog(edit)
+        self.chat_messages = urwid.Pile([urwid.Text("Hello!"), urwid.Text("Hey sup"), urwid.Text("join my game")])
+        self.chat_message = urwid.Edit("->", edit_text=" ")
 
-        chat_pile = urwid.LineBox(urwid.Pile([urwid.Text("message 1"), urwid.Text("message 2"), urwid.Text("message 3")]), 'Chat')
+        #setting send button TODO: use controller to send the message to the server
+        self.post_chat_message = urwid.Button("Send")
+        urwid.connect_signal(self.post_chat_message, 'click', lambda button: self.append_message())
 
+        chat_messages_pile = urwid.LineBox(self.chat_messages, 'Chat')
+        chat_message_pile = urwid.LineBox(urwid.Columns([self.chat_message, self.post_chat_message]), '')
+        chat_pile = urwid.Pile([chat_messages_pile, chat_message_pile])
         widget_list = [
             urwid.Columns([
                 urwid.Padding(urwid.Text("Games"), left=2, right=0, min_width=20),
@@ -131,8 +109,8 @@ class Lobby(urwid.GridFlow):
             ], 2),
             self.blank,
             urwid.Columns([
-            urwid.LineBox(urwid.GridFlow([urwid.Button('Create Game', on_press=self.forward_create)], 15, -10, -10, 'center'), title=''),
-            urwid.Text(''),
+                urwid.LineBox(urwid.GridFlow([urwid.Button('Create Game', on_press=self.forward_create)], 15, -10, -10, 'center'), title=''),
+                urwid.Text(''),
             ], 2),
         ]
 
