@@ -1,5 +1,6 @@
 # parameters form (optional password input) and create button for next screen (witting)
 import urwid
+import traceback
 
 from .join import Join
 from common.GameController import GameController
@@ -88,15 +89,15 @@ class CreateGame:
         #     self.create_game()
         # else:
             # read the contents of the text fields
-            ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
-                                            self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
-                                            self.submarine.get_edit_text()]]
-            # TODO: handle exception in case user didn't enter numbers into the fields
-            try:
-                self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
-                raise urwid.ExitMainLoop()
-            except BattleshipError as e:
-                print("{}".format(e))
+        ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
+                                        self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
+                                        self.submarine.get_edit_text()]]
+        #    # TODO: handle exception in case user didn't enter numbers into the fields
+        #    try:
+        #        self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
+        #        raise urwid.ExitMainLoop()
+        #    except BattleshipError as e:
+        #        print("{}".format(e))
 
         # ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
         #                                  self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
@@ -104,6 +105,18 @@ class CreateGame:
         # # TODO: handle exception in case user didn't enter numbers into the fields
         # self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
         # raise urwid.ExitMainLoop()
+        create_task = self.loop.create_task(self.game_controller.create_on_server(int(self.length.get_edit_text()), ship_numbers, 25, 0, ""))
+        create_task.add_done_callback(self.create_result)
+
+    def create_result(self, future):
+        # check if there is an error message to display
+        e = future.exception()
+        if type(e) is BattleshipError:
+            print(e.error_code)
+        elif e is not None:
+            raise e
+        else:
+            raise urwid.ExitMainLoop()
 
     def create_game(self):
         # The rendered layout

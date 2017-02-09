@@ -10,13 +10,13 @@ from common.constants import ErrorCode
 # calls a callback for the message
 class BattleshipClient:
 
-    def __init__(self, server, port, loop, msg_callback, closed_callback):
+    def __init__(self, loop, msg_callback, closed_callback):
         if not inspect.iscoroutinefunction(msg_callback):
             raise TypeError("msg_callback must be a coroutine")
         self.msg_callback = msg_callback
         self.closed_callback = closed_callback
-        self.server = server
-        self.port = port
+        self.server = None
+        self.port = None
         self.loop = loop
         self.reader = None
         self.writer = None
@@ -24,8 +24,9 @@ class BattleshipClient:
         self.answer_received = Event()
         self.last_msg_was_error = False
         self.last_error = ErrorCode.UNKNOWN
+        self.connected = False
 
-    async def internal_msg_callback(self, msg):
+    async def _internal_msg_callback(self, msg):
         if msg.type == ProtocolMessageType.ERROR:
             self.last_msg_was_error = True
             self.last_error = msg.parameters["error_code"]
@@ -34,12 +35,20 @@ class BattleshipClient:
         await self.msg_callback(msg)
         self.answer_received.set()
 
-    async def connect(self):
-        self.reader, self.writer = await asyncio.streams.open_connection(
-            self.server, self.port, loop=self.loop)
+    async def connect(self, server, port):
+        self.server = server
+        self.port = port
+        print("in connect")
+        try:
+            self.reader, self.writer = await asyncio.streams.open_connection(
+                self.server, self.port, loop=self.loop)
+        except ConnectionRefusedError as e:
+            # just pass the exception, but we want to do some book keeping as well
+            raise e
+        self.connected = True
         self.receiving_task = self.loop.create_task(parse_from_stream(self.reader, self.writer,
-                                                                      self.internal_msg_callback))
-        self.receiving_task.add_done_callback(self._server_closed_connection)
+                                                                      self._internal_msg_callback))
+        self.receiving_task.add_done_callback(self._internal_closed_callback)
 
     async def send(self, msg: ProtocolMessage):
         await msg.send(self.writer)
@@ -49,11 +58,13 @@ class BattleshipClient:
         await self.answer_received.wait()
         self.answer_received.clear()
 
-    def _server_closed_connection(self, task):
+    def _internal_closed_callback(self, task):
         self.closed_callback()
+        self.connected = False
 
     def close(self):
         self.writer.close()
+        # TODO: should we call the closed_callback here?
 
 
 class BattleshipServer:
@@ -77,7 +88,9 @@ class BattleshipServer:
             await external_msg_callback(msg)
 
         def internal_client_done(task):
-            external_disconnected_callback()
+            # can't use await here, because we are not in a coroutine
+            self.loop.create_task(external_disconnected_callback())
+            #await external_disconnected_callback()
             del self.clients[task]
 
         # start a new Task to handle this specific client connection
@@ -87,6 +100,7 @@ class BattleshipServer:
                                                                                                client_writer)
         if not inspect.iscoroutinefunction(external_msg_callback):
             raise TypeError("msg_callback must be a coroutine")
+
         task.add_done_callback(internal_client_done)
 
     def start(self):

@@ -6,7 +6,7 @@ from common.GameController import GameController
 from client.lobby import ClientLobbyController
 from common.states import ClientConnectionState
 from common.errorHandler.BattleshipError import BattleshipError
-from common.constants import ErrorCode
+from common.constants import ErrorCode, Constants
 
 
 class ErrorMessages:
@@ -63,14 +63,14 @@ class Login:
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
         self.loop = loop
-        self.username = urwid.Edit("username: ")
-        self.server_ip = urwid.Edit("Server: ", "127.0.0.1")
-        self.server_port = urwid.Edit("Port: ", "8080")
+        self.username = urwid.Edit("Username: ")
+        self.server_ip = urwid.Edit("Server IP: ", Constants.SERVER_IP)
+        self.server_port = urwid.Edit("Server Port: ", str(Constants.SERVER_PORT))
         self.popup = LoginButtonWithAPopUp()
 
     def forward_lobby(self, key):
         if key == 'enter':
-            login_task = self.loop.create_task(self.lobby_controller.try_login(self.username.get_edit_text()))
+            login_task = self.loop.create_task(self.lobby_controller.try_login(self.server_ip.get_edit_text(), int(self.server_port.get_edit_text()), self.username.get_edit_text()))
             login_task.add_done_callback(self.login_result)
 
     def login_result(self, future):
@@ -85,6 +85,11 @@ class Login:
                 # TODO: popup
                 self.popup.callback_for_popup("exist")
                 #print("username already exists")
+        elif e is not None:
+            if type(e) is ConnectionRefusedError:
+                print("Server not reachable")
+            else:
+                raise e
         # and check if we are really logged in
         elif not self.lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
             # ok, we are logged in
