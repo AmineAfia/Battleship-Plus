@@ -225,6 +225,7 @@ class GameController(GameLobbyData):
                                 raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
                             # todo differentiate if called from UI -> SEND MSG TO SERVER AND WAIT FOR ANSWER -> Set new state
                             # todo if called from CLIENT -> set new state and answer to Client OK
+                            # TODO: does this never return False after our checks above?
                             self._battlefield.move(ship_id, direction)
                         else:
                             raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
@@ -244,10 +245,10 @@ class GameController(GameLobbyData):
                 if self._battlefield.no_strike_at_place(x_pos, y_pos):
                     if self._battlefield.strike(x_pos, y_pos):
                         # todo call UI for a successful enemy strike(x,y)
-                        pass
+                        return True
                     else:
                         # todo call UI for a missed enemy strike(x,y)
-                        pass
+                        return False
                 else:
                     raise BattleshipError(ErrorCode.PARAMETER_ALREADY_HIT_POSITION)
             else:
@@ -273,6 +274,9 @@ class GameController(GameLobbyData):
 
     def all_ships_sunk(self):
         return self._battlefield.all_ships_sunk()
+
+    def ship_sunk_at_pos(self, x_pos, y_pos):
+        return self._battlefield.get_ship_from_location(x_pos, y_pos).is_sunk()
 
     def get_all_ship_states(self):
         return self._battlefield.get_all_ship_states()
@@ -322,6 +326,8 @@ class GameController(GameLobbyData):
 
         # Moves a ship
         elif msg.type == ProtocolMessageType.MOVE:
+            if not self.state == GameState.YOUR_TURN:
+                raise BattleshipError(ErrorCode.ILLEGAL_STATE_NOT_YOUR_TURN)
             ship_id = msg.parameters["ship_id"]
             direction = msg.parameters["direction"]
             turn_counter = msg.parameters["turn_counter"]
@@ -329,6 +335,8 @@ class GameController(GameLobbyData):
 
         # Shoots the specified position of the opponents board.
         elif msg.type == ProtocolMessageType.SHOOT:
+            if not self.state == GameState.OPPONENTS_TURN:
+                raise BattleshipError(ErrorCode.ILLEGAL_STATE_NOT_YOUR_TURN)
             x_pos = msg.parameters["ship_position"].position.horizontal
             y_pos = msg.parameters["ship_position"].position.vertical
             turn_counter = msg.parameters["turn_counter"]

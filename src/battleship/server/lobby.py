@@ -109,6 +109,12 @@ class ServerLobbyController:
         elif msg.type == ProtocolMessageType.ABORT:
             await self.handle_abort(client, msg)
 
+        elif msg.type == ProtocolMessageType.MOVE:
+            await self.handle_move(client, msg)
+
+        elif msg.type == ProtocolMessageType.SHOOT:
+            await self.handle_shoot(client, msg)
+
     async def handle_login(self, client, msg):
         params = msg.parameters
         answer: ProtocolMessage = None
@@ -292,7 +298,9 @@ class ServerLobbyController:
     async def handle_abort(self, client, msg):
         our_ctrl = self.user_game_ctrl[client.username]
         other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+        await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.OPPONENT_ABORT, EndGameReason.OPPONENT_ABORT)
 
+    async def end_game_with_reason(self, our_ctrl, other_ctrl, our_reason, other_reason):
         del self.games[our_ctrl.game_id]
         del self.user_game_ctrl[our_ctrl.username]
         del self.user_game_ctrl[other_ctrl.username]
@@ -302,9 +310,59 @@ class ServerLobbyController:
         self.users[our_ctrl.username].state = ClientConnectionState.GAME_SELECTION
         self.users[other_ctrl.username].state = ClientConnectionState.GAME_SELECTION
 
-        msg = ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": EndGameReason.OPPONENT_ABORT})
+        await other_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": other_reason}))
+        await our_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": our_reason}))
+
+    async def handle_move(self, client, msg):
+        our_ctrl = self.user_game_ctrl[client.username]
+        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+
+        try:
+            our_ctrl.run(msg)
+        except BattleshipError as e:
+            answer = ProtocolMessage.create_error(e.error_code)
+            await client.send(answer)
+        except Exception as e:
+            raise e
+
+        # change turns
+        our_ctrl.state = GameState.OPPONENTS_TURN
+        other_ctrl.state = GameState.YOUR_TURN
+
+        # notify
+        msg = ProtocolMessage.create_single(ProtocolMessageType.MOVED)
         await other_ctrl.client.send(msg)
         await our_ctrl.client.send(msg)
+
+    async def handle_shoot(self, client, msg):
+        our_ctrl = self.user_game_ctrl[client.username]
+        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+
+        try:
+            hit = other_ctrl.run(msg)
+        except BattleshipError as e:
+            answer = ProtocolMessage.create_error(e.error_code)
+            await client.send(answer)
+        except Exception as e:
+            raise e
+
+        if hit:
+            sunk = other_ctrl.ship_sunk_at_pos(msg.parameters["position"].horizontal, msg.parameters["position"].vertical)
+            msg_hit = ProtocolMessage.create_single(ProtocolMessageType.HIT, {"sunk": sunk, "position": msg.parameters["position"]})
+            await other_ctrl.client.send(msg_hit)
+            await our_ctrl.client.send(msg_hit)
+
+            if other_ctrl.all_ships_sunk():
+                await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.YOU_WON, EndGameReason.OPPONENT_WON)
+
+        else:
+            msg_fail = ProtocolMessage.create_single(ProtocolMessageType.FAIL, {"position": msg.parameters["position"]})
+            await other_ctrl.client.send(msg_fail)
+            await our_ctrl.client.send(msg_fail)
+
+            # change turns
+            our_ctrl.state = GameState.OPPONENTS_TURN
+            other_ctrl.state = GameState.YOUR_TURN
 
     async def send_games_to_user(self, client):
         repeating_parameters = []

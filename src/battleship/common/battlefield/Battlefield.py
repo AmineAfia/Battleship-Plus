@@ -164,6 +164,11 @@ class Battlefield:
     def ships_not_placed(self):
         return self._ships_table_not_placed
 
+    def get_ship_from_location(self, x_pos, y_pos):
+        for ship in self._ships:
+            if ship.is_ship_at_location(x_pos, y_pos):
+                return ship
+
     def get_ship_id_from_location(self, x_pos, y_pos):
         for ship in self._ships:
             if ship.is_ship_at_location(x_pos, y_pos):
