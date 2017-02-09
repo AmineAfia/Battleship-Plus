@@ -1,7 +1,7 @@
 from .client import Client
 from common.constants import ErrorCode, GameOptions
 from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig, NumShips
-from common.states import ClientConnectionState
+from common.states import ClientConnectionState, GameState
 from common.GameController import GameController
 
 
@@ -15,6 +15,8 @@ class ServerLobbyController:
         self.users = {}
         # user_game: username -> game_id
         self.user_gid = {}
+        # user_game_ctrl: username -> game_controller
+        self.user_game_ctrl = {}
         # clients: client_id -> client
         self.clients = {}
         # games: game_id -> [game_controller1, game_controller2]
@@ -37,11 +39,14 @@ class ServerLobbyController:
             for game_id, [game_controller1, game_controller2] in self.games.items():
                 # TODO: this only affects games the user started, beware, if it's a game in progress, the other user wins or something like that
                 if game_controller1.username == client.username:
-                    game_ids_to_delete.append(game_id)
+                    game_id_to_delete = game_id
                     await self.send_delete_game(game_id)
+                    break
+
             if not game_id_to_delete == 0:
                 del self.games[game_id_to_delete]
                 del self.user_gid[client.username]
+                del self.user_game_ctrl[client.username]
 
         del self.clients[client.id]
 
@@ -96,6 +101,9 @@ class ServerLobbyController:
 
         elif msg.type == ProtocolMessageType.JOIN:
             await self.handle_join(client, msg)
+
+        elif msg.type == ProtocolMessageType.PLACE:
+            await self.handle_place(client, msg)
 
     async def handle_login(self, client, msg):
         params = msg.parameters
@@ -164,6 +172,7 @@ class ServerLobbyController:
             client.state = ClientConnectionState.GAME_CREATED
             self.user_gid[client.username] = game_id
             self.games[game_id] = [game_controller, None]
+            self.user_game_ctrl[client.username] = game_controller
             # and send the game to all users
             msg = game_controller.to_game_msg()
             await self.msg_to_all(msg)
@@ -172,6 +181,7 @@ class ServerLobbyController:
         if client.state == ClientConnectionState.GAME_CREATED:
             game_id = self.user_gid[client.username]
             del self.user_gid[client.username]
+            del self.user_game_ctrl[client.username]
             del self.games[game_id]
             client.state = ClientConnectionState.GAME_SELECTION
             await self.send_delete_game(game_id)
@@ -190,14 +200,73 @@ class ServerLobbyController:
         # there is no available game with the specified game_ID (error code 104)
         if not game_id in self.games.keys():
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_UNKNOWN_GAME_ID)
+
+        # the message lacks the password parameter although a password is required (error code 105)
         elif self.games[game_id][0].options == GameOptions.PASSWORD and not "password" in msg.parameters:
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_PASSWORD_REQUIRED)
-        elif self.games[game_id][0].options == GameOptions.PASSWORD and not msg.parameters["password"] == self.games[game_id][0].password == msg.parameters["password"]:
+
+        # a password is required for the game, but the given password is incorrect (error code 106)
+        elif self.games[game_id][0].options == GameOptions.PASSWORD and not msg.parameters["password"] == self.games[game_id][0].password:
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_INVALID_PASSWORD)
+
+        # the user wants to join his own game (error code 107)
+        elif self.games[game_id][0].username == client.username:
+            answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_ILLEGAL_JOIN)
+
+        # the game has already started (error code 8)
+        elif not self.games[game_id][0].state == GameState.IN_LOBBY:
+            answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_GAME_ALREADY_STARTED)
+
+        # Everything ok, let them play
+        else:
+            # setup a game_controller for the other one
+            game_controller1 = self.games[game_id][0]
+            game_controller1.opponent_name = client.username
+            game_controller1.state = GameState.PLACE_SHIPS
+
+            client1 = self.games[game_id][0].client
+
+            game_controller2 = GameController.create_from_existing_for_opponent(game_controller1, client)
+            game_controller2.state = GameState.PLACE_SHIPS
+
+            self.games[game_id][1] = game_controller2
+
+            self.user_gid[client.username] = game_id
+            # this is already done for the other user
+
+            self.user_game_ctrl[client.username] = game_controller2
+
+            # set client states
+            client.state = ClientConnectionState.PLAYING
+            client1.state = ClientConnectionState.PLAYING
+
+            # send startgame messages
+            await client.send(game_controller2.to_start_game_msg())
+            await client1.send(game_controller1.to_start_game_msg())
 
 
         if answer is not None:
             await client.send(answer)
+
+    async def handle_place(self, client, msg):
+        # get the game controller for this client
+        # TODO: catch fail (user not playing)
+        game_id = self.user_gid[client.username]
+
+        our_ctrl = self.user_game_ctrl[client.username]
+        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+
+        try:
+            our_ctrl.run(msg)
+        except BattleshipError as e:
+            # TODO: maybe check if it's not an internal error
+            answer = ProtocolMessage.create_error(e.error_code)
+            await client.send(answer)
+        except Exception as e:
+            raise e
+
+
+
 
     async def send_games_to_user(self, client):
         repeating_parameters = []
