@@ -7,8 +7,9 @@ from .battlefield.battleship.Submarine import Submarine
 from common.constants import Orientation, Direction, ErrorCode, GameOptions
 from .errorHandler.BattleshipError import BattleshipError
 from common.network import BattleshipClient
-from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips
+from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips, ShipPositions
 from common.game import GameLobbyData
+from common.states import GameState
 
 
 # Controller for Battleship
@@ -418,3 +419,11 @@ class GameController(GameLobbyData):
     def to_start_game_msg(self):
         params = {"opponent_name": self.opponent_name, "board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time}
         return ProtocolMessage.create_single(ProtocolMessageType.STARTGAME, params)
+
+    def get_place_msg(self):
+        ship_positions = []
+        for ship_id in range(len(self._battlefield._ships)):
+            # TODO: can I get this as sorted list? maybe it is already in the right order?
+            ship = self._battlefield.get_ship(ship_id)
+            ship_positions.append(ship.get_ship_position())
+        return ProtocolMessage.create_single(ProtocolMessageType.PLACE, {"ship_positions": ShipPositions(ship_positions)})

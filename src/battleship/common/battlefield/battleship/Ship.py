@@ -1,4 +1,5 @@
 from ...constants import Orientation, Direction
+from common.protocol import ShipPosition, Position
 
 
 class Ship:
@@ -21,6 +22,9 @@ class Ship:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
                 elif self._orientation == Orientation.EAST:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
+
+    def get_ship_position(self):
+        return ShipPosition(Position(self._y_pos, self._x_pos), self._orientation)
 
     def move(self, direction):
         flag_is_moved = False

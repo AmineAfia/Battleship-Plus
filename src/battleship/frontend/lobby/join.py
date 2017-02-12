@@ -4,6 +4,7 @@ from .waitting import Waiting
 from common.GameController import GameController
 from common.constants import Orientation
 from client.lobby import ClientLobbyController
+from common.errorHandler.BattleshipError import BattleshipError
 
 
 # common variables to place ships
@@ -102,19 +103,12 @@ class PopUpDialog(urwid.WidgetWrap):
         ShipsList.ship_length = ShipsList.length_dictionary[ship_type_button]
 
     def set_ship_position(self, orientation):
-
-        try:
-            ShipsList.ship_orientation = orientation
-            ShipsList.ship_id = self.button_with_pop_up.game_controller.get_next_ship_id_by_type_to_place(ShipsList.ship_type)
-            ShipsList.ship_x_pos = self.x_pos
-            ShipsList.ship_y_pos = self.y_pos
-            self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, ShipsList.ship_orientation)
-            self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length, ShipsList.ship_type)
-        # TODO: take palces ships from the popup
-        except Exception as e:
-            print(e)
-
-
+        ShipsList.ship_orientation = orientation
+        ShipsList.ship_id = self.button_with_pop_up.game_controller.get_next_ship_id_by_type_to_place(ShipsList.ship_type)
+        ShipsList.ship_x_pos = self.x_pos
+        ShipsList.ship_y_pos = self.y_pos
+        self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length, ShipsList.ship_type)
+        self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, ShipsList.ship_orientation)
 
         for ship_type_button in ShipsList.ships_categories_place:
             urwid.connect_signal(ship_type_button, 'click', lambda ship: self.set_ship_type_to_place(ship.get_label()))
@@ -204,16 +198,40 @@ class Join:
 
     def forward_next(self, foo):
         # TODO: somehow tell the main client the difference between this and unhandled
-            # Why should the client know about unhandlded? it is just for testing purposes, to exit the game at this time
-            # It can be used as and exit for players as well but needs a warning + communication termination for an appropriate exit
+        # Why should the client know about unhandlded? it is just for testing purposes, to exit the game at this time
+        # It can be used as and exit for players as well but needs a warning + communication termination for an appropriate exit
+
         # TODO: check if all ships are placed to start the game and go to the next screen
+        place_task = self.loop.create_task(self.lobby_controller.send_place())
+        place_task.add_done_callback(self.place_result)
 
-        try:
+    def place_result(self, future):
+        # check if there is an error message to display
+        e = future.exception()
+        if type(e) is BattleshipError:
+            if e.error_code == ErrorCode.SYNTAX_INVALID_PARAMETER:
+                # TODO: popup
+                print("orientation parameter has invalid value")
+            elif e.error_code == ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS:
+                # TODO: popup
+                print("position out of bounds")
+            elif e.error_code == ErrorCode.PARAMETER_OVERLAPPING_SHIPS:
+                print("overlapping ships")
+            elif e.error_code == ErrorCode.PARAMETER_WRONG_NUMBER_OF_SHIPS:
+                print("wrong number of ships")
+            else:
+                print("other battleship error")
+        elif e is not None:
+            if type(e) is ConnectionRefusedError:
+                print("Server not reachable")
+            else:
+                raise e
+        # the ships are placed, we know this only when a WAIT or YOUSTART arrives
+        # TODO.
+        else:
+            # ok, we are logged in
             self.game_controller.start_game()
-        except Exception as e:
-            print(e)
-
-        raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop()
 
     def unhandled(self, key):
         if key == 'esc':
@@ -247,10 +265,7 @@ class Join:
                 urwid.LineBox(ShipsList.info_pile_2, 'Ships')
             ], 2),
             self.blank,
-            urwid.Columns([
-                urwid.Pile([urwid.Text("")]),
-                urwid.LineBox(forward_button, '')
-            ], 2),
+            forward_button,
         ]
 
         header = urwid.AttrWrap(urwid.Text("Battleship+"), 'header')

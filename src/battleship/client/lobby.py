@@ -39,6 +39,14 @@ class ClientLobbyController:
         msg = ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": username, "text": text})
         await self.client.send(msg)
 
+    async def send_place(self):
+        msg = self.game_controller.get_place_msg()
+        await self.client.send_and_wait_for_answer(msg)
+
+        # TODO: timeouts
+        if self.client.last_msg_was_error:
+            raise BattleshipError(self.client.last_error)
+
     async def handle_chat_recv(self, msg):
         self.ui_chat_recv_callback(msg.parameters["sender"], msg.parameters["recipient"], msg.parameters["text"])
 
