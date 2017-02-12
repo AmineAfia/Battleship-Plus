@@ -3,8 +3,8 @@ from enum import IntEnum, IntFlag
 
 class Constants:
     SERVER_PORT = 4242
-    SERVER_IP = '192.168.0.42'
-    #SERVER_IP = '127.0.0.1'
+    #SERVER_IP = '192.168.0.42'
+    SERVER_IP = '127.0.0.1'
 
 
 class Orientation(IntEnum):
@@ -64,11 +64,12 @@ class ErrorCode(IntEnum):
     PARAMETER_INVALID_USERNAME = 116
     PARAMETER_ALREADY_HIT_POSITION = 117
     # UI calls errors
-    INTERN_NO_MORE_SHIP_TO_PLACE = 900
-    INTERN_NO_MORE_SHIP_TO_PLACE_OF_TYPE = 901
-    INTERN_NO_SHIP_AT_LOCATION = 902
-    INTERN_SHIP_ID_DOES_NOT_EXIST = 903
+    INTERN_NO_MORE_SHIP_TO_PLACE = 200
+    INTERN_NO_MORE_SHIP_TO_PLACE_OF_TYPE = 201
+    INTERN_NO_SHIP_AT_LOCATION = 202
+    INTERN_SHIP_ID_DOES_NOT_EXIST = 203
 
 
 class GameOptions(IntFlag):
+    NONE = 0
     PASSWORD = 128

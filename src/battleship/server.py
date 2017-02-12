@@ -1,3 +1,4 @@
+from typing import Optional
 import sys
 import asyncio
 import asyncio.streams
@@ -40,7 +41,7 @@ def main():
             nonlocal client
             print("< [{}] {}".format(client.id, msg))
 
-            answer: ProtocolMessage = None
+            answer: Optional[ProtocolMessage] = None
 
             # No other command is permitted if the client is not logged in
             if client.state is ClientConnectionState.NOT_CONNECTED and msg.type is not ProtocolMessageType.LOGIN:

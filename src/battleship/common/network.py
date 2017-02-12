@@ -1,6 +1,7 @@
+from typing import Tuple, Dict, List, Callable
 import inspect
 import asyncio.streams
-from asyncio import Event
+from asyncio import Event, StreamReader, StreamWriter
 from .protocol import ProtocolMessage, ProtocolMessageType, parse_from_stream
 from common.constants import ErrorCode
 
@@ -68,31 +69,33 @@ class BattleshipClient:
 
 class BattleshipServer:
 
-    def __init__(self, ip, port, loop, client_connected_callback):
-        self.ip = ip
-        self.port = port
+    def __init__(self, ip: str, port: int, loop, client_connected_callback) -> None:
+        self.ip: str = ip
+        self.port: int = port
         self.loop = loop
         self.client_connected_callback = client_connected_callback
         self.server = None
-        self.clients = {}
+        # TODO: what's the type of StreamReader and StreamWriter?
+        self.clients: Dict[asyncio.Task, Tuple[StreamReader, StreamWriter]] = {}
 
-    def _accept_client(self, client_reader, client_writer):
+    def _accept_client(self, client_reader: StreamReader, client_writer: StreamWriter) -> None:
         """
         This method accepts a new client connection and creates a Task
         to handle this client.  self.clients is updated to keep track
         of the new client.
         """
 
-        async def internal_msg_callback(msg: ProtocolMessage):
+        async def internal_msg_callback(msg: ProtocolMessage) -> None:
             await external_msg_callback(msg)
 
-        def internal_client_done(task):
+        def internal_client_done(task) -> None:
             # can't use await here, because we are not in a coroutine
             self.loop.create_task(external_disconnected_callback())
             #await external_disconnected_callback()
             del self.clients[task]
 
         # start a new Task to handle this specific client connection
+        # TODO: huh, shouldn't I use loop.create_task?
         task = asyncio.Task(parse_from_stream(client_reader, client_writer, internal_msg_callback))
         self.clients[task] = (client_reader, client_writer)
         external_msg_callback, external_disconnected_callback = self.client_connected_callback(client_reader,
@@ -102,7 +105,7 @@ class BattleshipServer:
 
         task.add_done_callback(internal_client_done)
 
-    def start(self):
+    def start(self) -> None:
         """
         Starts the TCP server, so that it listens on the specified port.
         For each client that connects, the accept_client method gets
@@ -114,7 +117,7 @@ class BattleshipServer:
                                          self.ip, self.port,
                                          loop=self.loop))
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stops the TCP server, i.e. closes the listening socket(s).
         This method runs the loop until the server sockets are closed.

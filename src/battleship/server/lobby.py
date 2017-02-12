@@ -4,6 +4,7 @@ from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig
 from common.states import ClientConnectionState, GameState
 from common.GameController import GameController
 from random import randrange
+from common.errorHandler.BattleshipError import BattleshipError
 
 
 class ServerLobbyController:
@@ -281,7 +282,7 @@ class ServerLobbyController:
         # if both are on waiting, the game can start
         if our_ctrl.state == GameState.WAITING and other_ctrl.state == GameState.WAITING:
             # who starts?
-            starting_ctrl, waiting_ctrl = our_ctrl, other_ctrl if randrange(2) == 1 else other_ctrl, our_ctrl
+            (starting_ctrl, waiting_ctrl) = (our_ctrl, other_ctrl) if randrange(2) == 1 else (other_ctrl, our_ctrl)
 
             youstart = ProtocolMessage.create_single(ProtocolMessageType.YOUSTART)
             await starting_ctrl.client.send(youstart)

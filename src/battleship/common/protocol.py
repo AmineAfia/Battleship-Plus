@@ -1,7 +1,7 @@
 from enum import Enum, IntEnum
-from typing import Dict, List
+from typing import Dict, List, Any, Optional
 from .constants import Orientation, EndGameReason, Direction, ErrorCode, GameOptions
-
+from random import randrange, choice
 
 import asyncio
 import asyncio.streams
@@ -12,6 +12,9 @@ class ProtocolConfig:
     STR_ENCODING = 'utf-8'
     PAYLOAD_LENGTH_BYTES = 2
     CHAT_MAX_TEXT_LENGTH = 63
+    BOARD_SIZE_MIN = 10
+    BOARD_SIZE_MAX = 26
+    ROUND_TIMES = [_ for _ in range(25, 65, 5)]
 
 
 class ProtocolMessageType(IntEnum):
@@ -50,60 +53,121 @@ class ProtocolMessageType(IntEnum):
 
 class ProtocolField:
 
-    def __init__(self, name: str, field_type, fixed_length: bool, length: int=0, optional: bool=False, implicit_length: bool=False):
-        self.name = name
-        self.length_bytes = 1
-        self.fixed_length = fixed_length
-        self.length = length
+    def __init__(self, name: str, field_type, fixed_length: bool, length: int=0, optional: bool=False, implicit_length: bool=False) -> None:
+        self.name: str = name
+        self.length_bytes: int = 1
+        self.fixed_length: bool = fixed_length
+        self.length: int = length
         if self.fixed_length and self.length == 0:
             raise ValueError("If a ProtocolField instance has fixed length, i.e. fixed_length=True,"
                              "it must have a non-zero length.")
+        # TODO: how can I indicate the type here?
         self.type = field_type
-        self.optional = optional
-        self.implicit_length = implicit_length
+        self.optional: bool = optional
+        self.implicit_length: bool = implicit_length
+
+    def random_value(self) -> Any:
+        value: Any = None
+        # fields of type str
+        if self.name in ["username", "sender", "recipient", "opponent_name"]:
+            value = "user{}".format(randrange(20))
+        elif self.name == "text":
+            value = "text{}".format(randrange(100))
+        elif self.name == "password":
+            value = "passwd{}".format(randrange(42))
+        # fields of type int
+        elif self.name == "board_size":
+            value = randrange(ProtocolConfig.BOARD_SIZE_MIN, ProtocolConfig.BOARD_SIZE_MAX+1)
+        elif self.name == "round_time":
+            value = choice(ProtocolConfig.ROUND_TIMES)
+        elif self.name == "game_id":
+            value = randrange(0, 65536+1)
+        elif self.name == "turn_counter":
+            value = randrange(0, 255+1)
+        elif self.name == "sunk":
+            value = randrange(0, 1+1)
+        elif self.name == "ship_id":
+            value = randrange(0, 255+1)
+        elif self.type in [NumShips, Position, Positions, ShipPosition, ShipPositions]:
+            value = self.type.random()
+        elif self.type in [GameOptions, EndGameReason, Orientation, Direction, ErrorCode]:
+            value = choice(list(self.type))
+        else:
+            raise AttributeError("Random value for {} field '{}'' not implemented".format(self.type, self.name))
+        return value
 
 
 class Position:
-    def __init__(self, vertical: int, horizontal: int):
+    def __init__(self, vertical: int, horizontal: int) -> None:
         self.vertical = vertical
         self.horizontal = horizontal
 
+    # TODO: hm, ok, this is the type of the class itself!?
+    #def from_bytes(cls, data: bytes) -> Position:
     @classmethod
     def from_bytes(cls, data: bytes):
-        vertical = _int_from_bytes(data[0:1])
-        horizontal = _int_from_bytes(data[1:2])
+        vertical: int = _int_from_bytes(data[0:1])
+        horizontal: int = _int_from_bytes(data[1:2])
         return cls(vertical, horizontal)
 
+    @classmethod
+    def random(cls):
+        vertical = randrange(0, ProtocolConfig.BOARD_SIZE_MAX)
+        horizontal = randrange(0, ProtocolConfig.BOARD_SIZE_MAX)
+        return cls(vertical, horizontal)
+
+    def __eq__(self, other):
+        return (self.vertical == other.vertical and self.horizontal == other.horizontal)
+
     def to_bytes(self) -> bytes:
-        b = b''
+        b: bytes = b''
         b += _bytes_from_int(self.vertical)
         b += _bytes_from_int(self.horizontal)
         return b
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "({}, {})".format(self.vertical, self.horizontal)
 
 
 class Positions:
-    def __init__(self, positions: List[Position]):
-        self.positions = positions
+    def __init__(self, positions: List[Position]) -> None:
+        self.positions: List[Position] = positions
 
+    # TODO: hm, ok, this is the type of the class itself!?
+    #def from_bytes(cls, data: bytes) -> Positions:
     @classmethod
     def from_bytes(cls, data: bytes):
-        num_positions = len(data)/2
-        positions = []
+        # TODO: raise Exception if len(data) is not a multiple of 2
+        num_positions: int = int(len(data)/2)
+        positions: List[Position] = []
         for i in range(num_positions):
-            positions.append(Position.from_bytes(data[i:i+2]))
+            positions.append(Position.from_bytes(data[2*i:2*i+2]))
         return cls(positions)
 
+    @classmethod
+    def random(cls):
+        num_positions: int = randrange(1, 10)
+        positions: List[Position] = []
+        for i in range(num_positions):
+            positions.append(Position.random())
+        return cls(positions)
+
+    def __eq__(self, other):
+        if not len(self.positions) == len(other.positions):
+            return False
+        for i, position in enumerate(self.positions):
+            if not position == other.positions[i]:
+                return False
+        return True
+
     def to_bytes(self) -> bytes:
-        b = b''
+        b: bytes = b''
         for position in self.positions:
             b += position.to_bytes()
         return b
 
-    def __str__(self):
-        s = "{"
+    def __str__(self) -> str:
+        s: str = "{"
         for position in self.positions:
             s += str(position)
         s += "}"
@@ -111,46 +175,75 @@ class Positions:
 
 
 class ShipPosition:
-    def __init__(self, position: Position, orientation: Orientation):
-        self.position = position
-        self.orientation = orientation
+    def __init__(self, position: Position, orientation: Orientation) -> None:
+        self.position: Position = position
+        self.orientation: Orientation = orientation
 
     @classmethod
     def from_bytes(cls, data: bytes):
-        position = Position(data[0:2])
-        orientation = Orientation(_int_from_bytes(data[2:3]))
+    # TODO: def from_bytes(cls, data: bytes) -> ShipPosition:
+        position: Position = Position.from_bytes(data[0:2])
+        orientation: Orientation = Orientation(_int_from_bytes(data[2:3]))
         return cls(position, orientation)
 
+    @classmethod
+    def random(cls):
+        position: Position = Position.random()
+        orientation: Orientation = choice(list(Orientation))
+        return cls(position, orientation)
+
+    def __eq__(self, other):
+        return (self.position == other.position and self.orientation == other.orientation)
+
     def to_bytes(self) -> bytes:
-        b = b''
+        b: bytes = b''
         b += self.position.to_bytes()
         b += _bytes_from_int(self.orientation)
         return b
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "({}, {}, {})".format(self.position.vertical, self.position.horizontal, self.orientation)
 
 
 class ShipPositions:
-    def __init__(self, positions: List[ShipPosition]):
-        self.positions = positions
+    def __init__(self, positions: List[ShipPosition]) -> None:
+        self.positions: List[ShipPosition] = positions
 
     @classmethod
     def from_bytes(cls, data: bytes):
-        num_ship_positions = len(data)/3
-        positions = []
+    # TODO: def from_bytes(cls, data: bytes) -> ShipPositions:
+        # TODO: raise Exception if len(data) is not a multiple of 3
+        num_ship_positions: int = int(len(data)/3)
+        positions: List[ShipPosition] = []
         for i in range(num_ship_positions):
             positions.append(ShipPosition.from_bytes(data[3*i:3*i+3]))
         return cls(positions)
 
+    @classmethod
+    def random(cls):
+        num_ship_positions: int = randrange(1, 10)
+        positions: List[ShipPosition] = []
+        for i in range(num_ship_positions):
+            positions.append(ShipPosition.random())
+        return cls(positions)
+
+    def __eq__(self, other):
+        if not len(self.positions) == len(other.positions):
+            return False
+        else:
+            for i, position in enumerate(self.positions):
+                if not position == other.positions[i]:
+                    return False
+            return True
+
     def to_bytes(self) -> bytes:
-        b = b''
+        b: bytes = b''
         for position in self.positions:
             b += position.to_bytes()
         return b
 
-    def __str__(self):
-        s = "{"
+    def __str__(self) -> str:
+        s: str = "{"
         for position in self.positions:
             s += str(position)
         s += "}"
@@ -159,8 +252,8 @@ class ShipPositions:
 
 class NumShips:
 
-    def __init__(self, numbers: List[int]):
-        self.numbers = numbers
+    def __init__(self, numbers: List[int]) -> None:
+        self.numbers: List[int] = numbers
 
     @classmethod
     def from_ints(cls, carriers: int,
@@ -168,43 +261,52 @@ class NumShips:
                   cruisers: int,
                   destroyers: int,
                   submarines: int):
+    # TODO:              submarines: int) -> NumShips:
         return cls([
             carriers, battleships, cruisers, destroyers, submarines])
 
     @classmethod
     def from_bytes(cls, data: bytes):
+    # TODO: def from_bytes(cls, data: bytes) -> NumShips:
         numbers: List[int] = []
         for i in range(5):
             numbers.append(_int_from_bytes(data[i:i+1]))
         return cls(numbers)
 
+    @classmethod
+    def random(cls):
+        return cls([randrange(0, 7) for _ in range(5)])
+
+    def __eq__(self, other):
+        return (self.numbers == other.numbers)
+
     def to_bytes(self) -> bytes:
-        b = b''
+        b: bytes = b''
         for number in self.numbers:
             b += _bytes_from_int(number)
         return b
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{}".format(self.numbers)
 
     @property
-    def carriers(self):
+    def carriers(self) -> int:
         return self.numbers[0]
 
     @property
-    def battleships(self):
+    def battleships(self) -> int:
         return self.numbers[1]
 
     @property
-    def cruisers(self):
+    def cruisers(self) -> int:
         return self.numbers[2]
 
     @property
-    def destroyers(self):
+    def destroyers(self) -> int:
         return self.numbers[3]
 
     @property
-    def submarines(self):
+    def submarines(self) -> int:
         return self.numbers[4]
 
 
@@ -227,15 +329,12 @@ _field_opponent_name: ProtocolField = ProtocolField(name="opponent_name", field_
 _field_sunk: ProtocolField = ProtocolField(name="sunk", field_type=int, fixed_length=True, length=1)
 _field_position: ProtocolField = ProtocolField(name="position", field_type=Position, fixed_length=True, length=2)
 _field_positions: ProtocolField = ProtocolField(name="positions", field_type=Positions, fixed_length=False, implicit_length=True)
-_field_orientation: ProtocolField = ProtocolField(
-    name="orientation", field_type=Orientation, fixed_length=True, length=1)
+_field_orientation: ProtocolField = ProtocolField(name="orientation", field_type=Orientation, fixed_length=True, length=1)
 _field_reason: ProtocolField = ProtocolField(name="reason", field_type=EndGameReason, fixed_length=True, length=1)
-_field_ship_position: ProtocolField = ProtocolField(
-    name="ship_position", field_type=ShipPosition, fixed_length=True, length=3)
-_field_ship_positions: ProtocolField = ProtocolField(
-    name="ship_positions", field_type=ShipPositions, fixed_length=False, implicit_length=True)
-_field_ship_id: ProtocolField = ProtocolField(name="ship_id", field_type=int, fixed_length=True, length=5)
-_field_direction: ProtocolField = ProtocolField(name="direction", field_type=Orientation, fixed_length=True, length=1)
+_field_ship_position: ProtocolField = ProtocolField(name="ship_position", field_type=ShipPosition, fixed_length=True, length=3)
+_field_ship_positions: ProtocolField = ProtocolField(name="ship_positions", field_type=ShipPositions, fixed_length=False, implicit_length=True)
+_field_ship_id: ProtocolField = ProtocolField(name="ship_id", field_type=int, fixed_length=True, length=1)
+_field_direction: ProtocolField = ProtocolField(name="direction", field_type=Direction, fixed_length=True, length=1)
 
 # Errors
 _field_error_code: ProtocolField = ProtocolField(name="error_code", field_type=ErrorCode, fixed_length=True, length=1)
@@ -284,21 +383,30 @@ ProtocolMessageRepeatingTypes: List[ProtocolMessageType] = [ProtocolMessageType.
 
 class ProtocolMessage(object):
 
-    def __init__(self, msg_type: ProtocolMessageType, repeating_parameters: list=None):
-        self.type = msg_type
+    def __init__(self, msg_type: ProtocolMessageType, repeating_parameters: Optional[List[Dict[str, Any]]]=None) -> None:
+        self.type: ProtocolMessageType = msg_type
         if repeating_parameters is None or repeating_parameters == []:
-            self.repeating_parameters = []
+            self.repeating_parameters: List[Dict[str, Any]] = []
         else:
-            self.repeating_parameters = repeating_parameters
+            self.repeating_parameters: List[Dict[str, Any]] = repeating_parameters
 
     @classmethod
-    def create_repeating(cls, msg_type: ProtocolMessageType, repeating_parameters: list):
+    def create_repeating(cls, msg_type: ProtocolMessageType, repeating_parameters: List[Dict[str, Any]]):
+    # TODO: def create_repeating(cls, msg_type: ProtocolMessageType, repeating_parameters: List[Dict[str, Any]]) -> ProtocolMessage:
         if type(repeating_parameters) is not list:
             raise ValueError("Parameters must be a list")
         return cls(msg_type, repeating_parameters)
 
     @classmethod
-    def create_single(cls, msg_type: ProtocolMessageType, parameters: dict=None):
+    def empty_for_type(cls, msg_type: ProtocolMessageType):
+        params: Dict[str, Any] = {}
+        for field in ProtocolMessageParameters[msg_type]:
+            params[field.name] = None
+        return cls.create_single(msg_type, params)
+
+    @classmethod
+    def create_single(cls, msg_type: ProtocolMessageType, parameters: Optional[Dict[str, Any]] = None):
+    # TODO: def create_single(cls, msg_type: ProtocolMessageType, parameters: Optional[Dict[str, Any]] = None) -> ProtocolMessage:
         if parameters is None:
             parameters = {}
         elif type(parameters) is not dict:
@@ -307,32 +415,67 @@ class ProtocolMessage(object):
 
     @classmethod
     def create_error(cls, error_code: ErrorCode):
+    # TODO: def create_error(cls, error_code: ErrorCode) -> ProtocolMessage:
         return cls.create_single(ProtocolMessageType.ERROR, {"error_code": error_code})
 
     @classmethod
     def dummy(cls):
+    # TODO: def dummy(cls) -> ProtocolMessage:
         return cls.create_single(ProtocolMessageType.CHAT_RECV,
                                  {"sender": "sender", "recipient": "recipient",
                                   "text": "fuck. you."})
 
-    def __str__(self):
-        s = "{}:".format(self.type.name)
+    @classmethod
+    def random(cls):
+        # draw a random type
+        msg_type: ProtocolMessageType = ProtocolMessageType.NONE
+        while msg_type == ProtocolMessageType.NONE:
+            msg_type = choice(list(ProtocolMessageType))
+        return cls.random_from_type(cls, msg_type)
+
+    @classmethod
+    def random_from_type(cls, msg_type: ProtocolMessageType):
+        fields = ProtocolMessageParameters[msg_type]
+        params: Dict[str, Any] = {}
+        for field in fields:
+            params[field.name] = field.random_value()
+        return cls.create_single(msg_type, params)
+
+    def __eq__(self, other):
+        if not self.type == other.type:
+            return False
+        elif not len(self.repeating_parameters) == len(other.repeating_parameters):
+            return False
+        else:
+            for i, parameters in enumerate(self.repeating_parameters):
+                other_parameters = other.repeating_parameters[i]
+                if not len(parameters) == len(other_parameters):
+                    return False
+                for param in parameters:
+                    if not param in other_parameters:
+                        return False
+                    elif not parameters[param] == other_parameters[param]:
+                        return False
+            return True
+
+    def __str__(self) -> str:
+        s: str = "{}:".format(self.type.name)
         for parameters in self.repeating_parameters:
             s += _protocol_parameters_to_str(parameters)
             s += ", "
         return s
 
     @property
-    def parameters(self):
+    def parameters(self) -> Dict[str, Any]:
         return self.repeating_parameters[0]
 
-    def append_parameters(self, parameters: dict):
+    def append_parameters(self, parameters: dict) -> None:
         if len(self.repeating_parameters) == 1 and self.repeating_parameters[0] == {}:
             self.repeating_parameters[0] = parameters
         else:
             self.repeating_parameters.append(parameters)
 
-    async def send(self, writer):
+    async def send(self, writer) -> None:
 
         msg_bytes_type = b''
         msg_bytes_length = b''
@@ -369,7 +512,7 @@ class ProtocolMessage(object):
                     parameter_bytes = parameter_value.encode(encoding=ProtocolConfig.STR_ENCODING)
                 elif type(parameter_value) in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
                     parameter_bytes = _bytes_from_int(parameter_value, length=protocol_field.length)
-                elif type(parameter_value) is NumShips:
+                elif type(parameter_value) in [NumShips, Position, Positions, ShipPosition, ShipPositions]:
                     parameter_bytes = parameter_value.to_bytes()
                 else:
                     print("ERROR(send): unimplemented parameter type: {}".format(type(parameter_value)))
@@ -412,12 +555,12 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
 
     waiting_for_msg_type: bool = True
     bytes_to_read_next: int = 1
-    msg: ProtocolMessage = None
+    msg: Optional[ProtocolMessage] = None
     msg_payload_bytes: int = 0
     msg_remaining_payload_bytes: int = 0
     parameter_index: int = -1
     parameter_count: int = 0
-    parameter: ProtocolField = None
+    parameter: Optional[ProtocolField] = None
     parameters: dict = {}
     waiting_for_field_length: bool = False
     waiting_for_payload_length: bool = False
@@ -477,8 +620,8 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
                 parameters[parameter.name] = _str_from_bytes(data)
             elif parameter.type in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
                 parameters[parameter.name] = _int_from_bytes(data)
-            elif parameter.type is NumShips:
-                parameters[parameter.name] = NumShips.from_bytes(data)
+            elif parameter.type in [NumShips, Position, Positions, ShipPosition, ShipPositions]:
+                parameters[parameter.name] = parameter.type.from_bytes(data)
             else:
                 print("ERROR(parse_from_stream): unimplemented parameter type: {}".format(parameter.type))
 
