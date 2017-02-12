@@ -2,7 +2,7 @@ import urwid
 import urwid.raw_display
 import urwid.web_display
 from ..common.StaticScreens import Screen
-
+from ..common.Chat import Chat
 from .result import Result
 from common.GameController import GameController
 
@@ -10,15 +10,11 @@ from common.GameController import GameController
 class PopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with North, South, West and East buttons """
     signals = ['close']
-
     def __init__(self):
-        # n_button = urwid.Padding(urwid.Button("North"), width=1)
         n_button = urwid.Button("North")
         s_button = urwid.Button("South")
         w_button = urwid.Button("West")
         e_button = urwid.Button("East")
-
-        # w, align='left', width=('relative', 100), min_width=None, left=0, right=0)
 
         urwid.connect_signal(n_button, 'click',
                              lambda button: self._emit("close"))
@@ -50,14 +46,17 @@ class ShootingCell(urwid.PopUpLauncher):
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.game_controller = game_controller
-        # self.original_widg = super().__init__(urwid.Button("."))
         super().__init__(urwid.Button("."))
         urwid.connect_signal(self.original_widget, 'click', lambda button: self.shoot(button))
 
     def shoot(self, button):
-        print("({}, {})".format(self.x_pos, self.y_pos))
-        self.game_controller.shoot(self.x_pos, self.y_pos)
-        button.set_label("X")
+        #print("({}, {})".format(self.x_pos, self.y_pos))
+        try:
+            self.game_controller.shoot(self.x_pos, self.y_pos)
+            button.set_label("X")
+        except Exception as e:
+            # TODO show a clear message of the failed shoot
+            print(e)
 
 
 class Battle:
@@ -70,31 +69,24 @@ class Battle:
         self.p2 = None
         self.cells_dictionary = {}
         self.shoot_button_list = []
+        self.chat = Chat(self.loop, self.lobby_controller)
 
     def unhandled(self, key):
         if key == 'esc':
             raise urwid.ExitMainLoop()
 
-    # function to shoot the opponents field
-    # def shoot(self, button, x, y):
-    #     self.game_controller.shoot(x, y)
-    #     print("({}, {})".format(x, y))
-    #     button.set_label("X")
-
     def battle_main(self):
-        shoots = [(1, 1), (2, 2), (3, 5), (1, 2), (2, 1), (1, 3), (3, 1), (1, 4)]
         field_offset = self.game_controller.length
         text_button_list = {}
 
         def foward_result(foo):
-            self.game_controller.abort()
-            self.win(foo)
-            raise urwid.ExitMainLoop()
+            try:
+                self.game_controller.abort()
+                self.win(foo)
+                raise urwid.ExitMainLoop()
+            except Exception as e:
+                print(e)
             # self.setup()
-
-        def button_press(self):
-            frame.footer = urwid.AttrWrap(urwid.Text(
-                [u"Pressed: ", self.get_label()]), 'header')
 
         # function to move ships
         def move(self):
@@ -141,16 +133,13 @@ class Battle:
             urwid.Columns([
                 urwid.Padding(urwid.Text("Opponent field"), left=2, right=0, min_width=20),
                 urwid.Pile([urwid.Text("Your field")]),
+                urwid.LineBox(urwid.Button('Abort', on_press=foward_result)),
             ], 2),
             blank,
-
             urwid.Columns([
                 shooting_pile,
                 ship_pile,
-            ], 2),
-            blank,
-            urwid.Columns([
-                urwid.Button('Abort', on_press=foward_result),
+                self.chat.render_chat(),
             ], 2),
         ]
 
@@ -184,14 +173,6 @@ class Battle:
         urwid.MainLoop(frame, palette, screen,
                        unhandled_input=self.unhandled, pop_ups=True,
                        event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
-
-    # def setup(self):
-    #     urwid.web_display.set_preferences("Urwid Tour")
-    #     # try to handle short web requests quickly
-    #     if urwid.web_display.handle_short_request():
-    #         return
-    #
-    #     self.battle_main()
 
 if '__main__' == __name__ or urwid.web_display.is_web_request():
     battle = Battle()
