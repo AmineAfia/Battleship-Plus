@@ -55,8 +55,8 @@ class RoundTimePopUpDialog(urwid.WidgetWrap):
 
 class RoundTimeButtonWithAPopUp(urwid.PopUpLauncher):
     def __init__(self):
-        self.roundtime = None
-        self.b = urwid.Button("round time")
+        self.roundtime = 30
+        self.b = urwid.Button("30")
         super().__init__(self.b)
         urwid.connect_signal(self.original_widget, 'click',
                              lambda button: self.open_pop_up())
@@ -139,14 +139,14 @@ class CreateGame:
         # Form fields
         self.length = urwid.Edit(caption='Field size: ', edit_text='10', multiline=False, align='left', wrap='space', allow_tab=False,)
         self.round_time_line = urwid.Columns([urwid.Text("Round time: "), self.round_time])
-        self.password = urwid.Edit(caption='password: ', edit_text='gggg', multiline=False, align='left', wrap='space', allow_tab=False)
+        self.password = urwid.Edit(caption='password: ', multiline=False, align='left', wrap='space', allow_tab=False)
         self.password_checkbox = urwid.CheckBox("Password")
         print(self.password_checkbox.state)
         self.carrier = urwid.Edit(caption='carrier: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False,)
-        self.battleship = urwid.Edit(caption='battleship: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
-        self.cruiser = urwid.Edit(caption='cruiser: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
-        self.destroyer = urwid.Edit(caption='destroyer: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
-        self.submarine = urwid.Edit(caption='submarine: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False)
+        self.battleship = urwid.Edit(caption='battleship: ', edit_text='0', multiline=False, align='left', wrap='space', allow_tab=False)
+        self.cruiser = urwid.Edit(caption='cruiser: ', edit_text='0', multiline=False, align='left', wrap='space', allow_tab=False)
+        self.destroyer = urwid.Edit(caption='destroyer: ', edit_text='0', multiline=False, align='left', wrap='space', allow_tab=False)
+        self.submarine = urwid.Edit(caption='submarine: ', edit_text='0', multiline=False, align='left', wrap='space', allow_tab=False)
 
         ships = [self.carrier.get_edit_text(), self.battleship.get_edit_text(), self.cruiser.get_edit_text(),
                  self.destroyer.get_edit_text(), self.submarine.get_edit_text()]
@@ -162,7 +162,7 @@ class CreateGame:
             blank,
             ships_form,
             blank,
-            urwid.Button('Create', on_press=self.forward_waiting_room)
+            urwid.Columns([urwid.LineBox(urwid.Button('Create', on_press=self.forward_waiting_room)), urwid.Text("")])
         ]
 
         header = urwid.AttrWrap(urwid.Text("Battleship+"), 'header')
