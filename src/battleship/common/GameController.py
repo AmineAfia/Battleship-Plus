@@ -118,6 +118,10 @@ class GameController(GameLobbyData):
     def game_state(self):
         return self._state
 
+    @property
+    def turn_counter(self):
+        return self._turn_counter
+
     def get_ship_id_from_location(self, pos_x, pos_y):
         result = self._battlefield.get_ship_id_from_location(pos_x, pos_y)
         if result is not None:
