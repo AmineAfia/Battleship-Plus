@@ -13,7 +13,8 @@ class ServerLobbyController:
     # we base some tests on the fact that game_id 0 does never exist…
     next_game_id = 1
 
-    def __init__(self):
+    def __init__(self, loop):
+        self.loop = loop
         # users: username -> client
         self.users: Dict[str, Client] = {}
         # user_game: username -> game_id
@@ -184,7 +185,7 @@ class ServerLobbyController:
         game_id: int = ServerLobbyController.next_game_id
         ServerLobbyController.next_game_id += 1
 
-        game_controller: GameController = await GameController.create_from_msg(msg, game_id, client, client.username)
+        game_controller: GameController = await GameController.create_from_msg(game_id, client, self.loop, msg, client.username)
 
         if game_controller is not None:
             print("game controller is not None")

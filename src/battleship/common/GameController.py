@@ -18,8 +18,9 @@ from common.states import GameState
 # Controller for Battleship
 class GameController(GameLobbyData):
 
-    def __init__(self, game_id, client):
+    def __init__(self, game_id, client, loop):
         super().__init__(game_id)
+        self.loop = loop
         self._battlefield = object
         self._turn_counter: int = 0
         self._start_time = time.time()
@@ -31,8 +32,8 @@ class GameController(GameLobbyData):
         self.client = client
 
     @classmethod
-    async def create_from_msg(cls, msg: ProtocolMessage, game_id, client, username):
-        controller = cls(game_id, client)
+    async def create_from_msg(cls, game_id, client, loop, msg: ProtocolMessage, username):
+        controller = cls(game_id, client, loop)
 
         controller.username = username
 
@@ -75,7 +76,7 @@ class GameController(GameLobbyData):
 
     @classmethod
     def create_from_existing_for_opponent(cls, other_ctrl, client):
-        new_ctrl = cls(other_ctrl.game_id, client)
+        new_ctrl = cls(other_ctrl.game_id, client, other_ctrl.loop)
 
         new_ctrl.username = client.username
         new_ctrl.opponent_name = other_ctrl.username
@@ -457,13 +458,13 @@ class GameController(GameLobbyData):
             raise BattleshipError(ErrorCode.UNKNOWN)
 
     def start_timeout(self, callback: Callable):
-        self._timeout_handle = self.client.loop.call_later(self.round_time, callback, self.client)
+        self._timeout_handle = self.loop.call_later(self.round_time, callback, self.client)
 
     def restart_timeout(self, callback: Callable):
         self.cancel_timeout()
         self.start_timeout(callback)
 
-    def cancel_timeout():
+    def cancel_timeout(self):
         if self._timeout_handle is not None:
             self._timeout_handle.cancel()
 
