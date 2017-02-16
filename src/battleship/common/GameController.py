@@ -1,3 +1,4 @@
+import time
 from .battlefield.Battlefield import Battlefield
 from .battlefield.battleship.AircraftCarrier import AircraftCarrier
 from .battlefield.battleship.Battleship import Battleship
@@ -10,9 +11,6 @@ from common.network import BattleshipClient
 from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips, ShipPositions
 from common.game import GameLobbyData
 from common.states import GameState
-
-import time
-
 
 # Controller for Battleship
 class GameController(GameLobbyData):
@@ -115,6 +113,10 @@ class GameController(GameLobbyData):
     @property
     def ships_not_placed(self):
         return self._battlefield.ships_not_placed
+
+    @property
+    def game_state(self):
+        return self._state
 
     def get_ship_id_from_location(self, pos_x, pos_y):
         result = self._battlefield.get_ship_id_from_location(pos_x, pos_y)
@@ -373,6 +375,7 @@ class GameController(GameLobbyData):
 
         # Initial message to start the game. The message MUST be sent to both clients
         elif msg.type == ProtocolMessageType.STARTGAME:
+            self._state = GameState.PLACE_SHIPS
             length = msg.parameters["board_size"]
             ships_table = msg.parameters["num_ships"].numbers
             self._opponent_name = msg.parameters["opponent_name"]
@@ -381,29 +384,52 @@ class GameController(GameLobbyData):
 
         # This message MUST be sent to the client who has the first turn. It is sent only once after the STARTGAME message.
         elif msg.type == ProtocolMessageType.YOUSTART:
+            self._state = GameState.YOUR_TURN
+            self.start_round_time()
             pass
 
         # This message MUST be sent to the client who hast to wait for the opponent's first turn. It is sent only once after the STARTGAME message
         elif msg.type == ProtocolMessageType.WAIT:
+            self._state = GameState.OPPONENTS_TURN
+            self.start_round_time()
             pass
 
         # This message is sent to both clients
         elif msg.type == ProtocolMessageType.HIT:
+            self.start_round_time()
             sunk = msg.parameters["sunk"]
             position = msg.parameters["position"]
             self.increase_turn_counter()
 
         # The last shot was unsuccessful. This message is sent to both clients.
         elif msg.type == ProtocolMessageType.FAIL:
+            if (self._state == GameState.YOUR_TURN):
+                self._state = GameState.OPPONENTS_TURN
+            else:
+                self._state = GameState.YOUR_TURN
+
+            self.start_round_time()
             position = msg.parameters["position"]
             self.increase_turn_counter()
 
         # A ship was moved. If the ship was moved to already shot fields, these fields are mentioned in the positions. This message is sent to both clients.
         elif msg.type == ProtocolMessageType.MOVED:
+            if (self._state == GameState.YOUR_TURN):
+                self._state = GameState.OPPONENTS_TURN
+            else:
+                self._state = GameState.YOUR_TURN
+
+            self.start_round_time()
             self.increase_turn_counter()
 
         # The current turn ended because of a timeout. This message is sent to both clients.
         elif msg.type == ProtocolMessageType.TIMEOUT:
+            if (self._state == GameState.YOUR_TURN):
+                self._state = GameState.OPPONENTS_TURN
+            else:
+                self._state = GameState.YOUR_TURN
+
+            self.start_round_time()
             self.increase_turn_counter()
 
         # The opponent placed ships
@@ -412,6 +438,8 @@ class GameController(GameLobbyData):
 
         # The current game ended because of a known reason. This message is sent to both clients
         elif msg.type == ProtocolMessageType.ENDGAME:
+            self._state = GameState.GAME_ENDED
+            self.start_round_time()
             reason = msg.parameters["reason"]
             self.abort()
 

@@ -205,5 +205,6 @@ class Battlefield:
         ship_state_list = []
         for ship in self._ships:
             if ship.is_placed():
-                ship_state_list.append((ship.get_ship_coordinate), ship.get_ship_orientation())
+                if ship.get_ship_type() == ship_type:
+                    ship_state_list.append((ship.get_ship_coordinate), ship.get_ship_orientation())
         return ship_state_list
