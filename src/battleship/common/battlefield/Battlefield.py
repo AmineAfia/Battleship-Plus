@@ -1,13 +1,15 @@
+from typing import List, Optional, Any, Dict, Tuple
 from ..constants import Orientation, Direction, ErrorCode
+from .battleship import Ship
 
 
 class Battlefield:
 
-    def __init__(self, length, ships, ships_table):
-        self._length = length
+    def __init__(self, length: int, ships, ships_table: List[int]):
+        self._length: int = length
         self._ships = ships
-        self._ships_table = ships_table
-        self._ships_table_not_placed = ships_table
+        self._ships_table: List[int] = ships_table
+        self._ships_table_not_placed: List[int] = ships_table
         self._my_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
         self._enemy_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
 
@@ -205,5 +207,6 @@ class Battlefield:
         ship_state_list = []
         for ship in self._ships:
             if ship.is_placed():
-                ship_state_list.append((ship.get_ship_coordinate), ship.get_ship_orientation())
+                if ship.get_ship_type() == ship_type:
+                    ship_state_list.append((ship.get_ship_coordinate), ship.get_ship_orientation())
         return ship_state_list

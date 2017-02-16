@@ -381,9 +381,9 @@ ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
 ProtocolMessageRepeatingTypes: List[ProtocolMessageType] = [ProtocolMessageType.GAMES]
 
 
-class ProtocolMessage(object):
+class ProtocolMessage:
 
-    def __init__(self, msg_type: ProtocolMessageType, repeating_parameters: Optional[List[Dict[str, Any]]]=None) -> None:
+    def __init__(self, msg_type: ProtocolMessageType=ProtocolMessageType.NONE, repeating_parameters: Optional[List[Dict[str, Any]]]=None) -> None:
         self.type: ProtocolMessageType = msg_type
         if repeating_parameters is None or repeating_parameters == []:
             self.repeating_parameters: List[Dict[str, Any]] = []
@@ -555,12 +555,12 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
 
     waiting_for_msg_type: bool = True
     bytes_to_read_next: int = 1
-    msg: Optional[ProtocolMessage] = None
+    msg: ProtocolMessage
     msg_payload_bytes: int = 0
     msg_remaining_payload_bytes: int = 0
     parameter_index: int = -1
     parameter_count: int = 0
-    parameter: Optional[ProtocolField] = None
+    parameter: ProtocolField
     parameters: dict = {}
     waiting_for_field_length: bool = False
     waiting_for_payload_length: bool = False

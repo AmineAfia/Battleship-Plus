@@ -1,3 +1,6 @@
+import time
+import asyncio
+from typing import Callable
 from .battlefield.Battlefield import Battlefield
 from .battlefield.battleship.AircraftCarrier import AircraftCarrier
 from .battlefield.battleship.Battleship import Battleship
@@ -11,25 +14,26 @@ from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips, Ship
 from common.game import GameLobbyData
 from common.states import GameState
 
-import time
-
 
 # Controller for Battleship
 class GameController(GameLobbyData):
 
-    def __init__(self, game_id, client):
+    def __init__(self, game_id, client, loop):
         super().__init__(game_id)
+        self.loop = loop
         self._battlefield = object
-        self._turn_counter = 0
+        self._turn_counter: int = 0
         self._start_time = time.time()
-        self._game_started = False
-        self._opponent_name = ""
-        self._password = ""
+        self._game_started: bool = False
+        self._opponent_name: str = ""
+        self._password: str = ""
+        self.timeout_counter: int = 0
+        self._timeout_handle: asyncio.Handle = None
         self.client = client
 
     @classmethod
-    async def create_from_msg(cls, msg: ProtocolMessage, game_id, client, username):
-        controller = cls(game_id, client)
+    async def create_from_msg(cls, game_id, client, loop, msg: ProtocolMessage, username):
+        controller = cls(game_id, client, loop)
 
         controller.username = username
 
@@ -72,7 +76,7 @@ class GameController(GameLobbyData):
 
     @classmethod
     def create_from_existing_for_opponent(cls, other_ctrl, client):
-        new_ctrl = cls(other_ctrl.game_id, client)
+        new_ctrl = cls(other_ctrl.game_id, client, other_ctrl.loop)
 
         new_ctrl.username = client.username
         new_ctrl.opponent_name = other_ctrl.username
@@ -115,6 +119,14 @@ class GameController(GameLobbyData):
     @property
     def ships_not_placed(self):
         return self._battlefield.ships_not_placed
+
+    @property
+    def game_state(self):
+        return self._state
+
+    @property
+    def turn_counter(self):
+        return self._turn_counter
 
     def get_ship_id_from_location(self, pos_x, pos_y):
         result = self._battlefield.get_ship_id_from_location(pos_x, pos_y)
@@ -373,6 +385,7 @@ class GameController(GameLobbyData):
 
         # Initial message to start the game. The message MUST be sent to both clients
         elif msg.type == ProtocolMessageType.STARTGAME:
+            self._state = GameState.PLACE_SHIPS
             length = msg.parameters["board_size"]
             ships_table = msg.parameters["num_ships"].numbers
             self._opponent_name = msg.parameters["opponent_name"]
@@ -381,29 +394,52 @@ class GameController(GameLobbyData):
 
         # This message MUST be sent to the client who has the first turn. It is sent only once after the STARTGAME message.
         elif msg.type == ProtocolMessageType.YOUSTART:
+            self._state = GameState.YOUR_TURN
+            self.start_round_time()
             pass
 
         # This message MUST be sent to the client who hast to wait for the opponent's first turn. It is sent only once after the STARTGAME message
         elif msg.type == ProtocolMessageType.WAIT:
+            self._state = GameState.OPPONENTS_TURN
+            self.start_round_time()
             pass
 
         # This message is sent to both clients
         elif msg.type == ProtocolMessageType.HIT:
+            self.start_round_time()
             sunk = msg.parameters["sunk"]
             position = msg.parameters["position"]
             self.increase_turn_counter()
 
         # The last shot was unsuccessful. This message is sent to both clients.
         elif msg.type == ProtocolMessageType.FAIL:
+            if (self._state == GameState.YOUR_TURN):
+                self._state = GameState.OPPONENTS_TURN
+            else:
+                self._state = GameState.YOUR_TURN
+
+            self.start_round_time()
             position = msg.parameters["position"]
             self.increase_turn_counter()
 
         # A ship was moved. If the ship was moved to already shot fields, these fields are mentioned in the positions. This message is sent to both clients.
         elif msg.type == ProtocolMessageType.MOVED:
+            if (self._state == GameState.YOUR_TURN):
+                self._state = GameState.OPPONENTS_TURN
+            else:
+                self._state = GameState.YOUR_TURN
+
+            self.start_round_time()
             self.increase_turn_counter()
 
         # The current turn ended because of a timeout. This message is sent to both clients.
         elif msg.type == ProtocolMessageType.TIMEOUT:
+            if (self._state == GameState.YOUR_TURN):
+                self._state = GameState.OPPONENTS_TURN
+            else:
+                self._state = GameState.YOUR_TURN
+
+            self.start_round_time()
             self.increase_turn_counter()
 
         # The opponent placed ships
@@ -412,12 +448,25 @@ class GameController(GameLobbyData):
 
         # The current game ended because of a known reason. This message is sent to both clients
         elif msg.type == ProtocolMessageType.ENDGAME:
+            self._state = GameState.GAME_ENDED
+            self.start_round_time()
             reason = msg.parameters["reason"]
             self.abort()
 
         # unknown command
         else:
             raise BattleshipError(ErrorCode.UNKNOWN)
+
+    def start_timeout(self, callback: Callable):
+        self._timeout_handle = self.loop.call_later(self.round_time, callback, self.client)
+
+    def restart_timeout(self, callback: Callable):
+        self.cancel_timeout()
+        self.start_timeout(callback)
+
+    def cancel_timeout(self):
+        if self._timeout_handle is not None:
+            self._timeout_handle.cancel()
 
     def to_create_game_msg(self):
         params = {"board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}
@@ -437,8 +486,6 @@ class GameController(GameLobbyData):
 
     def get_place_msg(self):
         ship_positions = []
-        for ship_id in range(len(self._battlefield._ships)):
-            # TODO: can I get this as sorted list? maybe it is already in the right order?
-            ship = self._battlefield.get_ship(ship_id)
+        for ship in self._battlefield._ships:
             ship_positions.append(ship.get_ship_position())
         return ProtocolMessage.create_single(ProtocolMessageType.PLACE, {"ship_positions": ShipPositions(ship_positions)})

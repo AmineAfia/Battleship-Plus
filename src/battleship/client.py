@@ -52,7 +52,7 @@ def main():
     battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
 
     game_id = 1
-    game_controller = GameController(game_id, battleship_client)
+    game_controller = GameController(game_id, battleship_client, loop)
     lobby_controller = ClientLobbyController(battleship_client, game_controller, loop)
 
     welcome = Welcome(game_controller, lobby_controller, loop)
@@ -99,7 +99,7 @@ def main():
                                              "round_time": 25, "options": GameOptions.PASSWORD,
                                              "password": "foo"})
 
-        game_controller = GameController.create_from_msg(msg, 1, None, "yoloswag")
+        game_controller = GameController.create_from_msg(1, None, loop, msg, "yoloswag")
         #game_controller.run(msg)
         #PLACE THE SHIPS
         x_pos = 0

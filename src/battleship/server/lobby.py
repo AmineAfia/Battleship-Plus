@@ -1,3 +1,4 @@
+from typing import Optional, Dict, List, Tuple, Any
 from .client import Client
 from common.constants import ErrorCode, GameOptions, EndGameReason
 from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig, NumShips
@@ -12,22 +13,23 @@ class ServerLobbyController:
     # we base some tests on the fact that game_id 0 does never exist…
     next_game_id = 1
 
-    def __init__(self):
+    def __init__(self, loop):
+        self.loop = loop
         # users: username -> client
-        self.users = {}
+        self.users: Dict[str, Client] = {}
         # user_game: username -> game_id
-        self.user_gid = {}
+        self.user_gid: Dict[str, int] = {}
         # user_game_ctrl: username -> game_controller
-        self.user_game_ctrl = {}
+        self.user_game_ctrl: Dict[str, GameController] = {}
         # clients: client_id -> client
-        self.clients = {}
+        self.clients: Dict[int, Client] = {}
         # games: game_id -> [game_controller1, game_controller2]
-        self.games = {}
+        self.games: Dict[int, Tuple[GameController, Optional[GameController]]] = {}
 
-    def add_client(self, client):
+    def add_client(self, client: Client):
         self.clients[client.id] = client
 
-    async def remove_client(self, client):
+    async def remove_client(self, client: Client):
         if not client.username == "":
             # we first delete the user, so they don't receive DELETE msgs and such
             try:
@@ -37,8 +39,8 @@ class ServerLobbyController:
                 pass
 
             # TODO: end all games of the user, according to their state
-            game_id_to_delete = 0
-            for game_id, [game_controller1, game_controller2] in self.games.items():
+            game_id_to_delete: int = 0
+            for game_id, (game_controller1, game_controller2) in self.games.items():
                 # TODO: this only affects games the user started, beware, if it's a game in progress, the other user wins or something like that
                 if game_controller1.username == client.username:
                     game_id_to_delete = game_id
@@ -52,36 +54,36 @@ class ServerLobbyController:
 
         del self.clients[client.id]
 
-    def login_user(self, username, client: Client) -> bool:
+    def login_user(self, username: str, client: Client) -> bool:
         if username not in self.users:
             self.users[username] = client
             return True
         else:
             return False
 
-    def print_client(self, client, text):
+    def print_client(self, client: Client, text: str):
         print("  [{}] {}".format(client.id, text))
 
-    async def msg_to_user(self, msg, username):
+    async def msg_to_user(self, msg: ProtocolMessage, username: str):
         await self.users[username].send(msg)
 
     # send message to all logged in users
-    async def msg_to_all(self, msg):
+    async def msg_to_all(self, msg: ProtocolMessage):
         for username, user in self.users.items():
             await user.send(msg)
 
     # send message to all logged in users but the one mentioned in the last parameter
-    async def msg_to_all_but_one(self, msg, except_username):
+    async def msg_to_all_but_one(self, msg: ProtocolMessage, except_username: str):
         for username, user in self.users.items():
             if not username == except_username:
                 await user.send(msg)
 
-    async def send_delete_game(self, game_id):
-        del_msg = ProtocolMessage.create_single(ProtocolMessageType.DELETE_GAME, {"game_id": game_id})
+    async def send_delete_game(self, game_id: int):
+        del_msg: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.DELETE_GAME, {"game_id": game_id})
         await self.msg_to_all(del_msg)
 
     # Handling of not being logged in has to be done outside of this function
-    async def handle_msg(self, client, msg: ProtocolMessage):
+    async def handle_msg(self, client: Client, msg: ProtocolMessage):
 
         if msg.type == ProtocolMessageType.LOGIN:
             await self.handle_login(client, msg)
@@ -116,14 +118,14 @@ class ServerLobbyController:
         elif msg.type == ProtocolMessageType.SHOOT:
             await self.handle_shoot(client, msg)
 
-    async def handle_login(self, client, msg):
-        params = msg.parameters
-        answer: ProtocolMessage = None
+    async def handle_login(self, client: Client, msg: ProtocolMessage):
+        params: Dict[str, Any] = msg.parameters
+        answer: Optional[ProtocolMessage] = None
         if client.state is not ClientConnectionState.NOT_CONNECTED:
             answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
             self.print_client(client, "Client already logged in")
         else:
-            login_successful = self.login_user(params["username"], client)
+            login_successful: bool = self.login_user(params["username"], client)
             if not login_successful:
                 answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS)
                 self.print_client(client, "User name already exists")
@@ -138,19 +140,24 @@ class ServerLobbyController:
             print("> [{}] {}".format(client.id, answer))
             await answer.send(client.writer)
 
-    async def handle_logout(self, client, msg):
+    async def handle_logout(self, client: Client, msg: ProtocolMessage):
         client.state = ClientConnectionState.NOT_CONNECTED
         del self.users[client.username]
         self.print_client(client, "Client '{}' logged out".format(client.username))
         # TODO: end all games of the user
 
-    async def handle_chat_send(self, client, msg):
-        params = msg.parameters
-        answer: ProtocolMessage = None
-        text, recipient = params["text"], params["username"]
+    async def handle_chat_send(self, client: Client, msg: ProtocolMessage):
+        params: Dict[str, Any] = msg.parameters
+        answer: Optional[ProtocolMessage] = None
+        forward: ProtocolMessage
+
+        text: str = params["text"]
+        recipient: str = params["username"]
+
         if len(text) > ProtocolConfig.CHAT_MAX_TEXT_LENGTH:
             answer = ProtocolMessage.create_error(ErrorCode.SYNTAX_MESSAGE_TEXT_TOO_LONG)
             self.print_client(client, "Max text length exceeded")
+
         # check if the message is for all users
         elif recipient == "":
             forward = ProtocolMessage.create_single(ProtocolMessageType.CHAT_RECV,
@@ -174,23 +181,27 @@ class ServerLobbyController:
             print("> [{}] {}".format(client.id, answer))
             await answer.send(client.writer)
 
-    async def handle_create_game(self, client, msg):
-        game_id = ServerLobbyController.next_game_id
+    async def handle_create_game(self, client: Client, msg: ProtocolMessage):
+        game_id: int = ServerLobbyController.next_game_id
         ServerLobbyController.next_game_id += 1
 
-        game_controller = await GameController.create_from_msg(msg, game_id, client, client.username)
+        game_controller: GameController = await GameController.create_from_msg(game_id, client, self.loop, msg, client.username)
+
         if game_controller is not None:
+            print("game controller is not None")
             client.state = ClientConnectionState.GAME_CREATED
             self.user_gid[client.username] = game_id
-            self.games[game_id] = [game_controller, None]
+            self.games[game_id] = (game_controller, None)
             self.user_game_ctrl[client.username] = game_controller
             # and send the game to all users
-            msg = game_controller.to_game_msg()
-            await self.msg_to_all(msg)
+            game_msg: ProtocolMessage = game_controller.to_game_msg()
+            await self.msg_to_all(game_msg)
+        else:
+            print("Fail in Creation of Game Controller")
 
-    async def handle_cancel(self, client, msg):
+    async def handle_cancel(self, client: Client, msg: ProtocolMessage):
         if client.state == ClientConnectionState.GAME_CREATED:
-            game_id = self.user_gid[client.username]
+            game_id: int = self.user_gid[client.username]
             del self.user_gid[client.username]
             del self.user_game_ctrl[client.username]
             del self.games[game_id]
@@ -200,13 +211,13 @@ class ServerLobbyController:
             # TODO: well, thanks RFC, there is no error message for this
             pass
 
-    async def handle_get_games(self, client, msg):
+    async def handle_get_games(self, client: Client, msg: ProtocolMessage):
         await self.send_games_to_user(client)
 
-    async def handle_join(self, client, msg):
-        answer: ProtocolMessage = None
+    async def handle_join(self, client: Client, msg: ProtocolMessage):
+        answer: Optional[ProtocolMessage] = None
 
-        game_id = msg.parameters["game_id"]
+        game_id: int = msg.parameters["game_id"]
 
         # there is no available game with the specified game_ID (error code 104)
         if not game_id in self.games.keys():
@@ -231,16 +242,16 @@ class ServerLobbyController:
         # Everything ok, let them play
         else:
             # setup a game_controller for the other one
-            game_controller1 = self.games[game_id][0]
+            game_controller1: GameController = self.games[game_id][0]
             game_controller1.opponent_name = client.username
             game_controller1.state = GameState.PLACE_SHIPS
 
-            client1 = self.games[game_id][0].client
+            client1: Client = self.games[game_id][0].client
 
-            game_controller2 = GameController.create_from_existing_for_opponent(game_controller1, client)
+            game_controller2: GameController = GameController.create_from_existing_for_opponent(game_controller1, client)
             game_controller2.state = GameState.PLACE_SHIPS
 
-            self.games[game_id][1] = game_controller2
+            self.games[game_id] = (self.games[game_id][0], game_controller2)
 
             self.user_gid[client.username] = game_id
             # this is already done for the other user
@@ -259,12 +270,18 @@ class ServerLobbyController:
         if answer is not None:
             await client.send(answer)
 
-    async def handle_place(self, client, msg):
+    async def handle_place(self, client: Client, msg: ProtocolMessage):
         # get the game controller for this client
         # TODO: catch fail (user not playing)
+        answer: ProtocolMessage
 
-        our_ctrl = self.user_game_ctrl[client.username]
-        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+        if not client.state == ClientConnectionState.PLAYING:
+            answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_NOT_IN_GAME)
+            await client.send(answer)
+            return
+
+        our_ctrl: GameController = self.user_game_ctrl[client.username]
+        other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
 
         try:
             our_ctrl.run(msg)
@@ -272,23 +289,28 @@ class ServerLobbyController:
             # TODO: maybe check if it's not an internal error
             answer = ProtocolMessage.create_error(e.error_code)
             await client.send(answer)
+            return
         except Exception as e:
             raise e
 
         # notify the other
-        msg = ProtocolMessage.create_single(ProtocolMessageType.PLACED)
-        await other_ctrl.client.send(msg)
+        msg_placed: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.PLACED)
+        await other_ctrl.client.send(msg_placed)
 
         # if both are on waiting, the game can start
         if our_ctrl.state == GameState.WAITING and other_ctrl.state == GameState.WAITING:
             # who starts?
+            starting_ctrl: GameController
+            waiting_ctrl: GameController
             (starting_ctrl, waiting_ctrl) = (our_ctrl, other_ctrl) if randrange(2) == 1 else (other_ctrl, our_ctrl)
 
-            youstart = ProtocolMessage.create_single(ProtocolMessageType.YOUSTART)
+            youstart: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.YOUSTART)
             await starting_ctrl.client.send(youstart)
             starting_ctrl.state = GameState.YOUR_TURN
+            starting_ctrl.timeout_counter = 0
+            starting_ctrl.start_timeout(self.handle_timeout)
 
-            youwait = ProtocolMessage.create_single(ProtocolMessageType.WAIT)
+            youwait: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.WAIT)
             await waiting_ctrl.client.send(youwait)
             waiting_ctrl.state = GameState.OPPONENTS_TURN
 
@@ -296,12 +318,15 @@ class ServerLobbyController:
             starting_ctrl._game_started = True
             waiting_ctrl._game_started = True
 
-    async def handle_abort(self, client, msg):
-        our_ctrl = self.user_game_ctrl[client.username]
-        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+    async def handle_abort(self, client: Client, msg: ProtocolMessage):
+        our_ctrl: GameController = self.user_game_ctrl[client.username]
+        other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
         await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.OPPONENT_ABORT, EndGameReason.OPPONENT_ABORT)
 
-    async def end_game_with_reason(self, our_ctrl, other_ctrl, our_reason, other_reason):
+    async def end_game_with_reason(self, our_ctrl: GameController, other_ctrl: GameController, our_reason: EndGameReason, other_reason: EndGameReason):
+        our_ctrl.cancel_timeout()
+        other_ctrl.cancel_timeout()
+
         del self.games[our_ctrl.game_id]
         del self.user_game_ctrl[our_ctrl.username]
         del self.user_game_ctrl[other_ctrl.username]
@@ -314,60 +339,93 @@ class ServerLobbyController:
         await other_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": other_reason}))
         await our_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": our_reason}))
 
-    async def handle_move(self, client, msg):
-        our_ctrl = self.user_game_ctrl[client.username]
-        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+    async def handle_move(self, client: Client, msg: ProtocolMessage):
+        our_ctrl: GameController = self.user_game_ctrl[client.username]
+        other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
 
         try:
             our_ctrl.run(msg)
         except BattleshipError as e:
-            answer = ProtocolMessage.create_error(e.error_code)
+            answer: ProtocolMessage = ProtocolMessage.create_error(e.error_code)
             await client.send(answer)
         except Exception as e:
             raise e
+
+        our_ctrl.timeout_counter = 0
+        our_ctrl.cancel_timeout()
 
         # change turns
         our_ctrl.state = GameState.OPPONENTS_TURN
         other_ctrl.state = GameState.YOUR_TURN
 
         # notify
-        msg = ProtocolMessage.create_single(ProtocolMessageType.MOVED)
-        await other_ctrl.client.send(msg)
-        await our_ctrl.client.send(msg)
+        msg_moved: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.MOVED)
+        await other_ctrl.client.send(msg_moved)
+        await our_ctrl.client.send(msg_moved)
 
-    async def handle_shoot(self, client, msg):
-        our_ctrl = self.user_game_ctrl[client.username]
-        other_ctrl = self.user_game_ctrl[our_ctrl.opponent_name]
+        other_ctrl.start_timeout(self.handle_timeout)
+
+    async def handle_shoot(self, client: Client, msg: ProtocolMessage):
+        our_ctrl: GameController = self.user_game_ctrl[client.username]
+        other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
 
         try:
-            hit = other_ctrl.run(msg)
+            hit: bool = other_ctrl.run(msg)
         except BattleshipError as e:
             answer = ProtocolMessage.create_error(e.error_code)
             await client.send(answer)
         except Exception as e:
             raise e
 
+        our_ctrl.timeout_counter = 0
+        our_ctrl.cancel_timeout()
+
         if hit:
-            sunk = other_ctrl.ship_sunk_at_pos(msg.parameters["position"].horizontal, msg.parameters["position"].vertical)
-            msg_hit = ProtocolMessage.create_single(ProtocolMessageType.HIT, {"sunk": sunk, "position": msg.parameters["position"]})
+            sunk: bool = other_ctrl.ship_sunk_at_pos(msg.parameters["position"].horizontal, msg.parameters["position"].vertical)
+            msg_hit: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.HIT, {"sunk": sunk, "position": msg.parameters["position"]})
             await other_ctrl.client.send(msg_hit)
             await our_ctrl.client.send(msg_hit)
+
+            other_ctrl.start_timeout(self.handle_timeout)
 
             if other_ctrl.all_ships_sunk():
                 await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.YOU_WON, EndGameReason.OPPONENT_WON)
 
         else:
-            msg_fail = ProtocolMessage.create_single(ProtocolMessageType.FAIL, {"position": msg.parameters["position"]})
-            await other_ctrl.client.send(msg_fail)
-            await our_ctrl.client.send(msg_fail)
-
             # change turns
             our_ctrl.state = GameState.OPPONENTS_TURN
             other_ctrl.state = GameState.YOUR_TURN
 
-    async def send_games_to_user(self, client):
-        repeating_parameters = []
-        for game_id, [game_controller1, game_controller2] in self.games.items():
+            msg_fail: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.FAIL, {"position": msg.parameters["position"]})
+            await other_ctrl.client.send(msg_fail)
+            await our_ctrl.client.send(msg_fail)
+
+            other_ctrl.start_timeout(self.handle_timeout)
+
+    async def handle_timeout(self, client: Client):
+        our_ctrl: GameController = self.user_game_ctrl[client.username]
+        other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
+
+        our_ctrl.timeout_counter += 1
+
+        if our_ctrl.timeout_counter >= 3:
+            await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.OPPONENT_WON, EndGameReason.OPPONENT_TIMEOUT)
+            return
+
+        msg_timeout: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.TIMEOUT)
+        await our_ctrl.client.send(msg_timeout)
+        await other_ctrl.client.send(msg_timeout)
+
+        # change turns
+        our_ctrl.state = GameState.OPPONENTS_TURN
+        other_ctrl.state = GameState.YOUR_TURN
+
+        other_ctrl.start_timeout(self.handle_timeout)
+
+    async def send_games_to_user(self, client: Client):
+        # TODO: Any can be more exact
+        repeating_parameters: List[Any] = []
+        for game_id, (game_controller1, game_controller2) in self.games.items():
             parameters = {"game_id": game_id, "username": game_controller1.username, "board_size": game_controller1.length,
                           "num_ships": NumShips(game_controller1.ships), "round_time": game_controller1.round_time,
                           "options": game_controller1.options}
@@ -381,5 +439,5 @@ class ServerLobbyController:
         #         "options": 0}
         #repeating_parameters.append(dummy)
         #repeating_parameters.append(dummy2)
-        msg = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
+        msg: ProtocolMessage = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
         await client.send(msg)

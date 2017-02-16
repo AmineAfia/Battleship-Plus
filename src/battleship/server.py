@@ -23,7 +23,7 @@ def main():
 
     loop = asyncio.get_event_loop()
 
-    lobby_ctrl = ServerLobbyController()
+    lobby_ctrl = ServerLobbyController(loop)
 
     msgs_for_lobby_controller = [ProtocolMessageType.LOGIN, ProtocolMessageType.LOGOUT, ProtocolMessageType.CHAT_SEND,
                                  ProtocolMessageType.GET_GAMES, ProtocolMessageType.CREATE_GAME, ProtocolMessageType.CANCEL,
