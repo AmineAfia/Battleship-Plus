@@ -161,10 +161,10 @@ class GameController(GameLobbyData):
     def get_ship_state_with_type(self, ship_type):
         return self._battlefield.get_ship_state_with_type(ship_type)
 
-    def start_round_timer(self):
+    def start_round_time(self):
         self._start_time = time.time()
 
-    def get_round_timer(self):
+    def get_round_time(self):
         if self._round_time > time.time() - self._start_time:
             return round(self._round_time - time.time() - self._start_time, 0)
         else:
