@@ -19,7 +19,8 @@ from common.states import ClientConnectionState
 
 
 def main():
-    # print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
+    print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--ip", help="server IP", type=str, default=Constants.SERVER_IP)
     parser.add_argument("-p", "--port", help="server port", type=int, default=Constants.SERVER_PORT)
@@ -83,7 +84,7 @@ def main():
     os.system('cls' if os.name == 'nt' else 'clear')
 
     print("almost dead")
-    loop.run_forever()
+    #loop.run_forever()
     print("Bye.")
 
     # ITS ONLY FOR DEBUGGING THE GAMECONTROLER

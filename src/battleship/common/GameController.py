@@ -11,6 +11,8 @@ from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips, Ship
 from common.game import GameLobbyData
 from common.states import GameState
 
+import time
+
 
 # Controller for Battleship
 class GameController(GameLobbyData):
@@ -19,6 +21,7 @@ class GameController(GameLobbyData):
         super().__init__(game_id)
         self._battlefield = object
         self._turn_counter = 0
+        self._start_time = time.time()
         self._game_started = False
         self._opponent_name = ""
         self._password = ""
@@ -157,6 +160,15 @@ class GameController(GameLobbyData):
 
     def get_ship_state_with_type(self, ship_type):
         return self._battlefield.get_ship_state_with_type(ship_type)
+
+    def start_round_timer(self):
+        self._start_time = time.time()
+
+    def get_round_timer(self):
+        if self._round_time > time.time() - self._start_time:
+            return round(self._round_time - time.time() - self._start_time, 0)
+        else:
+            return 0
 
     # create a new battlefield
     def create_battlefield(self, length, ships_table):
