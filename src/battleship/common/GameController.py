@@ -485,8 +485,6 @@ class GameController(GameLobbyData):
 
     def get_place_msg(self):
         ship_positions = []
-        for ship_id in range(len(self._battlefield._ships)):
-            # TODO: can I get this as sorted list? maybe it is already in the right order?
-            ship = self._battlefield.get_ship(ship_id)
+        for ship in self._battlefield._ships:
             ship_positions.append(ship.get_ship_position())
         return ProtocolMessage.create_single(ProtocolMessageType.PLACE, {"ship_positions": ShipPositions(ship_positions)})
