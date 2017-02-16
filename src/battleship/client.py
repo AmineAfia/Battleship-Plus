@@ -1,6 +1,7 @@
 import sys
 import os
 import asyncio
+import argparse
 from common.GameController import GameController
 from common.constants import Orientation, Direction, Constants, GameOptions
 from common.protocol import ProtocolMessage, ProtocolMessageType, ShipPositions, Position, Positions, ShipPosition, NumShips
@@ -19,6 +20,13 @@ from common.states import ClientConnectionState
 
 def main():
     # print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--ip", help="server IP", type=str, default=Constants.SERVER_IP)
+    parser.add_argument("-p", "--port", help="server port", type=int, default=Constants.SERVER_PORT)
+    args = parser.parse_args()
+
+    Constants.SERVER_IP = args.ip
+    Constants.SERVER_PORT = args.port
 
     loop = asyncio.get_event_loop()
 

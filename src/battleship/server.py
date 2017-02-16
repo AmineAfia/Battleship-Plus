@@ -2,6 +2,7 @@ from typing import Optional
 import sys
 import asyncio
 import asyncio.streams
+import argparse
 from common.constants import Constants, ErrorCode
 from common.network import BattleshipServer
 from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig
@@ -11,6 +12,15 @@ from server.client import Client
 
 
 def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--ip", help="IP to listen on for client connections", type=str, default=Constants.SERVER_IP)
+    parser.add_argument("-p", "--port", help="Port to listen on for client connections", type=int, default=Constants.SERVER_PORT)
+    args = parser.parse_args()
+
+    Constants.SERVER_IP = args.ip
+    Constants.SERVER_PORT = args.port
+
     loop = asyncio.get_event_loop()
 
     lobby_ctrl = ServerLobbyController()
