@@ -29,8 +29,9 @@ def main():
 
         # Ding was die Verbindung managed zum Server
         battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
+        input("PUSH THE BUTTON")
         await battleship_client.connect(Constants.SERVER_IP, Constants.SERVER_PORT)
-
+        input("PUSH THE BUTTON")
         # the following messages are just to test
         # normally you can just call `await battleship_client.send(msg)`
         # await is necessary because it's asynchronous
@@ -52,9 +53,19 @@ def main():
         #                                  "round_time": 25,
         #                                  "options": 0
         #                                      }))
-
+        input("PUSH THE BUTTON")
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "testuser{}".format((client_id + 1) % 2), "text": "hurz from client {}".format(client_id)}))
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "", "text": "z"}))
+        input("PUSH THE BUTTON")
+        #await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "", "text": "z"}))
+
+        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
+                                        {"board_size": 10,
+                                         "num_ships": NumShips([0, 0, 0, 0, 1]),
+                                         "round_time": 25,
+                                         "options": 0
+                                             }))
+
+
         #
         # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.MOVE, {"turn_counter": 2, "ship_id": 146579, "direction": Orientation.EAST}))
         #
@@ -71,14 +82,14 @@ def main():
         #
         # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 60000, "password": "bumms"}))
         # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 60001}))
-
+        input("PUSH THE BUTTON")
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.LOGOUT))
 
         battleship_client.close()
 
     # creates a client and connects to our server
     try:
-        num_clients: int = 2
+        num_clients: int = 1
         tasks = []
         for i in range(num_clients):
             tasks.append(asyncio.ensure_future(client(i)))

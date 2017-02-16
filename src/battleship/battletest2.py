@@ -78,7 +78,7 @@ def main():
 
     # creates a client and connects to our server
     try:
-        num_clients: int = 2
+        num_clients: int = 1
         tasks = []
         for i in range(num_clients):
             tasks.append(asyncio.ensure_future(client(i)))

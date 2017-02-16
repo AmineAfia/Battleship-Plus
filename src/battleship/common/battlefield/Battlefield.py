@@ -5,9 +5,9 @@ from .battleship import Ship
 
 class Battlefield:
 
-    def __init__(self, length: int, ships: List[Ship], ships_table: List[int]):
+    def __init__(self, length: int, ships, ships_table: List[int]):
         self._length: int = length
-        self._ships: List[Ship] = ships
+        self._ships = ships
         self._ships_table: List[int] = ships_table
         self._ships_table_not_placed: List[int] = ships_table
         self._my_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
