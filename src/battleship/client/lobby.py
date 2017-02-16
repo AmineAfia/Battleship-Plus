@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 from common.states import ClientConnectionState
 from common.network import BattleshipClient
 from common.protocol import ProtocolMessage, ProtocolMessageType
@@ -19,6 +20,16 @@ class ClientLobbyController:
         self.ui_game_callback = None
         self.ui_delete_game_callback = None
         self.ui_chat_recv_callback = None
+        self.ui_start_game_callback = None
+        self.ui_placed_callback = None
+        self.ui_abort_callback = None
+        self.ui_youstart_callback = None
+        self.ui_wait_callback = None
+        self.ui_hit_callback = None
+        self.ui_fail_callback = None
+        self.ui_moved_callback = None
+        self.ui_timeout_callback = None
+        self.ui_endgame_callback = None
 
     async def try_login(self, server, port, username):
         if not self.client.connected:
@@ -41,6 +52,17 @@ class ClientLobbyController:
 
     async def send_place(self):
         msg = self.game_controller.get_place_msg()
+        await self.client.send_and_wait_for_answer(msg)
+
+        # TODO: timeouts
+        if self.client.last_msg_was_error:
+            raise BattleshipError(self.client.last_error)
+
+    async def send_join(self, game_id: int, password: str=""):
+        params: Dict[str, Any] = {"game_id": game_id}
+        if not password == "":
+            params["password"] = password
+        msg: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.JOIN, params)
         await self.client.send_and_wait_for_answer(msg)
 
         # TODO: timeouts
@@ -89,6 +111,33 @@ class ClientLobbyController:
         except KeyError:
             # then the game did not exist, so what.
             pass
+
+    async def handle_start_game(self, msg):
+        pass
+
+    async def handle_placed(self, msg):
+        pass
+
+    async def handle_youstart(self, msg):
+        pass
+
+    async def handle_wait(self, msg):
+        pass
+
+    async def handle_hit(self, msg):
+        pass
+
+    async def handle_fail(self, msg):
+        pass
+
+    async def handle_moved(self, msg):
+        pass
+
+    async def handle_timeout(self, msg):
+        pass
+
+    async def handle_endgame(self, msg):
+        pass
 
     async def handle_msg(self, msg):
         pass
