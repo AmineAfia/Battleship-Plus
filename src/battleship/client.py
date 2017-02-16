@@ -61,8 +61,8 @@ def main():
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
 
-    create_game = Lobby(game_controller, lobby_controller, loop)
-    create_game.lobby_main()
+    lobby_screen = Lobby(game_controller, lobby_controller, loop)
+    lobby_screen.lobby_main()
 
     create_game = CreateGame(game_controller, lobby_controller, loop)
     create_game.create_game()

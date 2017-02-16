@@ -173,7 +173,3 @@ class Battle:
         urwid.MainLoop(frame, palette, screen,
                        unhandled_input=self.unhandled, pop_ups=True,
                        event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
-
-if '__main__' == __name__ or urwid.web_display.is_web_request():
-    battle = Battle()
-    battle.battle_main()

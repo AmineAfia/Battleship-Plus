@@ -10,4 +10,4 @@ mypy-server:
 	cd src/battleship; mypy --fast-parser --strict-optional --check-untyped-defs --show-column-numbers --warn-no-return --python-version 3.6 server.py; cd ../../
 
 mypy-client:
-	cd src/battleship; mypy --fast-parser --strict-optional --check-untyped-defs --show-column-numbers --warn-no-return --python-version 3.6 client.py; cd ../../
+	cd src/battleship; mypy --fast-parser --strict-optional --check-untyped-defs --show-column-numbers --warn-no-return --python-version 3.6 --ignore-missing-imports client.py; cd ../../
