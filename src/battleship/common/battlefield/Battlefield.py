@@ -200,3 +200,10 @@ class Battlefield:
         for ship in self._ships:
             ship_states.append(ship.get_ship_state())
         return ship_states
+
+    def get_ship_state_with_type(self, ship_type):
+        ship_state_list = []
+        for ship in self._ships:
+            if ship.is_placed():
+                ship_state_list.append((ship.get_ship_coordinate), ship.get_ship_orientation())
+        return ship_state_list

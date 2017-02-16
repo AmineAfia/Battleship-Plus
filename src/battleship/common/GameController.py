@@ -155,6 +155,9 @@ class GameController(GameLobbyData):
         if self.client.last_msg_was_error:
             raise BattleshipError(self.client.last_error)
 
+    def get_ship_state_with_type(self, ship_type):
+        return self._battlefield.get_ship_state_with_type(ship_type)
+
     # create a new battlefield
     def create_battlefield(self, length, ships_table):
         if 9 < length < 27:

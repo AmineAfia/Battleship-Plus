@@ -149,3 +149,6 @@ class Ship:
 
     def get_ship_state(self):
         return self._ship_state
+
+    def get_ship_orientation(self):
+        return self._orientation
