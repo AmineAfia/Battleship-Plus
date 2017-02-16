@@ -1,4 +1,5 @@
 import asyncio
+from typing import Dict, List
 from common.states import ClientConnectionState
 from common.network import BattleshipClient
 from common.protocol import ProtocolMessage, ProtocolMessageType
@@ -14,11 +15,14 @@ class ClientLobbyController:
         self.state = ClientConnectionState.NOT_CONNECTED
         self.client = client
         self.loop = loop
+        # game_id -> GameLobbyData
+        # self.games: Dict[int, GameLobbyData] = {}
         self.games = {}
         self.game_controller = game_controller
         self.ui_game_callback = None
         self.ui_delete_game_callback = None
         self.ui_chat_recv_callback = None
+        self.is_joining_game = False
 
     async def try_login(self, server, port, username):
         if not self.client.connected:

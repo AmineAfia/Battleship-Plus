@@ -172,7 +172,6 @@ class Join:
         # get ships from controller
         ShipsList.ships = game_controller.ships
         self.field_offset = game_controller.length
-
         ShipsList.get_ships()
 
         self.palette = [

@@ -62,11 +62,12 @@ def main():
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
 
-    create_game = Lobby(game_controller, lobby_controller, loop)
-    create_game.lobby_main()
+    create_lobby = Lobby(game_controller, lobby_controller, loop)
+    create_lobby.lobby_main()
 
-    create_game = CreateGame(game_controller, lobby_controller, loop)
-    create_game.create_game()
+    if lobby_controller.is_joining_game is False:
+        create_game = CreateGame(game_controller, lobby_controller, loop)
+        create_game.create_game()
 
     # TODO: was esc pressed?
     join_battle = Join(game_controller, lobby_controller, loop)

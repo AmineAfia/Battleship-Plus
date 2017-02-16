@@ -16,6 +16,9 @@ class GameLobbyData:
     def __str__(self):
         return "#{} from '{}', size {}, {}s, ships {}, {}".format(self._game_id, self._username, self._board_size, self._round_time, self._num_ships, "passwd" if self._options == GameOptions.PASSWORD else "")
 
+    def params_as_list(self):
+        return [self._game_id, self._board_size, self._num_ships.numbers]
+
     @property
     def username(self):
         return self._username
@@ -57,6 +60,10 @@ class GameLobbyData:
     @property
     def round_time(self):
         return self._round_time
+
+    @property
+    def num_ships(self):
+        return self._num_ships
 
     @round_time.setter
     def round_time(self, round_time):
