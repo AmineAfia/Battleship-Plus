@@ -1,4 +1,6 @@
 import time
+import asyncio
+from typing import Callable
 from .battlefield.Battlefield import Battlefield
 from .battlefield.battleship.AircraftCarrier import AircraftCarrier
 from .battlefield.battleship.Battleship import Battleship
@@ -12,17 +14,20 @@ from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips, Ship
 from common.game import GameLobbyData
 from common.states import GameState
 
+
 # Controller for Battleship
 class GameController(GameLobbyData):
 
     def __init__(self, game_id, client):
         super().__init__(game_id)
         self._battlefield = object
-        self._turn_counter = 0
+        self._turn_counter: int = 0
         self._start_time = time.time()
-        self._game_started = False
-        self._opponent_name = ""
-        self._password = ""
+        self._game_started: bool = False
+        self._opponent_name: str = ""
+        self._password: str = ""
+        self.timeout_counter: int = 0
+        self._timeout_handle: asyncio.Handle = None
         self.client = client
 
     @classmethod
@@ -450,6 +455,17 @@ class GameController(GameLobbyData):
         # unknown command
         else:
             raise BattleshipError(ErrorCode.UNKNOWN)
+
+    def start_timeout(self, callback: Callable):
+        self._timeout_handle = self.client.loop.call_later(self.round_time, callback, self.client)
+
+    def restart_timeout(self, callback: Callable):
+        self.cancel_timeout()
+        self.start_timeout(callback)
+
+    def cancel_timeout():
+        if self._timeout_handle is not None:
+            self._timeout_handle.cancel()
 
     def to_create_game_msg(self):
         params = {"board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}

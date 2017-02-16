@@ -5,6 +5,7 @@ from common.GameController import GameController
 from common.constants import Orientation
 from client.lobby import ClientLobbyController
 from common.errorHandler.BattleshipError import BattleshipError
+from common.constants import ErrorCode
 
 
 # common variables to place ships
@@ -275,7 +276,3 @@ class Join:
         loop = urwid.MainLoop(frame, self.palette,
                               unhandled_input=self.unhandled, pop_ups=True,
                               event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
-
-if '__main__' == __name__:
-    battle = Join()
-    battle.join_main()
