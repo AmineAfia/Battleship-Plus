@@ -377,7 +377,7 @@ class GameController(GameLobbyData):
                 hit_positions = self.get_moved_ship_hit_positions(ship_id)
                 position_container = Positions()
                 for hit_position in hit_positions:
-                    position_container.append(Position(hit_position[1], hit_position[0]))
+                    position_container.positions.append(Position(hit_position[1], hit_position[0]))
                 return position_container
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_INVALID_TURN_COUNT)
