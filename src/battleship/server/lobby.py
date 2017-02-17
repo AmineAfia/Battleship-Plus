@@ -346,8 +346,12 @@ class ServerLobbyController:
         del self.user_gid[our_ctrl.username]
         del self.user_gid[other_ctrl.username]
 
-        self.users[our_ctrl.username].state = ClientConnectionState.GAME_SELECTION
-        self.users[other_ctrl.username].state = ClientConnectionState.GAME_SELECTION
+        try:
+            self.users[our_ctrl.username].state = ClientConnectionState.GAME_SELECTION
+            self.users[other_ctrl.username].state = ClientConnectionState.GAME_SELECTION
+        except KeyError:
+            # then this was called from logout, and the user no longer exists
+            pass
 
         await other_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": other_reason}))
         await our_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": our_reason}))
