@@ -17,19 +17,23 @@ class ClientLobbyController:
         self.loop = loop
         self.games = {}
         self.game_controller = game_controller
+        #done
         self.ui_game_callback = None
         self.ui_delete_game_callback = None
         self.ui_chat_recv_callback = None
-        self.ui_start_game_callback = None
-        self.ui_placed_callback = None
-        self.ui_abort_callback = None
         self.ui_youstart_callback = None
         self.ui_wait_callback = None
+
+        #todo
+        self.ui_timeout_callback = None
+
+        self.ui_placed_callback = None
+        self.ui_abort_callback = None
         self.ui_hit_callback = None
         self.ui_fail_callback = None
         self.ui_moved_callback = None
-        self.ui_timeout_callback = None
         self.ui_endgame_callback = None
+        self.ui_start_game_callback = None
         self.is_joining_game = False
 
     async def try_login(self, server, port, username):
@@ -69,6 +73,9 @@ class ClientLobbyController:
         # TODO: timeouts
         if self.client.last_msg_was_error:
             raise BattleshipError(self.client.last_error)
+
+    async def send_shoot(self):
+        pass
 
     async def handle_chat_recv(self, msg):
         self.ui_chat_recv_callback(msg.parameters["sender"], msg.parameters["recipient"], msg.parameters["text"])
@@ -113,12 +120,6 @@ class ClientLobbyController:
             # then the game did not exist, so what.
             pass
 
-    async def handle_start_game(self, msg):
-        pass
-
-    async def handle_placed(self, msg):
-        pass
-
     async def handle_youstart(self, msg):
         self.game_controller.run(msg)
         self.ui_youstart_callback()
@@ -126,6 +127,10 @@ class ClientLobbyController:
     async def handle_wait(self, msg):
         self.game_controller.run(msg)
         self.ui_wait_callback()
+
+    async def handle_timeout(self, msg):
+        self.game_controller.run(msg)
+        self.ui_timeout_callback()
 
     async def handle_hit(self, msg):
         pass
@@ -136,7 +141,10 @@ class ClientLobbyController:
     async def handle_moved(self, msg):
         pass
 
-    async def handle_timeout(self, msg):
+    async def handle_start_game(self, msg):
+        pass
+
+    async def handle_placed(self, msg):
         pass
 
     async def handle_endgame(self, msg):

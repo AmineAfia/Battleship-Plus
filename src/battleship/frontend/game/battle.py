@@ -10,6 +10,7 @@ from .result import Result
 from common.GameController import GameController
 from common.constants import Orientation
 from common.protocol import ProtocolMessageType
+from common.states import GameState
 
 class ShipsList:
     # list of ships from each type
@@ -117,15 +118,17 @@ class Battle:
         self.shoot_button_list = []
         self.chat = Chat(self.loop, self.lobby_controller)
         self.placed_ships = game_controller.get_all_ships_coordinates()
-        # Just for testing
+
+        # Registrering callbacks
         self.lobby_controller.ui_wait_callback = self.you_wait
         self.lobby_controller.ui_youstart_callback = self.you_play
+        self.lobby_controller.ui_timeout_callback = self.change_player
+
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
         #setting round_time
         self.round_time = game_controller.get_round_time()
         self.round_time_pile = urwid.Pile([urwid.Button("0.0")])
-        #self.periodic_round_time_getter()
 
     def you_wait(self):
         self.turn.contents.clear()
@@ -137,11 +140,17 @@ class Battle:
         self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Your Turn')), 'turn'), self.turn.options()))
         self.periodic_round_time_getter()
 
+    def change_player(self):
+        # TODO controller should switch the time counter
+        if self.game_controller.game_state == GameState.YOUR_TURN:
+            self.you_play()
+        elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
+            self.you_wait()
+
     def periodic_round_time_getter(self):
         self.round_time_pile.contents.clear()
         self.round_time_pile.contents.append((urwid.Text("Time: {}".format(str(self.game_controller.get_round_time()))), self.round_time_pile.options()))
         threading.Timer(2, self.periodic_round_time_getter).start()
-        # TODO How to switch player?
 
     def unhandled(self, key):
         if key == 'esc':

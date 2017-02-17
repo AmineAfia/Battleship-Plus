@@ -49,8 +49,8 @@ def main():
             await lobby_controller.handle_wait(msg)
         elif msg.type == ProtocolMessageType.YOUSTART:
             await lobby_controller.handle_youstart(msg)
-        # elif msg.type == ProtocolMessageType.JOIN:
-        #     await lobby_controller.send_join(msg)
+        elif msg.type == ProtocolMessageType.TIMEOUT:
+            await lobby_controller.handle_timeout(msg)
         # TODO: add the other types
         else:
             pass
