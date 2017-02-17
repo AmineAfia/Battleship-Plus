@@ -130,7 +130,7 @@ class Position:
 
 
 class Positions:
-    def __init__(self, positions: List[Position]) -> None:
+    def __init__(self, positions: List[Position]=[]) -> None:
         self.positions: List[Position] = positions
 
     # TODO: hm, ok, this is the type of the class itself!?
@@ -159,6 +159,9 @@ class Positions:
             if not position == other.positions[i]:
                 return False
         return True
+
+    def __len__(self):
+        return len(self.positions)
 
     def to_bytes(self) -> bytes:
         b: bytes = b''
@@ -235,6 +238,9 @@ class ShipPositions:
                 if not position == other.positions[i]:
                     return False
             return True
+
+    def __len__(self):
+        return len(self.positions)
 
     def to_bytes(self) -> bytes:
         b: bytes = b''

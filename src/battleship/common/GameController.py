@@ -10,7 +10,7 @@ from .battlefield.battleship.Submarine import Submarine
 from common.constants import Orientation, Direction, ErrorCode, GameOptions
 from .errorHandler.BattleshipError import BattleshipError
 from common.network import BattleshipClient
-from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips, ShipPositions
+from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips, ShipPositions, Positions, Position
 from common.game import GameLobbyData
 from common.states import GameState
 
@@ -261,6 +261,8 @@ class GameController(GameLobbyData):
                             # todo if called from CLIENT -> set new state and answer to Client OK
                             # TODO: does this never return False after our checks above?
                             self._battlefield.move(ship_id, direction)
+                            # becaus a ship can travel to HIT fields ....
+                            self._battlefield.strike_all_again()
                         else:
                             raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
                     else:
@@ -330,26 +332,20 @@ class GameController(GameLobbyData):
             ship_positions.append(ship.get_ship_position())
         return ship_positions
 
+    def valid_turn_counter(self, turn_counter):
+        if not self._turn_counter == turn_counter:
+            return False
+        return True
+
+    def get_moved_ship_hit_positions(self, ship_id):
+        return self._battlefield.get_moved_ship_hit_positions(ship_id)
+
     def abort(self):
         self = None
         return True
 
     # interface to client and server
     def run(self, msg: ProtocolMessage):
-
-        # CLIENT -> SERVER
-        # CLIENT MESSAGES: CREATE_GAME, PLACE, MOVE, SHOOT, ABORT
-        # if msg.type == ProtocolMessageType.CREATE_GAME:
-            # length = msg.parameters["board_size"]
-            # ships_table = msg.parameters["num_ships"].numbers
-            # self._round_time = msg.parameters["round_time"]
-            # self._password = msg.parameters["password"]
-            # try:
-                # self._battlefield = self.create_battlefield(length, ships_table)
-            # except BattleshipError as e:
-                # answer client the error
-                # print("{}".format(e))
-            # answer client OK
 
         # Sends the server a list of ship placements. The list MUST be ordered by ship type as specified in the instruction.
         if msg.type == ProtocolMessageType.PLACE:
@@ -374,7 +370,16 @@ class GameController(GameLobbyData):
             ship_id = msg.parameters["ship_id"]
             direction = msg.parameters["direction"]
             turn_counter = msg.parameters["turn_counter"]
-            self.move(ship_id, direction)
+            if self.valid_turn_counter(turn_counter):
+                self.increase_turn_counter()
+                self.move(ship_id, direction)
+                hit_positions = self.get_moved_ship_hit_positions(ship_id)
+                position_container = Positions()
+                for hit_position in hit_positions:
+                    position_container.append(Position(hit_position[1], hit_position[0]))
+                return position_container
+            else:
+                raise BattleshipError(ErrorCode.PARAMETER_INVALID_TURN_COUNT)
 
         # Shoots the specified position of the opponents board.
         elif msg.type == ProtocolMessageType.SHOOT:
@@ -383,16 +388,19 @@ class GameController(GameLobbyData):
             x_pos = msg.parameters["position"].horizontal
             y_pos = msg.parameters["position"].vertical
             turn_counter = msg.parameters["turn_counter"]
-            if self.strike(x_pos, y_pos):
-                # todo HIT
-                return True
+            if self.valid_turn_counter(turn_counter):
+                self.increase_turn_counter()
+                if self.strike(x_pos, y_pos):
+                    # todo HIT
+                    return True
+                else:
+                    # todo FAIL
+                    return False
             else:
-                # todo FAIL
-                return False
+                raise BattleshipError(ErrorCode.PARAMETER_INVALID_TURN_COUNT)
 
         # This message tells the server that the client wants to abort the game. The user may communicate via the chat.
         elif msg.type == ProtocolMessageType.ABORT:
-            turn_counter = msg.parameters["turn_counter"]
             self.abort()
 
         # SERVER -> CLIENTS
@@ -411,13 +419,11 @@ class GameController(GameLobbyData):
         elif msg.type == ProtocolMessageType.YOUSTART:
             self._state = GameState.YOUR_TURN
             self.start_round_time()
-            pass
 
         # This message MUST be sent to the client who hast to wait for the opponent's first turn. It is sent only once after the STARTGAME message
         elif msg.type == ProtocolMessageType.WAIT:
             self._state = GameState.OPPONENTS_TURN
             self.start_round_time()
-            pass
 
         # This message is sent to both clients
         elif msg.type == ProtocolMessageType.HIT:

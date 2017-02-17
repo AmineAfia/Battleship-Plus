@@ -55,7 +55,7 @@ def main():
         end = input("x=exit, m=move, s=shoot:_")
         while end is not "x":
             if end == "s":
-                turn_counter = input("insert turn_counter to shoot: ")
+                turn_counter = int(input("insert turn_counter to shoot: "))
                 x_pos = int(input("shot x_pos: "))
                 y_pos = int(input("shoot y_pos: "))
                 msg = ProtocolMessage.create_single(ProtocolMessageType.SHOOT,
@@ -63,7 +63,7 @@ def main():
                 	     		"turn_counter": turn_counter})
 
             if end == "m":    
-                turn_counter = input("insert turn_counter to move: ")
+                turn_counter = int(input("insert turn_counter to move: "))
                 msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
                                            {"ship_id": 0, "direction": Direction.EAST,
                                             "turn_counter": turn_counter})
@@ -73,9 +73,8 @@ def main():
             end = input("x=exit, m=move, s=shoot:_")
 
 	#ABORT
-        turn_counter = input("turn counter for abort: ")
-        msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT,
-                                            {"turn_counter": turn_counter})
+        input("PUSH THE BOTTEN for abort")
+        msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT)
         game_controller.run(msg)
 	####################################################################################################################
 	# Logout #

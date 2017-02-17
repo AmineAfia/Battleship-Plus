@@ -395,7 +395,7 @@ class ServerLobbyController:
 
         # notify
         params = {}
-        if not len(positions) == 0:
+        if not len(positions.positions) == 0:
             params["positions"] = positions
         msg_moved: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.MOVED, params)
         await other_ctrl.client.send(msg_moved)
