@@ -334,7 +334,7 @@ class ServerLobbyController:
             await starting_ctrl.client.send(youstart)
             starting_ctrl.state = GameState.YOUR_TURN
             starting_ctrl.timeout_counter = 0
-            starting_ctrl.start_timeout(self.handle_timeout)
+            starting_ctrl.start_timeout(self.handle_timeout_wrapper)
 
             youwait: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.WAIT)
             await waiting_ctrl.client.send(youwait)
@@ -379,7 +379,7 @@ class ServerLobbyController:
         other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
 
         try:
-            our_ctrl.run(msg)
+            positions: Positions = our_ctrl.run(msg)
         except BattleshipError as e:
             answer: ProtocolMessage = ProtocolMessage.create_error(e.error_code)
             await client.send(answer)
@@ -394,11 +394,14 @@ class ServerLobbyController:
         other_ctrl.state = GameState.YOUR_TURN
 
         # notify
-        msg_moved: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.MOVED)
+        params = {}
+        if not len(positions) == 0:
+            params["positions"] = positions
+        msg_moved: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.MOVED, params)
         await other_ctrl.client.send(msg_moved)
         await our_ctrl.client.send(msg_moved)
 
-        other_ctrl.start_timeout(self.handle_timeout)
+        other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
     async def handle_shoot(self, client: Client, msg: ProtocolMessage):
         our_ctrl: GameController = self.user_game_ctrl[client.username]
@@ -421,7 +424,7 @@ class ServerLobbyController:
             await other_ctrl.client.send(msg_hit)
             await our_ctrl.client.send(msg_hit)
 
-            other_ctrl.start_timeout(self.handle_timeout)
+            other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
             if other_ctrl.all_ships_sunk():
                 await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.YOU_WON, EndGameReason.OPPONENT_WON)
@@ -435,7 +438,10 @@ class ServerLobbyController:
             await other_ctrl.client.send(msg_fail)
             await our_ctrl.client.send(msg_fail)
 
-            other_ctrl.start_timeout(self.handle_timeout)
+            other_ctrl.start_timeout(self.handle_timeout_wrapper)
+
+    def handle_timeout_wrapper(self, client: Client):
+        self.loop.create_task(self.handle_timeout(client))
 
     async def handle_timeout(self, client: Client):
         our_ctrl: GameController = self.user_game_ctrl[client.username]
@@ -455,7 +461,7 @@ class ServerLobbyController:
         our_ctrl.state = GameState.OPPONENTS_TURN
         other_ctrl.state = GameState.YOUR_TURN
 
-        other_ctrl.start_timeout(self.handle_timeout)
+        other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
     async def send_games_to_user(self, client: Client):
         # TODO: the type annotation Any can be more exact
