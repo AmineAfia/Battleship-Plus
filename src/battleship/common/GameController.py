@@ -29,6 +29,7 @@ class GameController(GameLobbyData):
         self._password: str = ""
         self.timeout_counter: int = 0
         self._timeout_handle: asyncio.Handle = None
+        self._last_shot = (0, 0)
         self.client = client
 
     @classmethod
@@ -127,6 +128,10 @@ class GameController(GameLobbyData):
     @property
     def turn_counter(self):
         return self._turn_counter
+
+    @property
+    def last_shot(self):
+        return self._last_shot
 
     def get_ship_id_from_location(self, pos_x, pos_y):
         result = self._battlefield.get_ship_id_from_location(pos_x, pos_y)
@@ -298,6 +303,7 @@ class GameController(GameLobbyData):
             if self._battlefield.no_border_crossing(x_pos, y_pos):
                 if self._battlefield.no_hit_at_place(x_pos, y_pos):
                     if self._battlefield.shoot(x_pos, y_pos):
+                        self._last_shot = (x_pos, y_pos)
                         return True
                     else:
                         return False
@@ -438,7 +444,6 @@ class GameController(GameLobbyData):
                 self._state = GameState.OPPONENTS_TURN
             else:
                 self._state = GameState.YOUR_TURN
-
             self.start_round_time()
             position = msg.parameters["position"]
             self.increase_turn_counter()

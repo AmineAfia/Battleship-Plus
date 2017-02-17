@@ -24,6 +24,9 @@ class ShipsList:
     # pile of ships typs with how much we have (shown in Available Ships)
     info_pile_2 = None
 
+    # distionary with all cells and positions
+    ship_buttons_dic = {}
+
     # parameters to place a ship
     ship_id = None
     ship_type = None
@@ -104,16 +107,16 @@ class ShootingCell(urwid.PopUpLauncher):
             shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
         except Exception as e:
             # TODO show a clear message of the failed shoot
-            print("shoot sagt: {}".format(type(e)))
+            #print("shoot sagt: {}".format(type(e)))
             print(e)
 
     def set_label_after_shoot(self, button, future):
         e = future.exception()
         if e is not None:
             raise e
-        print(e)
-        print(type(e))
-        #button.set_label("X")
+        #print(e)
+        #print(type(e))
+        button.set_label("X")
 
 
 class Battle:
@@ -134,6 +137,7 @@ class Battle:
         self.lobby_controller.ui_youstart_callback = self.you_play
         self.lobby_controller.ui_timeout_callback = self.change_player
         self.lobby_controller.ui_fail_callback = self.change_player
+        self.lobby_controller.ui_hit_callback = self.strike
 
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
@@ -162,6 +166,12 @@ class Battle:
         self.round_time_pile.contents.clear()
         self.round_time_pile.contents.append((urwid.Text("Time: {}".format(str(self.game_controller.get_round_time()))), self.round_time_pile.options()))
         threading.Timer(2, self.periodic_round_time_getter).start()
+
+    def strike(self):
+        # try:
+        #     self.game_controller.strike()
+        if self.game_controller.game_state == GameState.OPPONENTS_TURN:
+            ShipsList.ship_buttons_dic[self.game_controller.last_shot].cell.set_label("X")
 
     def unhandled(self, key):
         if key == 'esc':
@@ -208,7 +218,6 @@ class Battle:
         # Constructing ships field
         ship_button_list = []
         ship_f = []
-        ship_buttons_dic = {}
         for x_pos in range(field_offset):
             for y_pos in range(field_offset):
 
@@ -218,7 +227,7 @@ class Battle:
                 # else:
                 #     ship_cell = urwid.Button("_")
                 ship_button_list.append(ship_cell)
-                ship_buttons_dic[x_pos, y_pos] = ship_cell
+                ShipsList.ship_buttons_dic[x_pos, y_pos] = ship_cell
 
             ship_zeil = urwid.GridFlow(ship_button_list, 1, 1, 0, 'center')
             ship_f.append(ship_zeil)
@@ -232,17 +241,17 @@ class Battle:
                     ship_type = self.game_controller.get_ship_type_by_id(ship_id)
                     if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
                         for s in range(ShipsList.length_dictionary[ship_type]):
-                            ship_buttons_dic[y_pos_2+s, x_pos_1].cell.set_label("@")
+                            ShipsList.ship_buttons_dic[y_pos_2+s, x_pos_1].cell.set_label("@")
                     elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                         for s in range(ShipsList.length_dictionary[ship_type]):
-                            ship_buttons_dic[y_pos_2, x_pos_1+s].cell.set_label("@")
+                            ShipsList.ship_buttons_dic[y_pos_2, x_pos_1+s].cell.set_label("@")
                     if ship_type == "carrier":
                         if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
                             for s in range(ShipsList.length_dictionary[ship_type]):
-                                ship_buttons_dic[y_pos_2+s, x_pos_1+1].cell.set_label("@")
+                                ShipsList.ship_buttons_dic[y_pos_2+s, x_pos_1+1].cell.set_label("@")
                         elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                             for s in range(ShipsList.length_dictionary[ship_type]):
-                                ship_buttons_dic[y_pos_2+1, x_pos_1+s].cell.set_label("@")
+                                ShipsList.ship_buttons_dic[y_pos_2+1, x_pos_1+s].cell.set_label("@")
 
         # insert the matrix in piles
         shooting_pile = urwid.Pile(f)

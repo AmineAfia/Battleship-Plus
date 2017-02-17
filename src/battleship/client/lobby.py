@@ -23,14 +23,13 @@ class ClientLobbyController:
         self.ui_chat_recv_callback = None
         self.ui_youstart_callback = None
         self.ui_wait_callback = None
+        self.ui_timeout_callback = None
+        self.ui_fail_callback = None
 
         #todo
-        self.ui_timeout_callback = None
-
         self.ui_placed_callback = None
         self.ui_abort_callback = None
         self.ui_hit_callback = None
-        self.ui_fail_callback = None
         self.ui_moved_callback = None
         self.ui_endgame_callback = None
         self.ui_start_game_callback = None
@@ -139,7 +138,8 @@ class ClientLobbyController:
         self.ui_timeout_callback()
 
     async def handle_hit(self, msg):
-        pass
+        self.game_controller.run(msg)
+        self.ui_hit_callback()
 
     async def handle_fail(self, msg):
         self.game_controller.run(msg)
