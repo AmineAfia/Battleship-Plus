@@ -265,9 +265,10 @@ class GameController(GameLobbyData):
                             # todo differentiate if called from UI -> SEND MSG TO SERVER AND WAIT FOR ANSWER -> Set new state
                             # todo if called from CLIENT -> set new state and answer to Client OK
                             # TODO: does this never return False after our checks above?
-                            self._battlefield.move(ship_id, direction)
+                            result = self._battlefield.move(ship_id, direction)
                             # becaus a ship can travel to HIT fields ....
                             self._battlefield.strike_all_again()
+                            return result
                         else:
                             raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
                     else:
@@ -377,12 +378,11 @@ class GameController(GameLobbyData):
             direction = msg.parameters["direction"]
             turn_counter = msg.parameters["turn_counter"]
             if self.valid_turn_counter(turn_counter):
-                self.increase_turn_counter()
                 self.move(ship_id, direction)
                 hit_positions = self.get_moved_ship_hit_positions(ship_id)
                 position_container = Positions()
                 for hit_position in hit_positions:
-                    position_container.append(Position(hit_position[1], hit_position[0]))
+                    position_container.positions.append(Position(hit_position[1], hit_position[0]))
                 return position_container
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_INVALID_TURN_COUNT)
@@ -395,13 +395,8 @@ class GameController(GameLobbyData):
             y_pos = msg.parameters["position"].vertical
             turn_counter = msg.parameters["turn_counter"]
             if self.valid_turn_counter(turn_counter):
-                self.increase_turn_counter()
-                if self.strike(x_pos, y_pos):
-                    # todo HIT
-                    return True
-                else:
-                    # todo FAIL
-                    return False
+                result = self.strike(x_pos, y_pos)
+                return result
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_INVALID_TURN_COUNT)
 
