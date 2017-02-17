@@ -342,15 +342,15 @@ class ServerLobbyController:
 
             youstart: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.YOUSTART)
             await self.send(starting_ctrl.client, youstart)
-            starting_ctrl.state = GameState.YOUR_TURN
+            starting_ctrl.run(youstart)
             starting_ctrl.timeout_counter = 0
             starting_ctrl.start_timeout(self.handle_timeout_wrapper)
 
             youwait: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.WAIT)
             await self.send(waiting_ctrl.client, youwait)
-            waiting_ctrl.state = GameState.OPPONENTS_TURN
+            waiting_ctrl.run(youwait)
 
-            # TODO: fix this, should be merged with state
+            # TODO: fix this, should be merged with state, is this even used anymore?
             starting_ctrl._game_started = True
             waiting_ctrl._game_started = True
 
@@ -396,19 +396,15 @@ class ServerLobbyController:
         our_ctrl.timeout_counter = 0
         our_ctrl.cancel_timeout()
 
-        # change turns
-        our_ctrl.state = GameState.OPPONENTS_TURN
-        other_ctrl.state = GameState.YOUR_TURN
-
         # notify
         params = {}
         if not len(positions.positions) == 0:
             params["positions"] = positions
         msg_moved: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.MOVED, params)
+
         await self.send(other_ctrl.client, msg_moved)
         await self.send(our_ctrl.client, msg_moved)
-
-        # this increases the turn counter and so on
+        our_ctrl.run(msg_moved)
         other_ctrl.run(msg_moved)
 
         other_ctrl.start_timeout(self.handle_timeout_wrapper)
@@ -432,24 +428,24 @@ class ServerLobbyController:
         if hit:
             sunk: bool = other_ctrl.ship_sunk_at_pos(msg.parameters["position"].horizontal, msg.parameters["position"].vertical)
             msg_hit: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.HIT, {"sunk": sunk, "position": msg.parameters["position"]})
+
             await self.send(other_ctrl.client, msg_hit)
             await self.send(our_ctrl.client, msg_hit)
             our_ctrl.run(msg_hit)
+            other_ctrl.run(msg_hit)
 
-            other_ctrl.start_timeout(self.handle_timeout_wrapper)
+            our_ctrl.start_timeout(self.handle_timeout_wrapper)
 
             if other_ctrl.all_ships_sunk():
                 await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.YOU_WON, EndGameReason.OPPONENT_WON)
 
         else:
-            # change turns
-            our_ctrl.state = GameState.OPPONENTS_TURN
-            other_ctrl.state = GameState.YOUR_TURN
-
             msg_fail: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.FAIL, {"position": msg.parameters["position"]})
+
             await self.send(other_ctrl.client, msg_fail)
             await self.send(our_ctrl.client, msg_fail)
             our_ctrl.run(msg_fail)
+            other_ctrl.run(msg_fail)
 
             other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -476,14 +472,11 @@ class ServerLobbyController:
             return
 
         msg_timeout: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.TIMEOUT)
+
         await self.send(our_ctrl.client, msg_timeout)
         await self.send(other_ctrl.client, msg_timeout)
         our_ctrl.run(msg_timeout)
         other_ctrl.run(msg_timeout)
-
-        # change turns
-        our_ctrl.state = GameState.OPPONENTS_TURN
-        other_ctrl.state = GameState.YOUR_TURN
 
         other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
