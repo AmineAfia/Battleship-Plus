@@ -510,3 +510,6 @@ class GameController(GameLobbyData):
         for ship in self._battlefield._ships:
             ship_positions.append(ship.get_ship_position())
         return ProtocolMessage.create_single(ProtocolMessageType.PLACE, {"ship_positions": ShipPositions(ship_positions)})
+
+    def get_shoot_msg(self, x_pos, y_pos):
+        return ProtocolMessage.create_single(ProtocolMessageType.SHOOT, {"position": Position(y_pos, x_pos),"turn_counter": self.turn_counter})

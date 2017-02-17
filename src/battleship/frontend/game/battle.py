@@ -3,6 +3,7 @@ import urwid.raw_display
 import urwid.web_display
 import threading
 import time
+import functools
 
 from ..common.StaticScreens import Screen
 from ..common.Chat import Chat
@@ -85,10 +86,12 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
 
 
 class ShootingCell(urwid.PopUpLauncher):
-    def __init__(self, x_pos, y_pos, game_controller):
+    def __init__(self, x_pos, y_pos, game_controller, lobby_controller, loop):
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
+        self.loop = loop
         super().__init__(urwid.Button("."))
         urwid.connect_signal(self.original_widget, 'click', lambda button: self.shoot(button))
 
@@ -96,14 +99,21 @@ class ShootingCell(urwid.PopUpLauncher):
         #print("({}, {})".format(self.x_pos, self.y_pos))
         try:
             self.game_controller.shoot(self.x_pos, self.y_pos)
-            shoot_task = self.loop.create_task(self.game_controller.run(ProtocolMessageType.SHOOT))
-            shoot_task.add_done_callback(self.set_label_after_shoot(button))
+            shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.y_pos, self.x_pos))
+            # shoot_task.add_done_callback(self.set_label_after_shoot(button))
+            shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
         except Exception as e:
             # TODO show a clear message of the failed shoot
+            print("shoot sagt: {}".format(type(e)))
             print(e)
 
-    def set_label_after_shoot(self, button):
-        button.set_label("X")
+    def set_label_after_shoot(self, button, future):
+        e = future.exception()
+        if e is not None:
+            raise e
+        print(e)
+        print(type(e))
+        #button.set_label("X")
 
 
 class Battle:
@@ -123,6 +133,7 @@ class Battle:
         self.lobby_controller.ui_wait_callback = self.you_wait
         self.lobby_controller.ui_youstart_callback = self.you_play
         self.lobby_controller.ui_timeout_callback = self.change_player
+        self.lobby_controller.ui_fail_callback = self.change_player
 
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
@@ -187,7 +198,7 @@ class Battle:
         f = []
         for y_pos in range(field_offset):
             for x_pos in range(field_offset):
-                ship_cell = ShootingCell(x_pos, y_pos, self.game_controller)
+                ship_cell = ShootingCell(x_pos, y_pos, self.game_controller, self.lobby_controller, self.loop)
                 shooting_line.append(ship_cell)
                 self.shoot_button_list.append(ship_cell)
             ship_zeil = urwid.GridFlow(shooting_line, 1, 1, 0, 'center')

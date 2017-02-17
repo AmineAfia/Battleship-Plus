@@ -51,6 +51,8 @@ def main():
             await lobby_controller.handle_youstart(msg)
         elif msg.type == ProtocolMessageType.TIMEOUT:
             await lobby_controller.handle_timeout(msg)
+        elif msg.type == ProtocolMessageType.FAIL:
+            await lobby_controller.handle_fail(msg)
         # TODO: add the other types
         else:
             pass

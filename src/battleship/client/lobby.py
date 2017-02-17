@@ -74,8 +74,14 @@ class ClientLobbyController:
         if self.client.last_msg_was_error:
             raise BattleshipError(self.client.last_error)
 
-    async def send_shoot(self):
-        pass
+    async def send_shoot(self, x_pos, y_pos):
+        msg = self.game_controller.get_shoot_msg(x_pos, y_pos)
+        #msg: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.SHOOT, params)
+        await self.client.send_and_wait_for_answer(msg)
+
+        # TODO: timeouts
+        if self.client.last_msg_was_error:
+            raise BattleshipError(self.client.last_error)
 
     async def handle_chat_recv(self, msg):
         self.ui_chat_recv_callback(msg.parameters["sender"], msg.parameters["recipient"], msg.parameters["text"])
@@ -136,7 +142,8 @@ class ClientLobbyController:
         pass
 
     async def handle_fail(self, msg):
-        pass
+        self.game_controller.run(msg)
+        self.ui_fail_callback()
 
     async def handle_moved(self, msg):
         pass
