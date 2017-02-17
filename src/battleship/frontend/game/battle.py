@@ -1,6 +1,9 @@
 import urwid
 import urwid.raw_display
 import urwid.web_display
+import threading
+import time
+
 from ..common.StaticScreens import Screen
 from ..common.Chat import Chat
 from .result import Result
@@ -114,17 +117,31 @@ class Battle:
         self.shoot_button_list = []
         self.chat = Chat(self.loop, self.lobby_controller)
         self.placed_ships = game_controller.get_all_ships_coordinates()
+        # Just for testing
         self.lobby_controller.ui_wait_callback = self.you_wait
         self.lobby_controller.ui_youstart_callback = self.you_play
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
+        #setting round_time
+        self.round_time = game_controller.get_round_time()
+        self.round_time_pile = urwid.Pile([urwid.Button("0.0")])
+        #self.periodic_round_time_getter()
+
     def you_wait(self):
         self.turn.contents.clear()
         self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Opponent Turn')), 'notturn'), self.turn.options()))
+        self.periodic_round_time_getter()
 
     def you_play(self):
         self.turn.contents.clear()
         self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Your Turn')), 'turn'), self.turn.options()))
+        self.periodic_round_time_getter()
+
+    def periodic_round_time_getter(self):
+        self.round_time_pile.contents.clear()
+        self.round_time_pile.contents.append((urwid.Text("Time: {}".format(str(self.game_controller.get_round_time()))), self.round_time_pile.options()))
+        threading.Timer(2, self.periodic_round_time_getter).start()
+        # TODO How to switch player?
 
     def unhandled(self, key):
         if key == 'esc':
@@ -231,8 +248,10 @@ class Battle:
                 urwid.Text(""),
                 urwid.LineBox(urwid.Button('Abort', on_press=foward_result)),
             ], 2),
-
-            urwid.Button(str(self.placed_ships))
+            blank,
+            urwid.Button(str(self.placed_ships)),
+            blank,
+            self.round_time_pile
         ]
 
         header = urwid.AttrWrap(urwid.Text("Battleship+"), 'header')
