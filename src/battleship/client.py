@@ -43,6 +43,11 @@ def main():
             await lobby_controller.handle_delete_game(msg)
         elif msg.type == ProtocolMessageType.CHAT_RECV:
             await lobby_controller.handle_chat_recv(msg)
+        elif msg.type == ProtocolMessageType.HIT:
+            await lobby_controller.handle_hit(msg)
+        elif msg.type == ProtocolMessageType.WAIT:
+            await lobby_controller.handle_wait(msg)
+        # TODO: add the other types
         else:
             pass
 
