@@ -130,7 +130,7 @@ class Position:
 
 
 class Positions:
-    def __init__(self, positions: List[Position]) -> None:
+    def __init__(self, positions: List[Position]=[]) -> None:
         self.positions: List[Position] = positions
 
     # TODO: hm, ok, this is the type of the class itself!?
