@@ -22,7 +22,7 @@ def main():
         def closed_callback():
             print("< [{}] server closed connection".format(client_id))
 
-        async def _send_and_wait(msg: ProtocolMessage, seconds_to_wait: float = 0.5):
+        async def _send_and_wait(msg: ProtocolMessage, seconds_to_wait: float = 0.0):
             print("> [{}] {}".format(client_id, msg))
             await battleship_client.send(msg)
             if seconds_to_wait > 0:
@@ -55,15 +55,15 @@ def main():
         end = input("x=exit, m=move, s=shoot:_")
         while end is not "x":
             if end == "s":
-                turn_counter = int(input("insert turn_counter to shoot: "))
+                turn_counter = input("insert turn_counter to shoot: ")
                 x_pos = int(input("shot x_pos: "))
                 y_pos = int(input("shoot y_pos: "))
                 msg = ProtocolMessage.create_single(ProtocolMessageType.SHOOT,
                      			{"position": Position(y_pos, x_pos),
                 	     		"turn_counter": turn_counter})
 
-            if end == "m":    
-                turn_counter = int(input("insert turn_counter to move: "))
+            if end == "m":
+                turn_counter = input("insert turn_counter to move: ")
                 msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
                                            {"ship_id": 0, "direction": Direction.EAST,
                                             "turn_counter": turn_counter})
@@ -73,8 +73,9 @@ def main():
             end = input("x=exit, m=move, s=shoot:_")
 
 	#ABORT
-        input("PUSH THE BOTTEN for abort")
-        msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT)
+        turn_counter = input("turn counter for abort: ")
+        msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT,
+                                            {"turn_counter": turn_counter})
         game_controller.run(msg)
 	####################################################################################################################
 	# Logout #
