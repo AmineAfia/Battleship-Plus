@@ -508,11 +508,11 @@ class ProtocolMessage:
                         raise AttributeError("Send ProtocolMessage: missing parameter {} for type {}".format(protocol_field.name, self.type))
 
                 # TODO: can this be done the pythonic way without checking the type? See https://stackoverflow.com/a/154156
-                if type(parameter_value) is str:
+                if protocol_field.type is str:
                     parameter_bytes = parameter_value.encode(encoding=ProtocolConfig.STR_ENCODING)
-                elif type(parameter_value) in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
-                    parameter_bytes = _bytes_from_int(parameter_value, length=protocol_field.length)
-                elif type(parameter_value) in [NumShips, Position, Positions, ShipPosition, ShipPositions]:
+                elif protocol_field.type in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
+                    parameter_bytes = _bytes_from_int(int(parameter_value), length=protocol_field.length)
+                elif protocol_field.type in [NumShips, Position, Positions, ShipPosition, ShipPositions]:
                     parameter_bytes = parameter_value.to_bytes()
                 else:
                     print("ERROR(send): unimplemented parameter type: {}".format(type(parameter_value)))
@@ -544,7 +544,7 @@ class ProtocolMessage:
 
         if msg_bytes_payload_length > 0:
             writer.write(msg_bytes_payload)
-            print("payload({})".format(msg_bytes_payload))
+            # print("payload({})".format(msg_bytes_payload))
 
         await writer.drain()
 

@@ -30,6 +30,7 @@ class ClientLobbyController:
         self.ui_moved_callback = None
         self.ui_timeout_callback = None
         self.ui_endgame_callback = None
+        self.is_joining_game = False
 
     async def try_login(self, server, port, username):
         if not self.client.connected:
@@ -119,10 +120,12 @@ class ClientLobbyController:
         pass
 
     async def handle_youstart(self, msg):
-        pass
+        self.game_controller.run(msg)
+        self.ui_youstart_callback()
 
     async def handle_wait(self, msg):
-        pass
+        self.game_controller.run(msg)
+        self.ui_wait_callback()
 
     async def handle_hit(self, msg):
         pass

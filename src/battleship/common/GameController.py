@@ -156,6 +156,12 @@ class GameController(GameLobbyData):
         else:
             raise BattleshipError(ErrorCode.INTERN_SHIP_ID_DOES_NOT_EXIST)
 
+    # todo: ich verbesser das nochmal
+    def get_ship_orientation_by_id(self, ship_id):
+        for ship in self._battlefield._ships:
+            if ship.get_ship_id() == ship_id:
+                return ship._orientation
+
     async def create_on_server(self, board_size, num_ships, round_time, options, password):
         self.round_time = round_time
         self.options = options
@@ -177,8 +183,8 @@ class GameController(GameLobbyData):
         self._start_time = time.time()
 
     def get_round_time(self):
-        if self._round_time > time.time() - self._start_time:
-            return round(self._round_time - time.time() - self._start_time, 0)
+        if self._round_time > int(round(time.time(), 0)) - int(round(self._start_time, 0)):
+            return round(self._round_time - (int(round(time.time(), 0)) - int(round(self._start_time, 0))), 0)
         else:
             return 0
 
@@ -311,11 +317,20 @@ class GameController(GameLobbyData):
     def get_all_ship_states(self):
         return self._battlefield.get_all_ship_states()
 
+    def get_all_ships_coordinates(self):
+        return self._battlefield.get_all_ships_coordinates()
+
     def increase_turn_counter(self):
         if self._turn_counter >= 256:
             self._turn_counter = 0
         else:
             self._turn_counter += 1
+
+    def get_placed_ships(self):
+        ship_positions = []
+        for ship in self._battlefield._ships:
+            ship_positions.append(ship.get_ship_position())
+        return ship_positions
 
     def valid_turn_counter(self, turn_counter):
         if not self._turn_counter == turn_counter:
