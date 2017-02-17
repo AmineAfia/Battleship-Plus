@@ -47,6 +47,10 @@ def main():
             await lobby_controller.handle_hit(msg)
         elif msg.type == ProtocolMessageType.WAIT:
             await lobby_controller.handle_wait(msg)
+        elif msg.type == ProtocolMessageType.YOUSTART:
+            await lobby_controller.handle_youstart(msg)
+        # elif msg.type == ProtocolMessageType.JOIN:
+        #     await lobby_controller.send_join(msg)
         # TODO: add the other types
         else:
             pass
@@ -67,20 +71,20 @@ def main():
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
 
-    lobby_screen = Lobby(game_controller, lobby_controller, loop)
-    lobby_screen.lobby_main()
+    create_lobby = Lobby(game_controller, lobby_controller, loop)
+    create_lobby.lobby_main()
 
-    create_game = CreateGame(game_controller, lobby_controller, loop)
-    create_game.create_game()
+    if lobby_controller.is_joining_game is False:
+        create_game = CreateGame(game_controller, lobby_controller, loop)
+        create_game.create_game()
 
-    # TODO: was esc pressed?
+        # TODO: esc or normal continuation?
+        go_to_game = Waiting(game_controller, lobby_controller, loop)
+        # TODO: is this foo nedded in waiting_main?
+        go_to_game.waiting_main("")
+
     join_battle = Join(game_controller, lobby_controller, loop)
     join_battle.join_main()
-
-    # TODO: esc or normal continuation?
-    go_to_game = Waiting(game_controller, lobby_controller, loop)
-    # TODO: is this foo nedded in waiting_main?
-    go_to_game.waiting_main("")
 
     battle_sessions = Battle(game_controller, lobby_controller, loop)
     battle_sessions.battle_main()

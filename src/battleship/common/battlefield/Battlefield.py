@@ -203,10 +203,35 @@ class Battlefield:
             ship_states.append(ship.get_ship_state())
         return ship_states
 
+    def get_all_ships_coordinates(self):
+        ship_coordinates_list = []
+        for ship in self._ships:
+            if ship.is_placed():
+                    ship_coordinates_list.append(ship.get_ship_coordinate())
+        return ship_coordinates_list
+
     def get_ship_state_with_type(self, ship_type):
         ship_state_list = []
         for ship in self._ships:
             if ship.is_placed():
                 if ship.get_ship_type() == ship_type:
-                    ship_state_list.append((ship.get_ship_coordinate), ship.get_ship_orientation())
+                    ship_state_list.append(ship.get_ship_coordinate(), ship.get_ship_orientation())
         return ship_state_list
+
+    def get_moved_ship_hit_positions(self, ship_id):
+        moved_to_hit_positions = []
+        for ship in self._ships:
+            if ship.get_ship_id() == ship_id:
+                ship_positions = ship.get_ship_coordinates()
+                for coordinate in ship_positions:
+                    if self._my_battlefield[coordinate[0]][coordinate[1]] == 1:
+                        moved_to_hit_positions.append(coordinate)
+                        # strike because this ship moved over a hit field
+                        ship.strike(coordinate[0],coordinate[1])
+        return moved_to_hit_positions
+
+    def strike_all_again(self):
+        for i in range(self._length - 1):
+            for j in range(self._length - 1):
+                if self._my_battlefield[i][j] == 1:
+                    self.strike(i,j)

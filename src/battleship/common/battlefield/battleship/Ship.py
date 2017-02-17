@@ -15,7 +15,7 @@ class Ship:
         self._placed = False
         self._hit = False
         self._sunk = False
-        self._ship_state = [[[] for _ in range (y_length)] for _ in range (x_length)]
+        self._ship_state = [[[] for _ in range(y_length)] for _ in range(x_length)]
         for i in range(self._x_length):
             for j in range(self._y_length):
                 if self._orientation == Orientation.NORTH:
