@@ -38,22 +38,8 @@ def main():
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.LOGIN,
                                                     {"username": "testuser2".format(client_id)}))
 
-        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
-        #                                 {"board_size": 5,
-        #                                  "num_ships": NumShips([1, 2, 3, 4, 5]),
-        #                                  "round_time": 25,
-        #                                  "options": GameOptions.PASSWORD,
-        #                                  "password": "foobar"
-        #                                      }))
-        #
-        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
-        #                                 {"board_size": 5,
-        #                                  "num_ships": NumShips([1, 2, 3, 4, 5]),
-        #                                  "round_time": 25,
-        #                                  "options": 0
-        #                                      }))
-        input("PUSH THE BUTTON")
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "testuser1".format((client_id + 1) % 2), "text": "hurz from client {}".format(client_id)}))
+        input("PUSH THE BUTTON for chatting")
+        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "testuser1".format((client_id + 1) % 2), "text": "Hi Loser, Grüße von client {}".format(client_id)}))
         input("PUSH THE BUTTON to join a game")
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 1}))
 
@@ -63,36 +49,39 @@ def main():
                                                 ShipPosition(Position(0, 0), Orientation.EAST)])})
 
         await _send_and_wait(msg)
+	####################################################################################################################
+	# Start Playing #
+	####################################################################################################################
+        end = input("x=exit, m=move, s=shoot:_")
+        while end is not "x":
+            if end == "s":
+                turn_counter = input("insert turn_counter to shoot: ")
+                x_pos = int(input("shot x_pos: "))
+                y_pos = int(input("shoot y_pos: "))
+                msg = ProtocolMessage.create_single(ProtocolMessageType.SHOOT,
+                     			{"position": Position(y_pos, x_pos),
+                	     		"turn_counter": turn_counter})
 
-        input("PUSH THE BUTTON to move")
-        msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
-                                            {"ship_id": 0, "direction": Direction.SOUTH,
-                                             "turn_counter": 0})
-
-        await _send_and_wait(msg)
-
-        #await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "", "text": "z"}))
+            if end == "m":    
+                turn_counter = input("insert turn_counter to move: ")
+                msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
+                                           {"ship_id": 0, "direction": Direction.EAST,
+                                            "turn_counter": turn_counter})
 
 
-        #
-        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.MOVE, {"turn_counter": 2, "ship_id": 146579, "direction": Orientation.EAST}))
-        #
-        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.GAME, {
-        #     "game_id": 60000, "username": "you", "board_size": 7, "num_ships": NumShips([1, 2, 3, 4, 5]), "round_time": 25, "options": GameOptions.PASSWORD}))
-        #
-        # await _send_and_wait(ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, [
-        #     {"game_id": 60000, "username": "you", "board_size": 7, "num_ships": NumShips([1, 2, 3, 4, 5]),
-        #         "round_time": 25, "options": GameOptions.PASSWORD},
-        #     {"game_id": 60001, "username": "she", "board_size": 8, "num_ships": NumShips([1, 2, 3, 4, 6]),
-        #         "round_time": 30, "options": 0},
-        #     {"game_id": 60002, "username": "they", "board_size": 9, "num_ships": NumShips([1, 2, 3, 4, 7]),
-        #      "round_time": 35, "options": GameOptions.PASSWORD}]))
-        #
-        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 60000, "password": "bumms"}))
-        # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 60001}))
-        input("PUSH THE BUTTON")
+            await _send_and_wait(msg)
+            end = input("x=exit, m=move, s=shoot:_")
+
+	#ABORT
+        turn_counter = input("turn counter for abort: ")
+        msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT,
+                                            {"turn_counter": turn_counter})
+        game_controller.run(msg)
+	####################################################################################################################
+	# Logout #
+	####################################################################################################################
+        input("PUSH THE BUTTON to logout")
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.LOGOUT))
-
         battleship_client.close()
 
     # creates a client and connects to our server
