@@ -63,9 +63,9 @@ class ShipsList:
 
         ShipsList.info_pile_2.contents.append((urwid.Pile(ShipsList.ships_info_length_list),ShipsList.info_pile_2.options()))
 
-#Popup for each cell in the matrix
+
 class PopUpDialog(urwid.WidgetWrap):
-    """A dialog that appears with North, South, West and East buttons """
+    """Popup for each cell in the matrix """
     signals = ['close']
 
     def __init__(self, button_with_pop_up, x_pos, y_pos):
@@ -192,9 +192,6 @@ class Join:
             ('popbg', 'white', 'dark gray')
         ]
         self.blank = urwid.Divider()
-
-    # def get_ships_to_place(self):
-    #     self.game_controller.
 
     def forward_next(self, foo):
         # TODO: somehow tell the main client the difference between this and unhandled

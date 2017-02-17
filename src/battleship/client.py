@@ -47,6 +47,8 @@ def main():
             await lobby_controller.handle_hit(msg)
         elif msg.type == ProtocolMessageType.WAIT:
             await lobby_controller.handle_wait(msg)
+        elif msg.type == ProtocolMessageType.JOIN:
+            await lobby_controller.send_join(msg)
         # TODO: add the other types
         else:
             pass
@@ -74,14 +76,14 @@ def main():
         create_game = CreateGame(game_controller, lobby_controller, loop)
         create_game.create_game()
 
+        # TODO: esc or normal continuation?
+        go_to_game = Waiting(game_controller, lobby_controller, loop)
+        # TODO: is this foo nedded in waiting_main?
+        go_to_game.waiting_main("")
+
     # TODO: was esc pressed?
     join_battle = Join(game_controller, lobby_controller, loop)
     join_battle.join_main()
-
-    # TODO: esc or normal continuation?
-    go_to_game = Waiting(game_controller, lobby_controller, loop)
-    # TODO: is this foo nedded in waiting_main?
-    go_to_game.waiting_main("")
 
     battle_sessions = Battle(game_controller, lobby_controller, loop)
     battle_sessions.battle_main()

@@ -5,6 +5,40 @@ from ..common.StaticScreens import Screen
 from ..common.Chat import Chat
 from .result import Result
 from common.GameController import GameController
+from common.constants import Orientation
+
+
+class ShipsList:
+    # list of ships from each type
+    ships = [0, 0, 0, 0, 0]
+    # Dictionary to get chips length
+    length_dictionary = {"carrier": 5, "battleship": 5, "cruiser":  4, "destroyer":  3, "submarine": 2}
+
+    # List of buttons to be loaded in the pile
+    ships_info_length_list = []
+    # pile of ships typs with how much we have (shown in Available Ships)
+    info_pile_2 = None
+
+    # parameters to place a ship
+    ship_id = None
+    ship_type = None
+    ship_length = None
+    ship_orientation = None
+    ship_x_pos = None
+    ship_y_pos = None
+    # Variables for UI
+    ships_list = []
+    info_pile = None
+    # pile to be shown in the popup for placing ships
+    info_pile_3 = None
+    # button show in the ships placing popup
+    ships_categories_place = []
+    buttons_list = {}
+    list_of_placed_cells = []
+
+    @staticmethod
+    def get_ships():
+        ShipsList.ships_info_length_list.append(urwid.Button(("{}".format(ShipsList.ships))))
 
 
 class PopUpDialog(urwid.WidgetWrap):
@@ -24,12 +58,17 @@ class PopUpDialog(urwid.WidgetWrap):
 
 
 class ButtonWithAPopUp(urwid.PopUpLauncher):
-    def __init__(self, x_pos, y_pos):
+    def __init__(self, x_pos, y_pos, game_controller):
         self.x_pos = x_pos
         self.y_pos = y_pos
-        super().__init__(urwid.Button("_"))
-        urwid.connect_signal(self.original_widget, 'click',
-                             lambda button: self.open_pop_up())
+        self.game_controller = game_controller
+        #self.cell = urwid.Button("({}, {})".format(self.x_pos, y_pos))
+        self.cell = urwid.Button("_")
+        super().__init__(self.cell)
+
+        if (y_pos, x_pos) in self.game_controller.get_all_ships_coordinates():
+            urwid.connect_signal(self.original_widget, 'click',
+                                lambda button: self.open_pop_up())
 
     def create_pop_up(self):
         pop_up = PopUpDialog()
@@ -64,12 +103,13 @@ class Battle:
         self.loop = loop
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
-        self.win = Screen("YOU LOSE").show
+        self.win = Screen("YOU LOOSE").show
         self.p1 = None
         self.p2 = None
         self.cells_dictionary = {}
         self.shoot_button_list = []
         self.chat = Chat(self.loop, self.lobby_controller)
+        self.placed_ships = game_controller.get_all_ships_coordinates()
 
     def unhandled(self, key):
         if key == 'esc':
@@ -86,7 +126,6 @@ class Battle:
                 raise urwid.ExitMainLoop()
             except Exception as e:
                 print(e)
-            # self.setup()
 
         # function to move ships
         def move(self):
@@ -110,18 +149,44 @@ class Battle:
             f.append(ship_zeil)
             shooting_line.clear()
 
-
         # Constructing ships field
         ship_button_list = []
         ship_f = []
+        ship_buttons_dic = {}
         for x_pos in range(field_offset):
             for y_pos in range(field_offset):
-                ship_cell = ButtonWithAPopUp(x_pos, y_pos)
+
+                ship_cell = ButtonWithAPopUp(x_pos, y_pos, self.game_controller)
+                # if (y_pos, x_pos) in self.placed_ships:
+                #     ship_cell.cell.set_label("@")
+                # else:
+                #     ship_cell = urwid.Button("_")
                 ship_button_list.append(ship_cell)
+                ship_buttons_dic[x_pos, y_pos] = ship_cell
 
             ship_zeil = urwid.GridFlow(ship_button_list, 1, 1, 0, 'center')
             ship_f.append(ship_zeil)
             ship_button_list.clear()
+
+        # Draw ships on the field
+        for x_pos_1 in range(field_offset):
+            for y_pos_2 in range(field_offset):
+                if (x_pos_1, y_pos_2) in self.placed_ships:
+                    ship_id = self.game_controller.get_ship_id_from_location(x_pos_1, y_pos_2)
+                    ship_type = self.game_controller.get_ship_type_by_id(ship_id)
+                    if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
+                        for s in range(ShipsList.length_dictionary[ship_type]):
+                            ship_buttons_dic[y_pos_2+s, x_pos_1].cell.set_label("@")
+                    elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
+                        for s in range(ShipsList.length_dictionary[ship_type]):
+                            ship_buttons_dic[y_pos_2, x_pos_1+s].cell.set_label("@")
+                    if ship_type == "carrier":
+                        if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
+                            for s in range(ShipsList.length_dictionary[ship_type]):
+                                ship_buttons_dic[y_pos_2+s, x_pos_1+1].cell.set_label("@")
+                        elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
+                            for s in range(ShipsList.length_dictionary[ship_type]):
+                                ship_buttons_dic[y_pos_2+1, x_pos_1+s].cell.set_label("@")
 
         # insert the matrix in piles
         shooting_pile = urwid.Pile(f)
@@ -141,6 +206,8 @@ class Battle:
                 ship_pile,
                 self.chat.render_chat(),
             ], 2),
+            blank,
+            urwid.Button(str(self.placed_ships))
         ]
 
         header = urwid.AttrWrap(urwid.Text("Battleship+"), 'header')
@@ -148,7 +215,7 @@ class Battle:
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
 
         palette = [
-            ('hit', 'black', 'light gray', 'bold'),
+            ('ref', 'dark red', 'dark red', ''),
             ('miss', 'black', 'black', ''),
             ('untouched', 'white', 'black', ''),
             ('body', 'white', 'black', 'standout'),
