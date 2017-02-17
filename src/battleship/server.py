@@ -53,11 +53,7 @@ def main():
 
             answer: Optional[ProtocolMessage] = None
 
-            # No other command is permitted if the client is not logged in
-            if client.state is ClientConnectionState.NOT_CONNECTED and msg.type is not ProtocolMessageType.LOGIN:
-                answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_NOT_LOGGED_IN)
-
-            elif msg.type in msgs_for_lobby_controller:
+            if msg.type in msgs_for_lobby_controller:
                 await lobby_ctrl.handle_msg(client, msg)
 
             # If we have a direct answer, send it here
