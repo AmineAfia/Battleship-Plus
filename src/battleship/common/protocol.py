@@ -328,7 +328,7 @@ _field_turn_counter: ProtocolField = ProtocolField(name="turn_counter", field_ty
 _field_opponent_name: ProtocolField = ProtocolField(name="opponent_name", field_type=str, fixed_length=False, implicit_length=True)
 _field_sunk: ProtocolField = ProtocolField(name="sunk", field_type=int, fixed_length=True, length=1)
 _field_position: ProtocolField = ProtocolField(name="position", field_type=Position, fixed_length=True, length=2)
-_field_positions: ProtocolField = ProtocolField(name="positions", field_type=Positions, fixed_length=False, implicit_length=True)
+_field_positions: ProtocolField = ProtocolField(name="positions", field_type=Positions, fixed_length=False, implicit_length=True, optional=True)
 _field_orientation: ProtocolField = ProtocolField(name="orientation", field_type=Orientation, fixed_length=True, length=1)
 _field_reason: ProtocolField = ProtocolField(name="reason", field_type=EndGameReason, fixed_length=True, length=1)
 _field_ship_position: ProtocolField = ProtocolField(name="ship_position", field_type=ShipPosition, fixed_length=True, length=3)
@@ -505,7 +505,7 @@ class ProtocolMessage:
                         else:
                             continue
                     else:
-                        raise AttributeError("Send ProtocolMessage: missing parameter {}".format(parameter_value))
+                        raise AttributeError("Send ProtocolMessage: missing parameter {} for type {}".format(protocol_field.name, self.type))
 
                 # TODO: can this be done the pythonic way without checking the type? See https://stackoverflow.com/a/154156
                 if type(parameter_value) is str:
@@ -544,7 +544,7 @@ class ProtocolMessage:
 
         if msg_bytes_payload_length > 0:
             writer.write(msg_bytes_payload)
-            # print("payload({})".format(msg_bytes_payload))
+            print("payload({})".format(msg_bytes_payload))
 
         await writer.drain()
 

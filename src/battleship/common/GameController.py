@@ -380,8 +380,8 @@ class GameController(GameLobbyData):
         elif msg.type == ProtocolMessageType.SHOOT:
             if not self.state == GameState.OPPONENTS_TURN:
                 raise BattleshipError(ErrorCode.ILLEGAL_STATE_NOT_YOUR_TURN)
-            x_pos = msg.parameters["ship_position"].position.horizontal
-            y_pos = msg.parameters["ship_position"].position.vertical
+            x_pos = msg.parameters["position"].horizontal
+            y_pos = msg.parameters["position"].vertical
             turn_counter = msg.parameters["turn_counter"]
             if self.strike(x_pos, y_pos):
                 # todo HIT
