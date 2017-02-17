@@ -408,6 +408,9 @@ class ServerLobbyController:
         await self.send(other_ctrl.client, msg_moved)
         await self.send(our_ctrl.client, msg_moved)
 
+        # this increases the turn counter and so on
+        other_ctrl.run(msg_moved)
+
         other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
     async def handle_shoot(self, client: Client, msg: ProtocolMessage):
@@ -431,6 +434,7 @@ class ServerLobbyController:
             msg_hit: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.HIT, {"sunk": sunk, "position": msg.parameters["position"]})
             await self.send(other_ctrl.client, msg_hit)
             await self.send(our_ctrl.client, msg_hit)
+            our_ctrl.run(msg_hit)
 
             other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -445,6 +449,7 @@ class ServerLobbyController:
             msg_fail: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.FAIL, {"position": msg.parameters["position"]})
             await self.send(other_ctrl.client, msg_fail)
             await self.send(our_ctrl.client, msg_fail)
+            our_ctrl.run(msg_fail)
 
             other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -452,7 +457,16 @@ class ServerLobbyController:
         self.loop.create_task(self.handle_timeout(client))
 
     async def handle_timeout(self, client: Client):
+        if not client.username in self.user_game_ctrl:
+            # This happened once when a timeout came almost exactly when the game ended
+            return
+
         our_ctrl: GameController = self.user_game_ctrl[client.username]
+
+        if not our_ctrl.opponent_name in self.user_game_ctrl:
+            # This happened once when a timeout came almost exactly when the game ended
+            return
+
         other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
 
         our_ctrl.timeout_counter += 1
@@ -464,6 +478,8 @@ class ServerLobbyController:
         msg_timeout: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.TIMEOUT)
         await self.send(our_ctrl.client, msg_timeout)
         await self.send(other_ctrl.client, msg_timeout)
+        our_ctrl.run(msg_timeout)
+        other_ctrl.run(msg_timeout)
 
         # change turns
         our_ctrl.state = GameState.OPPONENTS_TURN
