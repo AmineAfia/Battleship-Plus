@@ -164,6 +164,7 @@ class ServerLobbyController:
     async def handle_login(self, client: Client, msg: ProtocolMessage):
         params: Dict[str, Any] = msg.parameters
         answer: Optional[ProtocolMessage] = None
+
         if client.state is not ClientConnectionState.NOT_CONNECTED:
             answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
             self.print_client(client, "Client already logged in")
@@ -388,6 +389,7 @@ class ServerLobbyController:
         except BattleshipError as e:
             answer: ProtocolMessage = ProtocolMessage.create_error(e.error_code)
             await self.send(client, answer)
+            return
         except Exception as e:
             raise e
 
@@ -417,6 +419,7 @@ class ServerLobbyController:
         except BattleshipError as e:
             answer = ProtocolMessage.create_error(e.error_code)
             await self.send(client, answer)
+            return
         except Exception as e:
             raise e
 
