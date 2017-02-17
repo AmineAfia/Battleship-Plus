@@ -183,8 +183,8 @@ class GameController(GameLobbyData):
         self._start_time = time.time()
 
     def get_round_time(self):
-        if self._round_time > time.time() - self._start_time:
-            return round(self._round_time - time.time() - self._start_time, 0)
+        if self._round_time > int(round(time.time(), 0)) - int(round(self._start_time, 0)):
+            return round(self._round_time - (int(round(time.time(), 0)) - int(round(self._start_time, 0))), 0)
         else:
             return 0
 
