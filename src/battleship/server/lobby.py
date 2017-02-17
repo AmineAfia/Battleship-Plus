@@ -1,7 +1,7 @@
 from typing import Optional, Dict, List, Tuple, Any
 from .client import Client
 from common.constants import ErrorCode, GameOptions, EndGameReason
-from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig, NumShips
+from common.protocol import ProtocolMessage, ProtocolMessageType, ProtocolConfig, NumShips, Positions, Position, ShipPosition, ShipPositions
 from common.states import ClientConnectionState, GameState
 from common.GameController import GameController
 from random import randrange
@@ -31,7 +31,10 @@ class ServerLobbyController:
 
     async def remove_client(self, client: Client):
         await self.logout_user(client)
-        del self.clients[client.id]
+
+        # Might already have been removed by a concurrent call
+        if client.id in self.clients:
+            del self.clients[client.id]
 
     def login_user(self, username: str, client: Client) -> bool:
         if username not in self.users:
@@ -41,67 +44,72 @@ class ServerLobbyController:
             return False
 
     async def logout_user(self, client: Client):
-        if not client.state == ClientConnectionState.NOT_CONNECTED:
-            # we first delete the user, so they don't receive DELETE msgs and such
-            try:
-                client.state == ClientConnectionState.NOT_CONNECTED
-                del self.users[client.username]
-            except KeyError:
-                # then the user is already logged out
-                pass
 
-            # end all games of the user, according to their state
-            try:
-                our_ctrl: GameController = self.user_game_ctrl[client.username]
-            except KeyError:
-                # then there is no game associated with the user
-                return
+        # In this case the user is already logged out.
+        if client.state == ClientConnectionState.NOT_CONNECTED:
+            return
 
-            game_id: int = our_ctrl.game_id
+        # Immediately set the client to not connected to stop a concurrent call to logout_user.
+        client.state == ClientConnectionState.NOT_CONNECTED
 
-            if our_ctrl.state == GameState.IN_LOBBY:
-                await self.send_delete_game(game_id)
+        # We first delete the user, so they don't receive DELETE msgs and such.
+        # But they might already have been removed by a concurrent call.
+        if client.username in self.users:
+            del self.users[client.username]
 
-            elif our_ctrl.state in [GameState.WAITING, GameState.PLACE_SHIPS, GameState.YOUR_TURN, GameState.OPPONENTS_TURN]:
-                other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
-                await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.SERVER_CLOSED_CONNECTION, EndGameReason.SERVER_CLOSED_CONNECTION)
+        # End all games of the user, according to their state
+        if client.username in self.user_game_ctrl:
+            our_ctrl: GameController = self.user_game_ctrl[client.username]
 
-            else:
-                self.print_client(client, "Problem while deleting game: GameController is in an end state and should no longer exist")
+        # then there is no game associated with the user
+        else:
+            return
 
-            # if KeyError, then the stuff was already deleted in the call to end_game_with_reason
-            # TODO: resolve this
-            try:
-                del self.games[game_id]
-            except KeyError:
-                pass
+        game_id: int = our_ctrl.game_id
 
-            try:
-                del self.user_gid[client.username]
-            except KeyError:
-                pass
+        if our_ctrl.state == GameState.IN_LOBBY:
+            await self.send_delete_game(game_id)
 
-            try:
-                del self.user_game_ctrl[client.username]
-            except KeyError:
-                pass
+        elif our_ctrl.state in [GameState.WAITING, GameState.PLACE_SHIPS, GameState.YOUR_TURN, GameState.OPPONENTS_TURN]:
+            other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
+            await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.SERVER_CLOSED_CONNECTION, EndGameReason.SERVER_CLOSED_CONNECTION)
+
+        else:
+            self.print_client(client, "Problem while deleting game: GameController is in an end state and should no longer exist")
+
+        # All this might already be deleted in the call to end_game_with_reason
+        if game_id in self.games:
+            del self.games[game_id]
+
+        if client.username in self.user_gid:
+            del self.user_gid[client.username]
+
+        if client.username in self.user_game_ctrl:
+            del self.user_game_ctrl[client.username]
 
     def print_client(self, client: Client, text: str):
         print("  [{}] {}".format(client.id, text))
 
+    async def send(self, client, msg):
+        try:
+            await client.send(msg)
+        except ConnectionResetError:
+            # this client/user needs to be removed
+            await self.remove_client(client)
+
     async def msg_to_user(self, msg: ProtocolMessage, username: str):
-        await self.users[username].send(msg)
+        await self.send(self.users[username], msg)
 
     # send message to all logged in users
     async def msg_to_all(self, msg: ProtocolMessage):
-        for username, user in self.users.items():
-            await user.send(msg)
+        for username, client in self.users.items():
+            await self.send(client, msg)
 
     # send message to all logged in users but the one mentioned in the last parameter
     async def msg_to_all_but_one(self, msg: ProtocolMessage, except_username: str):
-        for username, user in self.users.items():
+        for username, client in self.users.items():
             if not username == except_username:
-                await user.send(msg)
+                await self.send(client, msg)
 
     async def send_delete_game(self, game_id: int):
         del_msg: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.DELETE_GAME, {"game_id": game_id})
@@ -112,7 +120,7 @@ class ServerLobbyController:
         # No other command is permitted if the client is not logged in
         if client.state is ClientConnectionState.NOT_CONNECTED and msg.type is not ProtocolMessageType.LOGIN:
             answer: ProtocolMessage = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_NOT_LOGGED_IN)
-            await client.send(answer)
+            await self.send(client, answer)
 
         elif msg.type == ProtocolMessageType.LOGIN:
             await self.handle_login(client, msg)
@@ -139,7 +147,7 @@ class ServerLobbyController:
         # all the following messages are only valid when playing
         elif not client.state == ClientConnectionState.PLAYING:
             answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_NOT_IN_GAME)
-            await client.send(answer)
+            await self.send(client, answer)
 
         elif msg.type == ProtocolMessageType.PLACE:
             await self.handle_place(client, msg)
@@ -156,6 +164,7 @@ class ServerLobbyController:
     async def handle_login(self, client: Client, msg: ProtocolMessage):
         params: Dict[str, Any] = msg.parameters
         answer: Optional[ProtocolMessage] = None
+
         if client.state is not ClientConnectionState.NOT_CONNECTED:
             answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
             self.print_client(client, "Client already logged in")
@@ -171,9 +180,10 @@ class ServerLobbyController:
                 self.users[client.username] = client
                 self.print_client(client, "Client successfully logged in with '{}'".format(client.username))
                 await self.send_games_to_user(client)
+
         if answer is not None:
             print("> [{}] {}".format(client.id, answer))
-            await answer.send(client.writer)
+            await self.send(client, answer)
 
     async def handle_logout(self, client: Client, msg: ProtocolMessage):
         await self.logout_user(client)
@@ -212,7 +222,7 @@ class ServerLobbyController:
 
         if answer is not None:
             print("> [{}] {}".format(client.id, answer))
-            await answer.send(client.writer)
+            await self.send(client, answer)
 
     async def handle_create_game(self, client: Client, msg: ProtocolMessage):
         game_id: int = ServerLobbyController.next_game_id
@@ -242,7 +252,7 @@ class ServerLobbyController:
             await self.send_delete_game(game_id)
         else:
             msg_error: ProtocolMessage = ProtocolMessage.create_error(ErrorCode.PARAMETER_UNKNOWN_GAME_ID)
-            await client.send(msg_error)
+            await self.send(client, msg_error)
 
     async def handle_get_games(self, client: Client, msg: ProtocolMessage):
         await self.send_games_to_user(client)
@@ -296,14 +306,14 @@ class ServerLobbyController:
             client1.state = ClientConnectionState.PLAYING
 
             # send startgame messages
-            await client.send(game_controller2.to_start_game_msg())
-            await client1.send(game_controller1.to_start_game_msg())
+            await self.send(client, game_controller2.to_start_game_msg())
+            await self.send(client1, game_controller1.to_start_game_msg())
 
             # inform the other users the game is no longer available
             await self.send_delete_game(game_id)
 
         if answer is not None:
-            await client.send(answer)
+            await self.send(client, answer)
 
     async def handle_place(self, client: Client, msg: ProtocolMessage):
         our_ctrl: GameController = self.user_game_ctrl[client.username]
@@ -314,14 +324,14 @@ class ServerLobbyController:
         except BattleshipError as e:
             # TODO: maybe check if it's not an internal error
             answer: ProtocolMessage = ProtocolMessage.create_error(e.error_code)
-            await client.send(answer)
+            await self.send(client, answer)
             return
         except Exception as e:
             raise e
 
         # notify the other
         msg_placed: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.PLACED)
-        await other_ctrl.client.send(msg_placed)
+        await self.send(other_ctrl.client, msg_placed)
 
         # if both are on waiting, the game can start
         if our_ctrl.state == GameState.WAITING and other_ctrl.state == GameState.WAITING:
@@ -331,13 +341,13 @@ class ServerLobbyController:
             (starting_ctrl, waiting_ctrl) = (our_ctrl, other_ctrl) if randrange(2) == 1 else (other_ctrl, our_ctrl)
 
             youstart: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.YOUSTART)
-            await starting_ctrl.client.send(youstart)
+            await self.send(starting_ctrl.client, youstart)
             starting_ctrl.state = GameState.YOUR_TURN
             starting_ctrl.timeout_counter = 0
             starting_ctrl.start_timeout(self.handle_timeout_wrapper)
 
             youwait: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.WAIT)
-            await waiting_ctrl.client.send(youwait)
+            await self.send(waiting_ctrl.client, youwait)
             waiting_ctrl.state = GameState.OPPONENTS_TURN
 
             # TODO: fix this, should be merged with state
@@ -359,20 +369,16 @@ class ServerLobbyController:
         del self.user_gid[our_ctrl.username]
         del self.user_gid[other_ctrl.username]
 
-        try:
+        # if this was called from logout, the user no longer exists
+        if our_ctrl.username in self.users:
             self.users[our_ctrl.username].state = ClientConnectionState.GAME_SELECTION
-        except KeyError:
-            # then this was called from logout, and the user no longer exists
-            pass
 
-        try:
+        # if this was called from logout, the user no longer exists
+        if other_ctrl.username in self.users:
             self.users[other_ctrl.username].state = ClientConnectionState.GAME_SELECTION
-        except KeyError:
-            # then this was called from logout, and the user no longer exists
-            pass
 
-        await other_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": other_reason}))
-        await our_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": our_reason}))
+        await self.send(other_ctrl.client, ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": other_reason}))
+        await self.send(our_ctrl.client, ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": our_reason}))
 
     async def handle_move(self, client: Client, msg: ProtocolMessage):
         our_ctrl: GameController = self.user_game_ctrl[client.username]
@@ -382,7 +388,8 @@ class ServerLobbyController:
             positions: Positions = our_ctrl.run(msg)
         except BattleshipError as e:
             answer: ProtocolMessage = ProtocolMessage.create_error(e.error_code)
-            await client.send(answer)
+            await self.send(client, answer)
+            return
         except Exception as e:
             raise e
 
@@ -398,8 +405,8 @@ class ServerLobbyController:
         if not len(positions.positions) == 0:
             params["positions"] = positions
         msg_moved: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.MOVED, params)
-        await other_ctrl.client.send(msg_moved)
-        await our_ctrl.client.send(msg_moved)
+        await self.send(other_ctrl.client, msg_moved)
+        await self.send(our_ctrl.client, msg_moved)
 
         other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -411,7 +418,8 @@ class ServerLobbyController:
             hit: bool = other_ctrl.run(msg)
         except BattleshipError as e:
             answer = ProtocolMessage.create_error(e.error_code)
-            await client.send(answer)
+            await self.send(client, answer)
+            return
         except Exception as e:
             raise e
 
@@ -421,8 +429,8 @@ class ServerLobbyController:
         if hit:
             sunk: bool = other_ctrl.ship_sunk_at_pos(msg.parameters["position"].horizontal, msg.parameters["position"].vertical)
             msg_hit: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.HIT, {"sunk": sunk, "position": msg.parameters["position"]})
-            await other_ctrl.client.send(msg_hit)
-            await our_ctrl.client.send(msg_hit)
+            await self.send(other_ctrl.client, msg_hit)
+            await self.send(our_ctrl.client, msg_hit)
 
             other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -435,8 +443,8 @@ class ServerLobbyController:
             other_ctrl.state = GameState.YOUR_TURN
 
             msg_fail: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.FAIL, {"position": msg.parameters["position"]})
-            await other_ctrl.client.send(msg_fail)
-            await our_ctrl.client.send(msg_fail)
+            await self.send(other_ctrl.client, msg_fail)
+            await self.send(our_ctrl.client, msg_fail)
 
             other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -454,8 +462,8 @@ class ServerLobbyController:
             return
 
         msg_timeout: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.TIMEOUT)
-        await our_ctrl.client.send(msg_timeout)
-        await other_ctrl.client.send(msg_timeout)
+        await self.send(our_ctrl.client, msg_timeout)
+        await self.send(other_ctrl.client, msg_timeout)
 
         # change turns
         our_ctrl.state = GameState.OPPONENTS_TURN
@@ -467,10 +475,11 @@ class ServerLobbyController:
         # TODO: the type annotation Any can be more exact
         repeating_parameters: List[Any] = []
         for game_id, (game_controller1, game_controller2) in self.games.items():
-            parameters = {"game_id": game_id, "username": game_controller1.username, "board_size": game_controller1.length,
-                          "num_ships": NumShips(game_controller1.ships), "round_time": game_controller1.round_time,
-                          "options": game_controller1.options}
-            repeating_parameters.append(parameters)
+            if game_controller1.state == GameState.IN_LOBBY:
+                parameters = {"game_id": game_id, "username": game_controller1.username, "board_size": game_controller1.length,
+                              "num_ships": NumShips(game_controller1.ships), "round_time": game_controller1.round_time,
+                              "options": game_controller1.options}
+                repeating_parameters.append(parameters)
         # TODO: remove dummy game
         #dummy = {"game_id": 42, "username": "foo", "board_size": 10,
         #         "num_ships": NumShips([1,2,3,4,5]), "round_time": 25,
@@ -481,4 +490,4 @@ class ServerLobbyController:
         #repeating_parameters.append(dummy)
         #repeating_parameters.append(dummy2)
         msg: ProtocolMessage = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
-        await client.send(msg)
+        await self.send(client, msg)
