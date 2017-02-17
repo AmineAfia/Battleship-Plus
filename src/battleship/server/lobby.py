@@ -266,6 +266,8 @@ class ServerLobbyController:
             await client.send(game_controller2.to_start_game_msg())
             await client1.send(game_controller1.to_start_game_msg())
 
+            # inform the other users the game is no longer available
+            await self.send_delete_game(game_id)
 
         if answer is not None:
             await client.send(answer)
