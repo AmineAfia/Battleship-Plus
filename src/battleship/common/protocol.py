@@ -160,6 +160,9 @@ class Positions:
                 return False
         return True
 
+    def __len__(self):
+        return len(self.positions)
+
     def to_bytes(self) -> bytes:
         b: bytes = b''
         for position in self.positions:
@@ -235,6 +238,9 @@ class ShipPositions:
                 if not position == other.positions[i]:
                     return False
             return True
+
+    def __len__(self):
+        return len(self.positions)
 
     def to_bytes(self) -> bytes:
         b: bytes = b''
