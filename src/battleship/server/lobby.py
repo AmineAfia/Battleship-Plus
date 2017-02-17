@@ -376,18 +376,8 @@ class ServerLobbyController:
         if other_ctrl.username in self.users:
             self.users[other_ctrl.username].state = ClientConnectionState.GAME_SELECTION
 
-        # TODO: here.
-        try:
-            await other_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": other_reason}))
-        except ConnectionResetError:
-            # rage quits should not kill the server
-            pass
-
-        try:
-            await our_ctrl.client.send(ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": our_reason}))
-        except ConnectionResetError:
-            # rage quits should not kill the server
-            pass
+        await self.send(other_ctrl.client, ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": other_reason}))
+        await self.send(our_ctrl.client, ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": our_reason}))
 
     async def handle_move(self, client: Client, msg: ProtocolMessage):
         our_ctrl: GameController = self.user_game_ctrl[client.username]
@@ -397,7 +387,7 @@ class ServerLobbyController:
             positions: Positions = our_ctrl.run(msg)
         except BattleshipError as e:
             answer: ProtocolMessage = ProtocolMessage.create_error(e.error_code)
-            await client.send(answer)
+            await self.send(client, answer)
         except Exception as e:
             raise e
 
@@ -413,8 +403,8 @@ class ServerLobbyController:
         if not len(positions.positions) == 0:
             params["positions"] = positions
         msg_moved: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.MOVED, params)
-        await other_ctrl.client.send(msg_moved)
-        await our_ctrl.client.send(msg_moved)
+        await self.send(other_ctrl.client, msg_moved)
+        await self.send(our_ctrl.client, msg_moved)
 
         other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -426,7 +416,7 @@ class ServerLobbyController:
             hit: bool = other_ctrl.run(msg)
         except BattleshipError as e:
             answer = ProtocolMessage.create_error(e.error_code)
-            await client.send(answer)
+            await self.send(client, answer)
         except Exception as e:
             raise e
 
@@ -436,8 +426,8 @@ class ServerLobbyController:
         if hit:
             sunk: bool = other_ctrl.ship_sunk_at_pos(msg.parameters["position"].horizontal, msg.parameters["position"].vertical)
             msg_hit: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.HIT, {"sunk": sunk, "position": msg.parameters["position"]})
-            await other_ctrl.client.send(msg_hit)
-            await our_ctrl.client.send(msg_hit)
+            await self.send(other_ctrl.client, msg_hit)
+            await self.send(our_ctrl.client, msg_hit)
 
             other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -450,8 +440,8 @@ class ServerLobbyController:
             other_ctrl.state = GameState.YOUR_TURN
 
             msg_fail: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.FAIL, {"position": msg.parameters["position"]})
-            await other_ctrl.client.send(msg_fail)
-            await our_ctrl.client.send(msg_fail)
+            await self.send(other_ctrl.client, msg_fail)
+            await self.send(our_ctrl.client, msg_fail)
 
             other_ctrl.start_timeout(self.handle_timeout_wrapper)
 
@@ -469,8 +459,8 @@ class ServerLobbyController:
             return
 
         msg_timeout: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.TIMEOUT)
-        await our_ctrl.client.send(msg_timeout)
-        await other_ctrl.client.send(msg_timeout)
+        await self.send(our_ctrl.client, msg_timeout)
+        await self.send(other_ctrl.client, msg_timeout)
 
         # change turns
         our_ctrl.state = GameState.OPPONENTS_TURN
@@ -496,4 +486,4 @@ class ServerLobbyController:
         #repeating_parameters.append(dummy)
         #repeating_parameters.append(dummy2)
         msg: ProtocolMessage = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
-        await client.send(msg)
+        await self.send(client, msg)
