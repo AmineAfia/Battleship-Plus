@@ -47,8 +47,10 @@ def main():
             await lobby_controller.handle_hit(msg)
         elif msg.type == ProtocolMessageType.WAIT:
             await lobby_controller.handle_wait(msg)
-        elif msg.type == ProtocolMessageType.JOIN:
-            await lobby_controller.send_join(msg)
+        elif msg.type == ProtocolMessageType.YOUSTART:
+            await lobby_controller.handle_youstart(msg)
+        # elif msg.type == ProtocolMessageType.JOIN:
+        #     await lobby_controller.send_join(msg)
         # TODO: add the other types
         else:
             pass
@@ -81,7 +83,6 @@ def main():
         # TODO: is this foo nedded in waiting_main?
         go_to_game.waiting_main("")
 
-    # TODO: was esc pressed?
     join_battle = Join(game_controller, lobby_controller, loop)
     join_battle.join_main()
 

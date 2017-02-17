@@ -226,7 +226,7 @@ class Join:
         # the ships are placed, we know this only when a WAIT or YOUSTART arrives
         # TODO.
         else:
-            # ok, we are logged in
+            # ok, we are ready
             self.game_controller.start_game()
             raise urwid.ExitMainLoop()
 

@@ -6,7 +6,7 @@ from ..common.Chat import Chat
 from .result import Result
 from common.GameController import GameController
 from common.constants import Orientation
-
+from common.protocol import ProtocolMessageType
 
 class ShipsList:
     # list of ships from each type
@@ -92,10 +92,14 @@ class ShootingCell(urwid.PopUpLauncher):
         #print("({}, {})".format(self.x_pos, self.y_pos))
         try:
             self.game_controller.shoot(self.x_pos, self.y_pos)
-            button.set_label("X")
+            shoot_task = self.loop.create_task(self.game_controller.run(ProtocolMessageType.SHOOT))
+            shoot_task.add_done_callback(self.set_label_after_shoot(button))
         except Exception as e:
             # TODO show a clear message of the failed shoot
             print(e)
+
+    def set_label_after_shoot(self, button):
+        button.set_label("X")
 
 
 class Battle:
@@ -110,6 +114,17 @@ class Battle:
         self.shoot_button_list = []
         self.chat = Chat(self.loop, self.lobby_controller)
         self.placed_ships = game_controller.get_all_ships_coordinates()
+        self.lobby_controller.ui_wait_callback = self.you_wait
+        self.lobby_controller.ui_youstart_callback = self.you_play
+        self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
+
+    def you_wait(self):
+        self.turn.contents.clear()
+        self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Opponent Turn')), 'notturn'), self.turn.options()))
+
+    def you_play(self):
+        self.turn.contents.clear()
+        self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Your Turn')), 'turn'), self.turn.options()))
 
     def unhandled(self, key):
         if key == 'esc':
@@ -122,10 +137,14 @@ class Battle:
         def foward_result(foo):
             try:
                 self.game_controller.abort()
-                self.win(foo)
-                raise urwid.ExitMainLoop()
+                abort_task = self.loop.create_task(self.game_controller.run(ProtocolMessageType.ABORT))
+                abort_task.add_done_callback(self.show_end_screen(foo))
             except Exception as e:
                 print(e)
+
+        def show_end_screen(self, foo):
+            self.win(foo)
+            raise urwid.ExitMainLoop()
 
         # function to move ships
         def move(self):
@@ -198,7 +217,7 @@ class Battle:
             urwid.Columns([
                 urwid.Padding(urwid.Text("Opponent field"), left=2, right=0, min_width=20),
                 urwid.Pile([urwid.Text("Your field")]),
-                urwid.LineBox(urwid.Button('Abort', on_press=foward_result)),
+                self.turn,
             ], 2),
             blank,
             urwid.Columns([
@@ -207,6 +226,12 @@ class Battle:
                 self.chat.render_chat(),
             ], 2),
             blank,
+            urwid.Columns([
+                urwid.Text(""),
+                urwid.Text(""),
+                urwid.LineBox(urwid.Button('Abort', on_press=foward_result)),
+            ], 2),
+
             urwid.Button(str(self.placed_ships))
         ]
 
@@ -219,7 +244,8 @@ class Battle:
             ('miss', 'black', 'black', ''),
             ('untouched', 'white', 'black', ''),
             ('body', 'white', 'black', 'standout'),
-            ('reverse', 'light gray', 'black'),
+            ('turn', 'dark blue', 'black'),
+            ('notturn', 'dark red', 'black'),
             ('header', 'white', 'dark red', 'bold'),
             ('important', 'dark blue', 'light gray', ('standout', 'underline')),
             ('editfc', 'white', 'dark blue', 'bold'),

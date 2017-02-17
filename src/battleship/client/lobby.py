@@ -120,10 +120,12 @@ class ClientLobbyController:
         pass
 
     async def handle_youstart(self, msg):
-        pass
+        self.game_controller.run(msg)
+        self.ui_youstart_callback()
 
     async def handle_wait(self, msg):
-        pass
+        self.game_controller.run(msg)
+        self.ui_wait_callback()
 
     async def handle_hit(self, msg):
         pass
