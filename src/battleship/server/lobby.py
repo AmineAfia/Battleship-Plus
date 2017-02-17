@@ -69,9 +69,22 @@ class ServerLobbyController:
             else:
                 self.print_client(client, "Problem while deleting game: GameController is in an end state and should no longer exist")
 
-            del self.games[game_id]
-            del self.user_gid[client.username]
-            del self.user_game_ctrl[client.username]
+            # if KeyError, then the stuff was already deleted in the call to end_game_with_reason
+            # TODO: resolve this
+            try:
+                del self.games[game_id]
+            except KeyError:
+                pass
+
+            try:
+                del self.user_gid[client.username]
+            except KeyError:
+                pass
+
+            try:
+                del self.user_game_ctrl[client.username]
+            except KeyError:
+                pass
 
     def print_client(self, client: Client, text: str):
         print("  [{}] {}".format(client.id, text))
@@ -348,6 +361,11 @@ class ServerLobbyController:
 
         try:
             self.users[our_ctrl.username].state = ClientConnectionState.GAME_SELECTION
+        except KeyError:
+            # then this was called from logout, and the user no longer exists
+            pass
+
+        try:
             self.users[other_ctrl.username].state = ClientConnectionState.GAME_SELECTION
         except KeyError:
             # then this was called from logout, and the user no longer exists
