@@ -83,7 +83,6 @@ class PopUpDialog(urwid.WidgetWrap):
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
     def move_ship(self, direction):
-
         try:
             shoot_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
             # shoot_task.add_done_callback(self.set_label_after_shoot(button))
@@ -137,7 +136,6 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
                         ShipsList.ship_buttons_dic[(self.x_pos + i, self.y_pos+1)].cell.set_label("_")
 
 
-
 class ShootingCell(urwid.PopUpLauncher):
     def __init__(self, x_pos, y_pos, game_controller, lobby_controller, loop):
         self.x_pos = x_pos
@@ -152,14 +150,15 @@ class ShootingCell(urwid.PopUpLauncher):
     def shoot(self, button):
         #print("({}, {})".format(self.x_pos, self.y_pos))
         try:
-            self.game_controller.shoot(self.y_pos, self.x_pos)
+            # switched to follow RFC
+            self.game_controller.shoot(self.x_pos, self.y_pos)
         except Exception as e:
             # TODO show a clear message of the illegale shoot
             #print("shoot sagt: {}".format(type(e)))
             print(e)
 
         try:
-            shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.y_pos, self.x_pos))
+            shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.x_pos, self.y_pos))
             # shoot_task.add_done_callback(self.set_label_after_shoot(button))
             shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
         except Exception as e:

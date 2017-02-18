@@ -73,21 +73,21 @@ class PopUpDialog(urwid.WidgetWrap):
         self.button_with_pop_up = button_with_pop_up
         self.x_pos = x_pos
         self.y_pos = y_pos
-        self.h_button = urwid.Button("East")
-        self.v_button = urwid.Button("North")
+        self.east_button = urwid.Button("East")
+        self.north_button = urwid.Button("North")
         self.self_exit_button = urwid.Button("Exit")
 
         # connect direction buttons to set the orientation
         urwid.connect_signal(self.self_exit_button, 'click',
                              lambda button: self._emit("close"))
 
-        urwid.connect_signal(self.h_button, 'click',
+        urwid.connect_signal(self.east_button, 'click',
                              lambda button: self.set_ship_position(Orientation.EAST))
 
-        urwid.connect_signal(self.v_button, 'click',
+        urwid.connect_signal(self.north_button, 'click',
                              lambda button: self.set_ship_position(Orientation.NORTH))
 
-        orientation_pile = urwid.LineBox(urwid.Pile([self.self_exit_button, urwid.Columns([self.h_button, self.v_button], 2)]), 'Direction')
+        orientation_pile = urwid.LineBox(urwid.Pile([self.self_exit_button, urwid.Columns([self.east_button, self.north_button], 2)]), 'Direction')
         # TODO: change buttons to radio buttons
         ships_pile = urwid.LineBox(ShipsList.info_pile_3, 'Ships')
 
@@ -109,6 +109,7 @@ class PopUpDialog(urwid.WidgetWrap):
         ShipsList.ship_x_pos = self.x_pos
         ShipsList.ship_y_pos = self.y_pos
         self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length, ShipsList.ship_type)
+        # switched x an y to follow the RFC
         self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, orientation)
 
         for ship_type_button in ShipsList.ships_categories_place:
