@@ -118,9 +118,13 @@ class ServerLobbyController:
 
     async def handle_msg(self, client: Client, msg: ProtocolMessage):
 
+        if msg.missing_or_unkown_param:
+            answer: ProtocolMessage = ProtocolMessage.create_error(ErrorCode.SYNTAX_MISSING_OR_UNKNOWN_PARAMETER)
+            await self.send(client, answer)
+
         # No other command is permitted if the client is not logged in
-        if client.state is ClientConnectionState.NOT_CONNECTED and msg.type is not ProtocolMessageType.LOGIN:
-            answer: ProtocolMessage = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_NOT_LOGGED_IN)
+        elif client.state is ClientConnectionState.NOT_CONNECTED and msg.type is not ProtocolMessageType.LOGIN:
+            answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_NOT_LOGGED_IN)
             await self.send(client, answer)
 
         elif msg.type == ProtocolMessageType.LOGIN:
@@ -230,7 +234,7 @@ class ServerLobbyController:
         if client.state in [ClientConnectionState.GAME_CREATED, ClientConnectionState.PLAYING]:
             # TODO: in the case of GAME_CREATED, this is more or less in line with the RFC
             # TODO: in the case of PLAYING, a better error code would be nice
-            msg_error = ProtocolMessageType.create_error(ErrorCode.ILLEGAL_STATE_NUMBER_OF_GAMES_LIMIT_EXCEEDED)
+            msg_error = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_NUMBER_OF_GAMES_LIMIT_EXCEEDED)
             await self.send(client, msg_error)
             return
 

@@ -384,6 +384,8 @@ ProtocolMessageParameters: Dict[ProtocolMessageType, List[ProtocolField]] = {
     ProtocolMessageType.ERROR: [_field_error_code]
 }
 
+ProtocolMessageParametersFieldNames: Dict[ProtocolMessageType, List[str]] = {msg_type: [field.name for field in fields] for msg_type, fields in ProtocolMessageParameters.items()}
+
 ProtocolMessageRepeatingTypes: List[ProtocolMessageType] = [ProtocolMessageType.GAMES]
 
 
@@ -395,6 +397,7 @@ class ProtocolMessage:
             self.repeating_parameters: List[Dict[str, Any]] = []
         else:
             self.repeating_parameters: List[Dict[str, Any]] = repeating_parameters
+        self.missing_or_unkown_param: bool = False
 
     @classmethod
     def create_repeating(cls, msg_type: ProtocolMessageType, repeating_parameters: List[Dict[str, Any]]):
@@ -476,10 +479,21 @@ class ProtocolMessage:
         return self.repeating_parameters[0]
 
     def append_parameters(self, parameters: dict) -> None:
+        self.check_parameters(parameters)
         if len(self.repeating_parameters) == 1 and self.repeating_parameters[0] == {}:
             self.repeating_parameters[0] = parameters
         else:
             self.repeating_parameters.append(parameters)
+
+    def check_parameters(self, parameters: dict):
+        for field in ProtocolMessageParameters[self.type]:
+            if not field.optional and not field.name in parameters:
+                self.missing_or_unkown_param = True
+                return
+        for param in parameters:
+            if not param in ProtocolMessageParametersFieldNames[self.type]:
+                self.missing_or_unkown_param = True
+                return
 
     async def send(self, writer) -> None:
 
