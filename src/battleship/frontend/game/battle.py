@@ -9,7 +9,7 @@ from ..common.StaticScreens import Screen
 from ..common.Chat import Chat
 from .result import Result
 from common.GameController import GameController
-from common.constants import Orientation, EndGameReason
+from common.constants import Orientation, EndGameReason, Direction
 from common.protocol import ProtocolMessageType, Position
 from common.states import GameState
 from common.errorHandler.BattleshipError import BattleshipError
@@ -47,7 +47,7 @@ class PopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with North, South, West and East buttons """
     signals = ['close']
 
-    def __init__(self, button_with_pop_up, x_pos, y_pos, game_controller):
+    def __init__(self, button_with_pop_up, x_pos, y_pos, game_controller, lobby_controller):
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.button_with_pop_up = button_with_pop_up
@@ -56,6 +56,7 @@ class PopUpDialog(urwid.WidgetWrap):
         self.w_button = urwid.Button("West")
         self.e_button = urwid.Button("East")
         self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
         self.ship_id = self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos)
         self.ship_type = self.game_controller.get_ship_type_by_id(self.ship_id)
         self.ship_orientation = self.game_controller.get_ship_orientation_by_id(self.ship_id)
@@ -65,23 +66,46 @@ class PopUpDialog(urwid.WidgetWrap):
                              lambda button: self._emit("close"))
 
         urwid.connect_signal(self.n_button, 'click',
-                             lambda button: self.move_ship())
+                             lambda button: self.move_ship(Direction.NORTH))
+
+
+        urwid.connect_signal(self.s_button, 'click',
+                             lambda button: self.move_ship(Direction.SOUTH))
+
+        urwid.connect_signal(self.e_button, 'click',
+                             lambda button: self.move_ship(Direction.EAST))
+
+        urwid.connect_signal(self.w_button, 'click',
+                             lambda button: self.move_ship(Direction.WEST))
 
         pile = urwid.Pile([self.n_button, urwid.Columns([self.w_button, self.e_button], 2), self.s_button])
         fill = urwid.Filler(pile)
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
-    def move_ship(self):
-        self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type)
+    def move_ship(self, direction):
+
+        try:
+            shoot_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
+            # shoot_task.add_done_callback(self.set_label_after_shoot(button))
+            shoot_task.add_done_callback(self.passing_callback)
+        except Exception as e:
+            # TODO show a clear message of the failed shoot
+            #print("shoot sagt: {}".format(type(e)))
+            print(e)
+
+        #self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type)
+
+    def passing_callback(self):
         self._emit("close")
 
 
 
 class ButtonWithAPopUp(urwid.PopUpLauncher):
-    def __init__(self, x_pos, y_pos, game_controller):
+    def __init__(self, x_pos, y_pos, game_controller, lobby_controller):
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.game_controller = game_controller
+        self.lobby_controller = lobby_controller
         #self.cell = urwid.Button("({}, {})".format(self.x_pos, y_pos))
         self.cell = urwid.Button("_")
         super().__init__(self.cell)
@@ -91,7 +115,7 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
                                 lambda button: self.open_pop_up())
 
     def create_pop_up(self):
-        pop_up = PopUpDialog(self, self.x_pos, self.y_pos, self.game_controller)
+        pop_up = PopUpDialog(self, self.x_pos, self.y_pos, self.game_controller, self.lobby_controller)
         urwid.connect_signal(pop_up, 'close',
                              lambda button: self.close_pop_up())
         return pop_up
@@ -271,7 +295,7 @@ class Battle:
         ship_f = []
         for y_pos in range(field_offset):
             for x_pos in range(field_offset):
-                ship_cell = ButtonWithAPopUp(x_pos, y_pos, self.game_controller)
+                ship_cell = ButtonWithAPopUp(x_pos, y_pos, self.game_controller, self.lobby_controller)
                 # if (y_pos, x_pos) in self.placed_ships:
                 #     ship_cell.cell.set_label("@")
                 # else:

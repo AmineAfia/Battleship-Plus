@@ -532,3 +532,6 @@ class GameController(GameLobbyData):
 
     def get_shoot_msg(self, x_pos, y_pos):
         return ProtocolMessage.create_single(ProtocolMessageType.SHOOT, {"position": Position(y_pos, x_pos), "turn_counter": self.turn_counter})
+
+    def get_move_msg(self, ship_id, direction):
+        return  ProtocolMessage.create_single(ProtocolMessageType.MOVE, {"ship_id": ship_id, "direction": direction, "turn_counter": self.turn_counter})
