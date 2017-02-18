@@ -72,6 +72,7 @@ class ServerLobbyController:
 
         elif our_ctrl.state in [GameState.WAITING, GameState.PLACE_SHIPS, GameState.YOUR_TURN, GameState.OPPONENTS_TURN]:
             other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
+            # TODO: really send SERVER_CLOSED_CONNECTION?
             await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.SERVER_CLOSED_CONNECTION, EndGameReason.SERVER_CLOSED_CONNECTION)
 
         else:
@@ -357,7 +358,7 @@ class ServerLobbyController:
     async def handle_abort(self, client: Client, msg: ProtocolMessage):
         our_ctrl: GameController = self.user_game_ctrl[client.username]
         other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
-        await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.OPPONENT_ABORT, EndGameReason.OPPONENT_ABORT)
+        await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.OTHER, EndGameReason.OPPONENT_ABORT)
 
     async def end_game_with_reason(self, our_ctrl: GameController, other_ctrl: GameController, our_reason: EndGameReason, other_reason: EndGameReason):
         our_ctrl.cancel_timeout()
@@ -468,6 +469,7 @@ class ServerLobbyController:
         our_ctrl.timeout_counter += 1
 
         if our_ctrl.timeout_counter >= 3:
+            # TODO: really send OPPONENT_WON?
             await self.end_game_with_reason(our_ctrl, other_ctrl, EndGameReason.OPPONENT_WON, EndGameReason.OPPONENT_TIMEOUT)
             return
 
