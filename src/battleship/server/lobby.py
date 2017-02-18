@@ -146,6 +146,7 @@ class ServerLobbyController:
         elif msg.type == ProtocolMessageType.CANCEL:
             await self.handle_cancel(client, msg)
 
+        # handle_join handles the case that they created a game themselves
         elif msg.type == ProtocolMessageType.JOIN:
             await self.handle_join(client, msg)
 
@@ -275,8 +276,12 @@ class ServerLobbyController:
 
         game_id: int = msg.parameters["game_id"]
 
+        if not client.state == ClientConnectionState.GAME_SELECTION:
+            # TODO: this is not really the right error message, but… there is no other
+            answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_GAME_ALREADY_STARTED)
+
         # there is no available game with the specified game_ID (error code 104)
-        if not game_id in self.games.keys():
+        elif not game_id in self.games.keys():
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_UNKNOWN_GAME_ID)
 
         # the message lacks the password parameter although a password is required (error code 105)
