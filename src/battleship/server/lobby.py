@@ -226,6 +226,14 @@ class ServerLobbyController:
             await self.send(client, answer)
 
     async def handle_create_game(self, client: Client, msg: ProtocolMessage):
+
+        if client.state in [ClientConnectionState.GAME_CREATED, ClientConnectionState.PLAYING]:
+            # TODO: in the case of GAME_CREATED, this is more or less in line with the RFC
+            # TODO: in the case of PLAYING, a better error code would be nice
+            msg_error = ProtocolMessageType.create_error(ErrorCode.ILLEGAL_STATE_NUMBER_OF_GAMES_LIMIT_EXCEEDED)
+            await self.send(client, msg_error)
+            return
+
         game_id: int = ServerLobbyController.next_game_id
         ServerLobbyController.next_game_id += 1
 
