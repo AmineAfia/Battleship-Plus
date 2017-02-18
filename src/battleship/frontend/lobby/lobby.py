@@ -68,7 +68,7 @@ class Lobby(urwid.GridFlow):
 
     def game_callback(self, game):
         try:
-            self.games_pile_gridflow.contents.append((urwid.Button(str(game.params_as_list()), on_press=self.go_to_join_the_game), self.games_pile_gridflow.options()))
+            self.games_pile_gridflow.contents.append((urwid.Button(str(game.params_as_list()), on_press=self.go_to_join_the_game, user_data=game.params_as_list()), self.games_pile_gridflow.options()))
             self.game_ids.append(game.game_id)
         except Exception as e:
             print(type(e))
