@@ -139,17 +139,23 @@ class ClientLobbyController:
 
     async def handle_hit(self, msg):
         self.game_controller.run(msg)
-        self.ui_hit_callback()
+        sunk = msg.parameters["sunk"]
+        position = msg.parameters["position"]
+        print("handle hit")
+        self.ui_hit_callback(sunk, position)
 
     async def handle_fail(self, msg):
         self.game_controller.run(msg)
-        self.ui_fail_callback()
+        position = msg.parameters["position"]
+        print("handle fail")
+        self.ui_fail_callback(position)
 
     async def handle_moved(self, msg):
         pass
 
     async def handle_start_game(self, msg):
-        pass
+        self.game_controller.run(msg)
+        self.ui_start_game_callback()
 
     async def handle_placed(self, msg):
         pass

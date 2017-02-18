@@ -109,7 +109,7 @@ class PopUpDialog(urwid.WidgetWrap):
         ShipsList.ship_x_pos = self.x_pos
         ShipsList.ship_y_pos = self.y_pos
         self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length, ShipsList.ship_type)
-        self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, ShipsList.ship_orientation)
+        self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, orientation)
 
         for ship_type_button in ShipsList.ships_categories_place:
             urwid.connect_signal(ship_type_button, 'click', lambda ship: self.set_ship_type_to_place(ship.get_label()))

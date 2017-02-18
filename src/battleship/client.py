@@ -53,6 +53,9 @@ def main():
             await lobby_controller.handle_timeout(msg)
         elif msg.type == ProtocolMessageType.FAIL:
             await lobby_controller.handle_fail(msg)
+        # elif msg.type == ProtocolMessageType.STARTGAME:
+        #     await lobby_controller.handle_start_game(msg)
+
         # TODO: add the other types
         else:
             pass

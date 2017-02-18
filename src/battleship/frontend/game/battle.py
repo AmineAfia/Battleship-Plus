@@ -10,7 +10,7 @@ from ..common.Chat import Chat
 from .result import Result
 from common.GameController import GameController
 from common.constants import Orientation
-from common.protocol import ProtocolMessageType
+from common.protocol import ProtocolMessageType, Position
 from common.states import GameState
 
 class ShipsList:
@@ -27,13 +27,6 @@ class ShipsList:
     # distionary with all cells and positions
     ship_buttons_dic = {}
 
-    # parameters to place a ship
-    ship_id = None
-    ship_type = None
-    ship_length = None
-    ship_orientation = None
-    ship_x_pos = None
-    ship_y_pos = None
     # Variables for UI
     ships_list = []
     info_pile = None
@@ -74,7 +67,7 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         self.cell = urwid.Button("_")
         super().__init__(self.cell)
 
-        if (y_pos, x_pos) in self.game_controller.get_all_ships_coordinates():
+        if (x_pos, y_pos) in self.game_controller.get_all_ships_coordinates():
             urwid.connect_signal(self.original_widget, 'click',
                                 lambda button: self.open_pop_up())
 
@@ -96,12 +89,13 @@ class ShootingCell(urwid.PopUpLauncher):
         self.lobby_controller = lobby_controller
         self.loop = loop
         super().__init__(urwid.Button("."))
+        #super().__init__(urwid.Button("({}, {})".format(self.x_pos, self.y_pos)))
         urwid.connect_signal(self.original_widget, 'click', lambda button: self.shoot(button))
 
     def shoot(self, button):
         #print("({}, {})".format(self.x_pos, self.y_pos))
         try:
-            self.game_controller.shoot(self.x_pos, self.y_pos)
+            self.game_controller.shoot(self.y_pos, self.x_pos)
             shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.y_pos, self.x_pos))
             # shoot_task.add_done_callback(self.set_label_after_shoot(button))
             shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
@@ -136,8 +130,8 @@ class Battle:
         self.lobby_controller.ui_wait_callback = self.you_wait
         self.lobby_controller.ui_youstart_callback = self.you_play
         self.lobby_controller.ui_timeout_callback = self.change_player
-        self.lobby_controller.ui_fail_callback = self.change_player
-        self.lobby_controller.ui_hit_callback = self.strike
+        self.lobby_controller.ui_fail_callback = self.show_fail_position
+        self.lobby_controller.ui_hit_callback = self.hit_strike
 
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
@@ -167,11 +161,20 @@ class Battle:
         self.round_time_pile.contents.append((urwid.Text("Time: {}".format(str(self.game_controller.get_round_time()))), self.round_time_pile.options()))
         threading.Timer(2, self.periodic_round_time_getter).start()
 
-    def strike(self):
-        # try:
-        #     self.game_controller.strike()
+    def hit_strike(self, sunk: bool, position: Position):
+        print("in hit strike")
+        # self.game_controller.strike(position.horizontal, position.vertical)
         if self.game_controller.game_state == GameState.OPPONENTS_TURN:
-            ShipsList.ship_buttons_dic[self.game_controller.last_shot].cell.set_label("X")
+            ShipsList.ship_buttons_dic[position.vertical, position.horizontal].cell.set_label("X")
+
+    def fail_strike(self, position: Position):
+        print("in fail strike")
+        if self.game_controller.game_state == GameState.YOUR_TURN:
+            ShipsList.ship_buttons_dic[position.vertical, position.horizontal].cell.set_label("X")
+
+    def show_fail_position(self, position: Position):
+        self.fail_strike(position)
+        self.change_player()
 
     def unhandled(self, key):
         if key == 'esc':
@@ -227,7 +230,7 @@ class Battle:
                 # else:
                 #     ship_cell = urwid.Button("_")
                 ship_button_list.append(ship_cell)
-                ShipsList.ship_buttons_dic[x_pos, y_pos] = ship_cell
+                ShipsList.ship_buttons_dic[y_pos, x_pos] = ship_cell
 
             ship_zeil = urwid.GridFlow(ship_button_list, 1, 1, 0, 'center')
             ship_f.append(ship_zeil)
@@ -239,19 +242,22 @@ class Battle:
                 if (x_pos_1, y_pos_2) in self.placed_ships:
                     ship_id = self.game_controller.get_ship_id_from_location(x_pos_1, y_pos_2)
                     ship_type = self.game_controller.get_ship_type_by_id(ship_id)
+
                     if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
                         for s in range(ShipsList.length_dictionary[ship_type]):
-                            ShipsList.ship_buttons_dic[y_pos_2+s, x_pos_1].cell.set_label("@")
+                            ShipsList.ship_buttons_dic[x_pos_1, y_pos_2+s].cell.set_label("@")
+
                     elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                         for s in range(ShipsList.length_dictionary[ship_type]):
-                            ShipsList.ship_buttons_dic[y_pos_2, x_pos_1+s].cell.set_label("@")
+                            ShipsList.ship_buttons_dic[x_pos_1+s, y_pos_2].cell.set_label("@")
+
                     if ship_type == "carrier":
                         if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
                             for s in range(ShipsList.length_dictionary[ship_type]):
-                                ShipsList.ship_buttons_dic[y_pos_2+s, x_pos_1+1].cell.set_label("@")
+                                ShipsList.ship_buttons_dic[x_pos_1+1, y_pos_2+s].cell.set_label("@")
                         elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                             for s in range(ShipsList.length_dictionary[ship_type]):
-                                ShipsList.ship_buttons_dic[y_pos_2+1, x_pos_1+s].cell.set_label("@")
+                                ShipsList.ship_buttons_dic[x_pos_1+s, y_pos_2+1].cell.set_label("@")
 
         # insert the matrix in piles
         shooting_pile = urwid.Pile(f)

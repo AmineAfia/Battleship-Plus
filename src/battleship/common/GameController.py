@@ -283,10 +283,11 @@ class GameController(GameLobbyData):
     # strike at the coordinates on my own battlefield
     def strike(self, x_pos, y_pos):
         if self._game_started:
-            if self._battlefield.no_border_crossing(x_pos, y_pos):
-                if self._battlefield.no_strike_at_place(x_pos, y_pos):
-                    if self._battlefield.strike(x_pos, y_pos):
+            if self._battlefield.no_border_crossing(y_pos, x_pos):
+                if self._battlefield.no_strike_at_place(y_pos, x_pos):
+                    if self._battlefield.strike(y_pos, x_pos):
                         # todo call UI for a successful enemy strike(x,y)
+                        self._last_shot = (y_pos, x_pos)
                         return True
                     else:
                         # todo call UI for a missed enemy strike(x,y)
@@ -301,10 +302,10 @@ class GameController(GameLobbyData):
     # shoot at enemy battlefield
     def shoot(self, x_pos, y_pos):
         if self._game_started:
-            if self._battlefield.no_border_crossing(x_pos, y_pos):
-                if self._battlefield.no_hit_at_place(x_pos, y_pos):
-                    if self._battlefield.shoot(x_pos, y_pos):
-                        self._last_shot = (x_pos, y_pos)
+            if self._battlefield.no_border_crossing(y_pos, x_pos):
+                if self._battlefield.no_hit_at_place(y_pos, x_pos):
+                    if self._battlefield.shoot(y_pos, x_pos):
+                        self._last_shot = (y_pos, x_pos)
                         return True
                     else:
                         return False
@@ -431,6 +432,12 @@ class GameController(GameLobbyData):
             self.start_round_time()
             sunk = msg.parameters["sunk"]
             position = msg.parameters["position"]
+            # if self.state == GameState.OPPONENTS_TURN:
+                # TODO: with a good server, this should never raise an exception
+                # TODO: is it even necessary to call this?
+                # self.strike(position.horizontal, position.vertical)
+            # elif self.state == GameState.YOUR_TURN:
+                # self.shoot(position.horizontal, position.vertical)
             self.increase_turn_counter()
 
         # The last shot was unsuccessful. This message is sent to both clients.
