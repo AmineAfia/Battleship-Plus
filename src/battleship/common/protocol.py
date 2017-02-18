@@ -321,7 +321,7 @@ _field_username_with_length: ProtocolField = ProtocolField(name="username", fiel
 _field_sender_username_with_length: ProtocolField = ProtocolField(name="sender", field_type=str, fixed_length=False)
 _field_recipient_username_with_length: ProtocolField = ProtocolField(name="recipient", field_type=str, fixed_length=False)
 _field_username_implicit_length: ProtocolField = ProtocolField(name="username", field_type=str, fixed_length=False, implicit_length=True)
-_field_text: ProtocolField = ProtocolField(name="text", field_type=str, fixed_length=False)
+_field_text: ProtocolField = ProtocolField(name="text", field_type=str, fixed_length=False, implicit_length=True)
 _field_board_size: ProtocolField = ProtocolField(name="board_size", field_type=int, fixed_length=True, length=1)
 _field_num_ships: ProtocolField = ProtocolField(name="num_ships", field_type=NumShips, fixed_length=True, length=5)
 _field_round_time: ProtocolField = ProtocolField(name="round_time", field_type=int, fixed_length=True, length=1)
