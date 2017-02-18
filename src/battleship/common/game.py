@@ -13,6 +13,9 @@ class GameLobbyData:
         self._state = GameState.IN_LOBBY
         # TODO: merge some of this with GameController
 
+    def reset_for_client(self):
+        self._state = GameState.IN_LOBBY
+
     def __str__(self):
         return "#{} from '{}', size {}, {}s, ships {}, {}".format(self._game_id, self._username, self._board_size, self._round_time, self._num_ships, "passwd" if self._options == GameOptions.PASSWORD else "")
 

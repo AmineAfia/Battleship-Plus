@@ -1,12 +1,40 @@
 import asyncio
-from typing import Any
+from typing import Any, Callable, Optional, List
 from common.states import ClientConnectionState
 from common.network import BattleshipClient
 from common.protocol import ProtocolMessage, ProtocolMessageType
 from common.errorHandler.BattleshipError import BattleshipError
-from common.constants import ErrorCode
+from common.constants import ErrorCode, EndGameReason
 from common.game import GameLobbyData
 from common.GameController import GameController
+
+
+class Callback:
+    def __init__(self, name: ProtocolMessageType) -> None:
+        self._name: ProtocolMessageType = name
+        self._wait_until_set = asyncio.Event()
+        self._callback: Optional[Callable] = None
+
+    def clear(self):
+        self._callback = None
+        self._wait_until_set.clear()
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def callback(self):
+        return self._callback
+
+    @callback.setter
+    def callback(self, callback: Callable):
+        self._callback = callback
+        self._wait_until_set.set()
+
+    async def call(self, *args):
+        await self._wait_until_set.wait()
+        self.callback(*args)
 
 
 class ClientLobbyController:
@@ -17,23 +45,38 @@ class ClientLobbyController:
         self.loop = loop
         self.games = {}
         self.game_controller = game_controller
-        #done
-        self.ui_game_callback = None
-        self.ui_delete_game_callback = None
-        self.ui_chat_recv_callback = None
-        self.ui_youstart_callback = None
-        self.ui_wait_callback = None
-        self.ui_timeout_callback = None
-        self.ui_fail_callback = None
-
-        #todo
-        self.ui_placed_callback = None
-        self.ui_abort_callback = None
-        self.ui_hit_callback = None
-        self.ui_moved_callback = None
-        self.ui_endgame_callback = None
-        self.ui_start_game_callback = None
+        self.quit_client = False
         self.is_joining_game = False
+
+        self._callback_names: List[ProtocolMessageType] = [ProtocolMessageType.GAME,
+                                ProtocolMessageType.DELETE_GAME,
+                                ProtocolMessageType.CHAT_RECV,
+                                ProtocolMessageType.STARTGAME,
+                                ProtocolMessageType.YOUSTART,
+                                ProtocolMessageType.WAIT,
+                                ProtocolMessageType.TIMEOUT,
+                                ProtocolMessageType.FAIL,
+                                ProtocolMessageType.PLACED,
+                                ProtocolMessageType.ABORT,
+                                ProtocolMessageType.HIT,
+                                ProtocolMessageType.MOVED,
+                                ProtocolMessageType.ENDGAME]
+        self._callbacks: Dict[ProtocolMessageType, Callback] = {}
+        for callback_name in self._callback_names:
+            self._callbacks[callback_name] = Callback(callback_name)
+
+    def set_callback(self, name: ProtocolMessageType, callback: Callable) -> None:
+        self._callbacks[name].callback = callback
+
+    async def call_callback(self, name: ProtocolMessageType, *args):
+        await self._callbacks[name].call(*args)
+
+    def reset(self):
+        self.games = {}
+        self.quit_client = False
+        self.is_joining_game = False
+        for callback in self._callbacks:
+            callback.clear()
 
     async def try_login(self, server, port, username):
         if not self.client.connected:
@@ -82,6 +125,14 @@ class ClientLobbyController:
         if self.client.last_msg_was_error:
             raise BattleshipError(self.client.last_error)
 
+    async def send_abort(self):
+        msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT)
+        await self.client.send_and_wait_for_answer(msg)
+
+        # TODO: timeouts
+        if self.client.last_msg_was_error:
+            raise BattleshipError(self.client.last_error)
+
     async def handle_chat_recv(self, msg):
         self.ui_chat_recv_callback(msg.parameters["sender"], msg.parameters["recipient"], msg.parameters["text"])
 
@@ -111,57 +162,56 @@ class ClientLobbyController:
         else:
             game = GameLobbyData(params["game_id"], params["username"], params["board_size"], params["num_ships"], params["round_time"], params["options"])
             self.games[params["game_id"]] = game
-            if self.ui_game_callback is not None:
-                self.ui_game_callback(game)
+            await self.call_callback(ProtocolMessageType.GAME, game)
 
     async def handle_delete_game(self, msg):
         params = msg.parameters
         # TODO: what to do with a game that is already started?
         try:
             del self.games[params["game_id"]]
-            if self.ui_delete_game_callback is not None:
-                self.ui_delete_game_callback(params["game_id"])
+            await self.call_callback(ProtocolMessageType.DELETE_GAME, params["game_id"])
         except KeyError:
             # then the game did not exist, so what.
             pass
 
     async def handle_youstart(self, msg):
         self.game_controller.run(msg)
-        self.ui_youstart_callback()
+        await self.call_callback(ProtocolMessageType.YOUSTART)
 
     async def handle_wait(self, msg):
         self.game_controller.run(msg)
-        self.ui_wait_callback()
+        await self.call_callback(ProtocolMessageType.WAIT)
 
     async def handle_timeout(self, msg):
         self.game_controller.run(msg)
-        self.ui_timeout_callback()
+        await self.call_callback(ProtocolMessageType.TIMEOUT)
 
     async def handle_hit(self, msg):
         self.game_controller.run(msg)
-        sunk = msg.parameters["sunk"]
-        position = msg.parameters["position"]
-        print("handle hit")
-        self.ui_hit_callback(sunk, position)
+        sunk: bool = msg.parameters["sunk"]
+        position: Position = msg.parameters["position"]
+        await self.call_callback(ProtocolMessageType.HIT, sunk, position)
 
     async def handle_fail(self, msg):
         self.game_controller.run(msg)
-        position = msg.parameters["position"]
-        print("handle fail")
-        self.ui_fail_callback(position)
+        position: Position = msg.parameters["position"]
+        await self.call_callback(ProtocolMessageType.FAIL, position)
 
     async def handle_moved(self, msg):
         pass
 
     async def handle_start_game(self, msg):
-        self.game_controller.run(msg)
-        self.ui_start_game_callback()
+        #TODO change it the new way
+		#self.game_controller.run(msg)
+		#self.ui_start_game_callback()
+		pass
 
     async def handle_placed(self, msg):
         pass
 
     async def handle_endgame(self, msg):
-        pass
+        self.game_controller.run(msg)
+        await self.call_callback(ProtocolMessageType.ENDGAME, msg.parameters["reason"])
 
     async def handle_msg(self, msg):
         pass

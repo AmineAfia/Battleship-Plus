@@ -32,6 +32,13 @@ class GameController(GameLobbyData):
         self._last_shot = (0, 0)
         self.client = client
 
+    def reset_for_client(self):
+        super().reset_for_client()
+        self._battlefield = None
+        self._turn_counter = 0
+        self._game_started = False
+        self._last_shot = (0, 0)
+
     @classmethod
     async def create_from_msg(cls, game_id, client, loop, msg: ProtocolMessage, username):
         controller = cls(game_id, client, loop)
@@ -476,10 +483,11 @@ class GameController(GameLobbyData):
 
         # The current game ended because of a known reason. This message is sent to both clients
         elif msg.type == ProtocolMessageType.ENDGAME:
-            self._state = GameState.GAME_ENDED
-            self.start_round_time()
             reason = msg.parameters["reason"]
-            self.abort()
+            self._state = GameState.GAME_ENDED
+            # TODO: what?
+            #self.start_round_time()
+            #self.abort()
 
         # unknown command
         else:
@@ -519,4 +527,4 @@ class GameController(GameLobbyData):
         return ProtocolMessage.create_single(ProtocolMessageType.PLACE, {"ship_positions": ShipPositions(ship_positions)})
 
     def get_shoot_msg(self, x_pos, y_pos):
-        return ProtocolMessage.create_single(ProtocolMessageType.SHOOT, {"position": Position(y_pos, x_pos),"turn_counter": self.turn_counter})
+        return ProtocolMessage.create_single(ProtocolMessageType.SHOOT, {"position": Position(y_pos, x_pos), "turn_counter": self.turn_counter})

@@ -9,9 +9,10 @@ from ..common.StaticScreens import Screen
 from ..common.Chat import Chat
 from .result import Result
 from common.GameController import GameController
-from common.constants import Orientation
+from common.constants import Orientation, EndGameReason
 from common.protocol import ProtocolMessageType, Position
 from common.states import GameState
+from common.errorHandler.BattleshipError import BattleshipError
 
 class ShipsList:
     # list of ships from each type
@@ -127,11 +128,12 @@ class Battle:
         self.placed_ships = game_controller.get_all_ships_coordinates()
 
         # Registrering callbacks
-        self.lobby_controller.ui_wait_callback = self.you_wait
-        self.lobby_controller.ui_youstart_callback = self.you_play
-        self.lobby_controller.ui_timeout_callback = self.change_player
-        self.lobby_controller.ui_fail_callback = self.show_fail_position
-        self.lobby_controller.ui_hit_callback = self.hit_strike
+        self.lobby_controller.set_callback(ProtocolMessageType.WAIT, self.you_wait)
+        self.lobby_controller.set_callback(ProtocolMessageType.YOUSTART, self.you_play)
+        self.lobby_controller.set_callback(ProtocolMessageType.TIMEOUT, self.change_player)
+        self.lobby_controller.set_callback(ProtocolMessageType.FAIL, self.change_player)
+        self.lobby_controller.set_callback(ProtocolMessageType.HIT, self.strike)
+        self.lobby_controller.set_callback(ProtocolMessageType.ENDGAME, self.handle_endgame)
 
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
@@ -162,7 +164,7 @@ class Battle:
         threading.Timer(2, self.periodic_round_time_getter).start()
 
     def hit_strike(self, sunk: bool, position: Position):
-        print("in hit strike")
+        # print("in hit strike")
         # self.game_controller.strike(position.horizontal, position.vertical)
         if self.game_controller.game_state == GameState.OPPONENTS_TURN:
             ShipsList.ship_buttons_dic[position.vertical, position.horizontal].cell.set_label("X")
@@ -180,21 +182,38 @@ class Battle:
         if key == 'esc':
             raise urwid.ExitMainLoop()
 
+    def abort(self, foo):
+        abort_task = self.loop.create_task(self.lobby_controller.send_abort())
+        abort_task.add_done_callback(self.abort_result)
+
+    def abort_result(self, future):
+        e = future.exception()
+        if type(e) is BattleshipError:
+            print(e.error_code)
+        elif e is not None:
+            raise e
+        else:
+            self.win()
+            raise urwid.ExitMainLoop()
+
+    def handle_endgame(self, reason: EndGameReason):
+        if reason == EndGameReason.YOU_WON:
+            Screen("YOU WON").show()
+        elif reason == EndGameReason.OPPONENT_WON:
+            Screen("YOU LOST").show()
+        elif reason == EndGameReason.OPPONENT_ABORT:
+            Screen("THEY ABORTED").show()
+        elif reason == EndGameReason.OPPONENT_TIMEOUT:
+            Screen("THEY TIMED OUT").show()
+        elif reason == EndGameReason.SERVER_CLOSED_CONNECTION:
+            Screen("SERVER CLOSED").show()
+        else:
+            Screen("ENDED. WHYEVER.").show()
+        raise urwid.ExitMainLoop()
+
     def battle_main(self):
         field_offset = self.game_controller.length
         text_button_list = {}
-
-        def foward_result(foo):
-            try:
-                self.game_controller.abort()
-                abort_task = self.loop.create_task(self.game_controller.run(ProtocolMessageType.ABORT))
-                abort_task.add_done_callback(self.show_end_screen(foo))
-            except Exception as e:
-                print(e)
-
-        def show_end_screen(self, foo):
-            self.win(foo)
-            raise urwid.ExitMainLoop()
 
         # function to move ships
         def move(self):
@@ -281,7 +300,7 @@ class Battle:
             urwid.Columns([
                 urwid.Text(""),
                 urwid.Text(""),
-                urwid.LineBox(urwid.Button('Abort', on_press=foward_result)),
+                urwid.LineBox(urwid.Button('Abort', on_press=self.abort)),
             ], 2),
             blank,
             urwid.Button(str(self.placed_ships)),

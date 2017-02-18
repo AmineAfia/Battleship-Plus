@@ -53,9 +53,8 @@ def main():
             await lobby_controller.handle_timeout(msg)
         elif msg.type == ProtocolMessageType.FAIL:
             await lobby_controller.handle_fail(msg)
-        # elif msg.type == ProtocolMessageType.STARTGAME:
-        #     await lobby_controller.handle_start_game(msg)
-
+        elif msg.type == ProtocolMessageType.ENDGAME:
+            await lobby_controller.handle_endgame(msg)
         # TODO: add the other types
         else:
             pass
@@ -76,89 +75,32 @@ def main():
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
 
-    create_lobby = Lobby(game_controller, lobby_controller, loop)
-    create_lobby.lobby_main()
+    while not lobby_controller.quit_client:
+        create_lobby = Lobby(game_controller, lobby_controller, loop)
+        create_lobby.lobby_main()
 
-    if lobby_controller.is_joining_game is False:
-        create_game = CreateGame(game_controller, lobby_controller, loop)
-        create_game.create_game()
+        if lobby_controller.is_joining_game is False:
+            create_game = CreateGame(game_controller, lobby_controller, loop)
+            create_game.create_game()
 
-        # TODO: esc or normal continuation?
-        go_to_game = Waiting(game_controller, lobby_controller, loop)
-        # TODO: is this foo nedded in waiting_main?
-        go_to_game.waiting_main("")
+            # TODO: esc or normal continuation?
+            go_to_game = Waiting(game_controller, lobby_controller, loop)
+            # TODO: is this foo nedded in waiting_main?
+            go_to_game.waiting_main("")
 
-    join_battle = Join(game_controller, lobby_controller, loop)
-    join_battle.join_main()
+        join_battle = Join(game_controller, lobby_controller, loop)
+        join_battle.join_main()
 
-    battle_sessions = Battle(game_controller, lobby_controller, loop)
-    battle_sessions.battle_main()
+        battle_sessions = Battle(game_controller, lobby_controller, loop)
+        battle_sessions.battle_main()
+
+        # reset lobby and game controller
+        game_controller.reset_for_client()
+        lobby_controller.reset()
+
+    # TODO: go back to lobby, send GET_GAMES
 
     # TODO: why does "You win" appear twice? --> you start two clients and one of them still have his loop running(connected).
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-    print("almost dead")
-    #loop.run_forever()
-    print("Bye.")
-
-    # ITS ONLY FOR DEBUGGING THE GAMECONTROLER
-    try:
-        #CREATE THE BATTLEFIELD
-        length = 10
-        ships = [0, 0, 0, 1, 1]
-        cmd = ["create", length, ships]
-        msg = ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
-                                            {"board_size": 10, "num_ships": NumShips(ships),
-                                             "round_time": 25, "options": GameOptions.PASSWORD,
-                                             "password": "foo"})
-
-        game_controller = GameController.create_from_msg(1, None, loop, msg, "yoloswag")
-        #game_controller.run(msg)
-        #PLACE THE SHIPS
-        x_pos = 0
-        y_pos = 0
-        orientation = Orientation.EAST
-        x_pos2 = 0
-        y_pos2 = 3
-        orientation2 = Orientation.EAST
-        ship_id = game_controller.get_next_ship_id_to_place()
-        ship_type = game_controller.get_ship_type_by_id(ship_id)
-        print(game_controller.ships_not_placed)
-        print("next ship to place: {}, ship type:  {}".format(ship_id, ship_type))
-        msg = ProtocolMessage.create_single(ProtocolMessageType.PLACE,
-                                            {"ship_positions": ShipPositions([
-                       ShipPosition(Position(y_pos, x_pos), orientation),
-                       ShipPosition(Position(y_pos2, x_pos2), orientation2)])})
-        game_controller.run(msg)
-        game_controller.start_game()
-        # MOVE YOUR SHIP
-        ship_id = 2
-        direction = Direction.EAST
-        msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
-                                            { "ship_id": 1, "direction": Direction.EAST,
-                                                "turn_counter": 0 })
-        game_controller.run(msg)
-        #STRIKE FROM ENEMY = SHOOT
-        x_pos = 0
-        y_pos = 0
-        msg = ProtocolMessage.create_single(ProtocolMessageType.SHOOT,
-                                            { "ship_position": ShipPosition(Position(y_pos, x_pos), orientation)
-                                                                            ,"turn_counter": 1})
-        game_controller.run(msg)
-        print(game_controller.get_all_ship_states())
-        #SHOOT AT ENEMY BATTLEFIELD
-        x_pos = 0
-        y_pos = 0
-        game_controller.shoot(x_pos, y_pos)
-        print(game_controller.all_ships_sunk())
-        #ABORT
-        msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT,
-                                            {"turn_counter": 0 })
-        game_controller.run(msg)
-
-    except BattleshipError as e:
-        print("{}".format(e))
-
 
 if __name__ == '__main__':
     sys.exit(main())

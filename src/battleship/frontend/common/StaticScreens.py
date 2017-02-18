@@ -16,10 +16,11 @@ class Screen:
 
     @staticmethod
     def exit_on_q(key):
-        if key == 'esc':
+        if key == 'esc' or key == 'enter':
             raise urwid.ExitMainLoop()
 
-    def show(self, foo):
+    # TODO: is this foo really necessary?
+    def show(self, foo=None):
         placeholder = urwid.SolidFill()
         loop = urwid.MainLoop(placeholder, self.palette, unhandled_input=self.exit_on_q, pop_ups=True)
         loop.screen.set_terminal_properties(colors=256)
