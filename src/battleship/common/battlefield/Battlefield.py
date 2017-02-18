@@ -10,8 +10,9 @@ class Battlefield:
         self._ships = ships
         self._ships_table: List[int] = ships_table
         self._ships_table_not_placed: List[int] = ships_table
-        self._my_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
-        self._enemy_battlefield = [[0 for x in range(self._length - 1)] for y in range(self._length - 1)]
+        # TODO: check if this what flo wanted (removed -1)
+        self._my_battlefield = [[0 for x in range(self._length)] for y in range(self._length)]
+        self._enemy_battlefield = [[0 for x in range(self._length)] for y in range(self._length)]
 
     # move a ship one position further
     def move(self, ship_id, direction):
@@ -97,7 +98,8 @@ class Battlefield:
             return False
 
     def no_border_crossing(self, x_pos, y_pos):
-        if 0 <= x_pos < self._length and 0 <= y_pos < self._length:
+        # TODO: check if this what flo wanted (replaced < with <= to go till the border)
+        if 0 <= x_pos <= self._length and 0 <= y_pos <= self._length:
             return True
         else:
             return False
@@ -231,7 +233,8 @@ class Battlefield:
         return moved_to_hit_positions
 
     def strike_all_again(self):
-        for i in range(self._length - 1):
-            for j in range(self._length - 1):
+        # TODO: check if this what flo wanted (removed -1)
+        for i in range(self._length):
+            for j in range(self._length):
                 if self._my_battlefield[i][j] == 1:
                     self.strike(i,j)

@@ -201,10 +201,8 @@ class ClientLobbyController:
         pass
 
     async def handle_start_game(self, msg):
-        #TODO change it the new way
-		#self.game_controller.run(msg)
-		#self.ui_start_game_callback()
-		pass
+        self.game_controller.run(msg)
+        await self.call_callback(ProtocolMessageType.STARTGAME)
 
     async def handle_placed(self, msg):
         pass
