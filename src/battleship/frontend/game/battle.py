@@ -260,12 +260,12 @@ class Battle:
         # print("in hit strike")
         # self.game_controller.strike(position.horizontal, position.vertical)
         if self.game_controller.game_state == GameState.OPPONENTS_TURN:
-            ShipsList.ship_buttons_dic[position.vertical, position.horizontal].cell.set_label("X")
+            ShipsList.ship_buttons_dic[position.horizontal, position.vertical].cell.set_label("X")
 
     def fail_strike(self, position: Position):
         print("in fail strike")
         if self.game_controller.game_state == GameState.YOUR_TURN:
-            ShipsList.ship_buttons_dic[position.vertical, position.horizontal].cell.set_label("X")
+            ShipsList.ship_buttons_dic[position.horizontal, position.vertical].cell.set_label("X")
 
     def show_fail_position(self, position: Position):
         self.fail_strike(position)

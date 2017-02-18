@@ -74,13 +74,12 @@ class Lobby(urwid.GridFlow):
             print(type(e))
             print(e)
 
-    def delete_game_callback(self, game_id):
+    def delete_game_callback(self, game):
         try:
-            for i, gid in enumerate(self.game_ids):
-                if gid == game_id:
-                    del self.games_pile_gridflow.contents[i]
-                    del self.game_ids[i]
-                    break
+            for gid in enumerate(self.game_ids):
+                if gid == game.game_id:
+                    del self.games_pile_gridflow[urwid.Button(str(game.params_as_list()), on_press=self.go_to_join_the_game, user_data=game.params_as_list())]
+                    self.game_ids.remove(game.game_id)
         except Exception as e:
             print(type(e))
             print(e)
