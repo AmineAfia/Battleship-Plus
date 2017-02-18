@@ -619,6 +619,7 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
         # parse data
         if waiting_for_msg_type:
             msg_type = _msg_type_from_bytes(data)
+            # TODO: handle NONE
             msg = ProtocolMessage(msg_type)
             # print("start parsing type {}".format(msg_type))
             parameter_count = len(ProtocolMessageParameters[msg_type])
@@ -727,8 +728,12 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
 
 
 def _msg_type_from_bytes(data) -> ProtocolMessageType:
-    return ProtocolMessageType(_int_from_bytes(data))
-
+    msg_type: ProtocolMessageType
+    try:
+        msg_type = ProtocolMessageType(_int_from_bytes(data))
+    except ValueError:
+        msg_type = ProtocolMessageType.NONE
+    return msg_type
 
 def _int_from_bytes(data: bytes) -> int:
     return int.from_bytes(data, byteorder=ProtocolConfig.BYTEORDER, signed=False)
