@@ -55,6 +55,8 @@ def main():
             await lobby_controller.handle_fail(msg)
         elif msg.type == ProtocolMessageType.ENDGAME:
             await lobby_controller.handle_endgame(msg)
+        elif msg.type == ProtocolMessageType.MOVED:
+            await lobby_controller.handle_moved(msg)
         # TODO: add the other types
         else:
             pass

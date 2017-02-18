@@ -206,7 +206,8 @@ class ClientLobbyController:
         await self.call_callback(ProtocolMessageType.FAIL, position)
 
     async def handle_moved(self, msg):
-        pass
+        self.game_controller.run(msg)
+        await self.call_callback(ProtocolMessageType.MOVED)
 
     async def handle_start_game(self, msg):
         self.game_controller.run(msg)
