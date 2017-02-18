@@ -14,6 +14,7 @@ from common.protocol import ProtocolMessageType, Position
 from common.states import GameState
 from common.errorHandler.BattleshipError import BattleshipError
 
+
 class ShipsList:
     # list of ships from each type
     ships = [0, 0, 0, 0, 0]
@@ -68,7 +69,6 @@ class PopUpDialog(urwid.WidgetWrap):
         urwid.connect_signal(self.n_button, 'click',
                              lambda button: self.move_ship(Direction.NORTH))
 
-
         urwid.connect_signal(self.s_button, 'click',
                              lambda button: self.move_ship(Direction.SOUTH))
 
@@ -97,7 +97,6 @@ class PopUpDialog(urwid.WidgetWrap):
 
     def passing_callback(self):
         self._emit("close")
-
 
 
 class ButtonWithAPopUp(urwid.PopUpLauncher):
