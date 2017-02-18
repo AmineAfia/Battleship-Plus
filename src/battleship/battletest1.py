@@ -96,7 +96,7 @@ def main():
 	#ABORT
         input("PUSH THE BOTTEN for abort")
         msg = ProtocolMessage.create_single(ProtocolMessageType.ABORT)
-        game_controller.run(msg)
+        await _send_and_wait(msg)
 
         # await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.MOVE, {"turn_counter": 2, "ship_id": 146579, "direction": Orientation.EAST}))
         #
