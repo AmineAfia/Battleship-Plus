@@ -2,6 +2,7 @@ import urwid
 
 from .create import CreateGame
 from common.GameController import GameController
+from common.protocol import ProtocolMessageType
 from client.lobby import ClientLobbyController
 from .join import Join
 from ..common.Chat import Chat
@@ -13,8 +14,8 @@ class Lobby(urwid.GridFlow):
         self.blank = urwid.Divider()
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
-        self.lobby_controller.ui_game_callback = self.game_callback
-        self.lobby_controller.ui_delete_game_callback = self.delete_game_callback
+        self.lobby_controller.set_callback(ProtocolMessageType.GAME, self.game_callback)
+        self.lobby_controller.set_callback(ProtocolMessageType.DELETE_GAME, self.delete_game_callback)
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
