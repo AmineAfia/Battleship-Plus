@@ -104,14 +104,14 @@ class Ship:
             for i in range(self._x_length):
                 for j in range(self._y_length):
                     # TODO: check if this what flo wanted (switched i and j)
-                    self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
+                    self._ship_state[i][j] = [(j + self._x_pos, i + self._y_pos), 0]
             self._placed = True
             return True
         elif self._orientation == Orientation.EAST:
             for i in range(self._x_length):
                 for j in range(self._y_length):
                     # TODO: check if this what flo wanted (switched i and j)
-                    self._ship_state[i][j] = [(j + self._x_pos, i + self._y_pos), 0]
+                    self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
             self._placed = True
             return True
         else:

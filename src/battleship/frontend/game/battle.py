@@ -46,7 +46,8 @@ class ShipsList:
 class PopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with North, South, West and East buttons """
     signals = ['close']
-    def __init__(self, button_with_pop_up, x_pos, y_pos):
+
+    def __init__(self, button_with_pop_up, x_pos, y_pos, game_controller):
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.button_with_pop_up = button_with_pop_up
@@ -54,19 +55,25 @@ class PopUpDialog(urwid.WidgetWrap):
         self.s_button = urwid.Button("South")
         self.w_button = urwid.Button("West")
         self.e_button = urwid.Button("East")
+        self.game_controller = game_controller
+        self.ship_id = self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos)
+        self.ship_type = self.game_controller.get_ship_type_by_id(self.ship_id)
+        self.ship_orientation = self.game_controller.get_ship_orientation_by_id(self.ship_id)
+        self.ship_length = ShipsList.length_dictionary[self.ship_type]
 
-        urwid.connect_signal(self.n_button, 'click',
+        urwid.connect_signal(self.s_button, 'click',
                              lambda button: self._emit("close"))
 
-        urwid.connect_signal(self.h_button, 'click',
-                             lambda button: self.move_ship)
+        urwid.connect_signal(self.n_button, 'click',
+                             lambda button: self.move_ship())
 
         pile = urwid.Pile([self.n_button, urwid.Columns([self.w_button, self.e_button], 2), self.s_button])
         fill = urwid.Filler(pile)
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
     def move_ship(self):
-        self.button_with_pop_up.place_ship_in_position(orientation, length, ship_type)
+        self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type)
+        self._emit("close")
 
 
 
@@ -84,7 +91,7 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
                                 lambda button: self.open_pop_up())
 
     def create_pop_up(self):
-        pop_up = PopUpDialog(self, self.x_pos, self.y_pos)
+        pop_up = PopUpDialog(self, self.x_pos, self.y_pos, self.game_controller)
         urwid.connect_signal(pop_up, 'close',
                              lambda button: self.close_pop_up())
         return pop_up
@@ -92,21 +99,19 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
     def get_pop_up_parameters(self):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 7}
 
-    def place_ship_in_position(self, orientation, length, ship_type):
+    def move_ship_in_position(self, orientation, length, ship_type):
         for i in range(length):
                 if orientation == Orientation.NORTH:
-                    ShipsList.buttons_list[(self.x_pos, self.y_pos + i)].b.set_label("_")
+                    ShipsList.buttons_list[(self.x_pos, self.y_pos + i)].cell.set_label("_")
                 elif orientation == Orientation.EAST:
-                    ShipsList.buttons_list[(self.x_pos + i, self.y_pos)].b.set_label("_")
+                    ShipsList.buttons_list[(self.x_pos + i, self.y_pos)].cell.set_label("_")
 
         if ship_type == "carrier":
             for i in range(length):
                     if orientation == Orientation.NORTH:
-                        ShipsList.ship_buttons_dic[(self.x_pos+1, self.y_pos + i)].b.set_label("_")
+                        ShipsList.ship_buttons_dic[(self.x_pos+1, self.y_pos + i)].cell.set_label("_")
                     elif orientation == Orientation.EAST:
-                        ShipsList.ship_buttons_dic[(self.x_pos + i, self.y_pos + 1)].b.set_label("_")
-
-
+                        ShipsList.ship_buttons_dic[(self.x_pos + i, self.y_pos+1)].cell.set_label("_")
 
 
 
@@ -125,6 +130,12 @@ class ShootingCell(urwid.PopUpLauncher):
         #print("({}, {})".format(self.x_pos, self.y_pos))
         try:
             self.game_controller.shoot(self.y_pos, self.x_pos)
+        except Exception as e:
+            # TODO show a clear message of the illegale shoot
+            #print("shoot sagt: {}".format(type(e)))
+            print(e)
+
+        try:
             shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.y_pos, self.x_pos))
             # shoot_task.add_done_callback(self.set_label_after_shoot(button))
             shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
@@ -132,6 +143,7 @@ class ShootingCell(urwid.PopUpLauncher):
             # TODO show a clear message of the failed shoot
             #print("shoot sagt: {}".format(type(e)))
             print(e)
+
 
     def set_label_after_shoot(self, button, future):
         e = future.exception()
@@ -241,19 +253,8 @@ class Battle:
 
     def battle_main(self):
         field_offset = self.game_controller.length
-        text_button_list = {}
 
-        # function to move ships
-        def move(self):
-            if self.get_label() == 'North':
-                self.set_label('N')
-            elif self.get_label() == 'South':
-                self.set_label('S')
-            elif self.get_label() == 'West':
-                self.set_label('W')
-            elif self.get_label() == 'East':
-                self.set_label('E')
-
+        # Constructing shooting field
         shooting_line = []
         f = []
         for y_pos in range(field_offset):
@@ -268,9 +269,8 @@ class Battle:
         # Constructing ships field
         ship_button_list = []
         ship_f = []
-        for x_pos in range(field_offset):
-            for y_pos in range(field_offset):
-
+        for y_pos in range(field_offset):
+            for x_pos in range(field_offset):
                 ship_cell = ButtonWithAPopUp(x_pos, y_pos, self.game_controller)
                 # if (y_pos, x_pos) in self.placed_ships:
                 #     ship_cell.cell.set_label("@")
@@ -278,7 +278,7 @@ class Battle:
                 #     ship_cell = urwid.Button("_")
                 ship_button_list.append(ship_cell)
                 # Dictionary with all cells
-                ShipsList.ship_buttons_dic[y_pos, x_pos] = ship_cell
+                ShipsList.ship_buttons_dic[(x_pos, y_pos)] = ship_cell
 
             ship_zeil = urwid.GridFlow(ship_button_list, 1, 1, 0, 'center')
             ship_f.append(ship_zeil)
@@ -293,19 +293,19 @@ class Battle:
 
                     if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
                         for s in range(ShipsList.length_dictionary[ship_type]):
-                            ShipsList.ship_buttons_dic[x_pos_1, y_pos_2+s].cell.set_label("@")
+                            ShipsList.ship_buttons_dic[(x_pos_1, y_pos_2+s)].cell.set_label("@")
 
                     elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                         for s in range(ShipsList.length_dictionary[ship_type]):
-                            ShipsList.ship_buttons_dic[x_pos_1+s, y_pos_2].cell.set_label("@")
+                            ShipsList.ship_buttons_dic[(x_pos_1+s, y_pos_2)].cell.set_label("@")
 
                     if ship_type == "carrier":
                         if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
                             for s in range(ShipsList.length_dictionary[ship_type]):
-                                ShipsList.ship_buttons_dic[x_pos_1+1, y_pos_2+s].cell.set_label("@")
+                                ShipsList.ship_buttons_dic[(x_pos_1+1, y_pos_2+s)].cell.set_label("@")
                         elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                             for s in range(ShipsList.length_dictionary[ship_type]):
-                                ShipsList.ship_buttons_dic[x_pos_1+s, y_pos_2+1].cell.set_label("@")
+                                ShipsList.ship_buttons_dic[(x_pos_1+s, y_pos_2+1)].cell.set_label("@")
 
         # insert the matrix in piles
         shooting_pile = urwid.Pile(f)

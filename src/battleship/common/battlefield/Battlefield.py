@@ -98,8 +98,7 @@ class Battlefield:
             return False
 
     def no_border_crossing(self, x_pos, y_pos):
-        # TODO: check if this what flo wanted (replaced < with <= to go till the border)
-        if 0 <= x_pos <= self._length and 0 <= y_pos <= self._length:
+        if 0 <= x_pos < self._length and 0 <= y_pos < self._length:
             return True
         else:
             return False

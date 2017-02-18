@@ -290,11 +290,11 @@ class GameController(GameLobbyData):
     # strike at the coordinates on my own battlefield
     def strike(self, x_pos, y_pos):
         if self._game_started:
-            if self._battlefield.no_border_crossing(y_pos, x_pos):
-                if self._battlefield.no_strike_at_place(y_pos, x_pos):
-                    if self._battlefield.strike(y_pos, x_pos):
+            if self._battlefield.no_border_crossing(x_pos, y_pos):
+                if self._battlefield.no_strike_at_place(x_pos, y_pos):
+                    if self._battlefield.strike(x_pos, y_pos):
                         # todo call UI for a successful enemy strike(x,y)
-                        self._last_shot = (y_pos, x_pos)
+                        self._last_shot = (x_pos, y_pos)
                         return True
                     else:
                         # todo call UI for a missed enemy strike(x,y)
@@ -309,10 +309,10 @@ class GameController(GameLobbyData):
     # shoot at enemy battlefield
     def shoot(self, x_pos, y_pos):
         if self._game_started:
-            if self._battlefield.no_border_crossing(y_pos, x_pos):
-                if self._battlefield.no_hit_at_place(y_pos, x_pos):
-                    if self._battlefield.shoot(y_pos, x_pos):
-                        self._last_shot = (y_pos, x_pos)
+            if self._battlefield.no_border_crossing(x_pos, y_pos):
+                if self._battlefield.no_hit_at_place(x_pos, y_pos):
+                    if self._battlefield.shoot(x_pos, y_pos):
+                        self._last_shot = (x_pos, y_pos)
                         return True
                     else:
                         return False
@@ -327,7 +327,11 @@ class GameController(GameLobbyData):
         return self._battlefield.all_ships_sunk()
 
     def ship_sunk_at_pos(self, x_pos, y_pos):
-        return self._battlefield.get_ship_from_location(x_pos, y_pos).is_sunk()
+        result_ship = self._battlefield.get_ship_from_location(x_pos, y_pos)
+        if result_ship is not None:
+            return result_ship.is_sunk()
+        else:
+            return False
 
     def get_all_ship_states(self):
         return self._battlefield.get_all_ship_states()
