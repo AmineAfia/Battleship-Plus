@@ -593,8 +593,13 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
 
     while True:
 
-        data = await client_reader.read(bytes_to_read_next)
-        if not data:  # this means the client disconnected
+        try:
+            data = await client_reader.read(bytes_to_read_next)
+            if not data:
+                # this means the client disconnected(?)
+                break
+        except ConnectionResetError as e:
+            # TODO: check if the client_disconnected callback is called anyways
             break
 
         # parse data
