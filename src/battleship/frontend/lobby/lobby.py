@@ -37,7 +37,7 @@ class Lobby(urwid.GridFlow):
         #self.game_ids = [game_id for game_id in lobby_controller.games.keys()]
         self.params_as_list = [game.params_as_list() for game in lobby_controller.games.values()]
         # self.game_ids1 = [str(game_id) for game_id, game in lobby_controller.games.items()]
-        self.games_list = []
+        self.games_list = {}
         self.chat = Chat(self.loop, self.lobby_controller)
         self.games_pile = None
         self.games_pile_gridflow = None
@@ -63,8 +63,8 @@ class Lobby(urwid.GridFlow):
     def get_games(self):
         for g in self.params_as_list:
             # TODO: this should forward to join, with the appropriate game_id
-            self.games_list.append(urwid.Button(str(g), on_press=self.go_to_join_the_game, user_data=g))
-        return self.games_list
+            self.games_list[g[0]] = urwid.Button(str(g), on_press=self.go_to_join_the_game, user_data=g)
+        return self.games_list.values()
 
     def game_callback(self, game):
         try:
@@ -74,12 +74,10 @@ class Lobby(urwid.GridFlow):
             print(type(e))
             print(e)
 
-    def delete_game_callback(self, game):
+    def delete_game_callback(self, game_id):
         try:
-            for gid in enumerate(self.game_ids):
-                if gid == game.game_id:
-                    del self.games_pile_gridflow[urwid.Button(str(game.params_as_list()), on_press=self.go_to_join_the_game, user_data=game.params_as_list())]
-                    self.game_ids.remove(game.game_id)
+            self.games_pile_gridflow.contents.remove((self.games_list[game_id], self.games_pile_gridflow.options()))
+            #self.game_ids.remove(game_id)
         except Exception as e:
             print(type(e))
             print(e)

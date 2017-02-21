@@ -174,10 +174,9 @@ class ClientLobbyController:
 
     async def handle_delete_game(self, msg):
         params = msg.parameters
-        # TODO: what to do with a game that is already started?
         try:
             del self.games[params["game_id"]]
-            await self.call_callback(ProtocolMessageType.DELETE_GAME, self.games[params["game_id"]])
+            await self.call_callback(ProtocolMessageType.DELETE_GAME, params["game_id"])
         except KeyError:
             # then the game did not exist, so what.
             pass
