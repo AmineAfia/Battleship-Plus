@@ -38,6 +38,8 @@ class ShipsList:
     ships_categories_place = []
     buttons_list = {}
     list_of_placed_cells = []
+    # Dictionary with all buttons that can move ships
+    movement_popups_dic = {}
 
     @staticmethod
     def get_ships():
@@ -82,13 +84,15 @@ class PopUpDialog(urwid.WidgetWrap):
 
     def move_ship(self, direction):
         try:
-            move_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
+            self.game_controller.move(self.ship_id, direction)
             self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type, direction)
+            move_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
             move_task.add_done_callback(self.passing_callback)
         except Exception as e:
             # TODO show a clear message of the failed shoot
             #print("shoot sagt: {}".format(type(e)))
             print("moving: {}".format(e))
+            self._emit("close")
 
     def passing_callback(self, foo):
         self._emit("close")
@@ -103,15 +107,18 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         self.loop = loop
         #self.cell = urwid.Button("({}, {})".format(self.x_pos, y_pos))
         self.cell = urwid.Button("_")
+        ShipsList.movement_popups_dic[(self.x_pos, self.y_pos)] = self.cell
         super().__init__(self.cell)
         self.x_pos_move = 0
         self.y_pos_move = 0
-        self.connect_reference(self.x_pos, self.y_pos)
 
-    def connect_reference(self, x_pos, y_pos):
-        if (x_pos + self.y_pos_move, y_pos + self.x_pos_move) in self.game_controller.get_all_ships_coordinates():
-            urwid.connect_signal(self.original_widget, 'click',
-                                lambda button: self.open_pop_up())
+        if (x_pos, y_pos) in self.game_controller.get_all_ships_coordinates():
+            urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos, self.y_pos], 'click',
+                                 lambda button: self.open_pop_up())
+
+    # def connect_reference(self):
+    #     urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move], 'click',
+    #                          lambda button: self.open_pop_up())
 
     def create_pop_up(self):
         pop_up = PopUpDialog(self, self.x_pos, self.y_pos, self.game_controller, self.lobby_controller, self.loop)
@@ -137,6 +144,12 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
             self.x_pos_move = 0
             self.y_pos_move = 1
 
+        # move the ability to move ships to the new reference of the ship
+        #self.connect_reference()
+        urwid.connect_signal(ShipsList.ship_buttons_dic[(self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move)].cell, 'click',
+                             lambda button: self.open_pop_up())
+
+
         for i in range(length):
                 if orientation == Orientation.NORTH:
                     # take ship out of matrix
@@ -153,16 +166,14 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
             for i in range(length):
                     if orientation == Orientation.NORTH:
                         # take ship out of matrix
-                        ShipsList.ship_buttons_dic[(self.x_pos+1, self.y_pos + i)].cell.set_label("_")
+                        #ShipsList.ship_buttons_dic[(self.x_pos+1, self.y_pos + i)].cell.set_label("_")
                         # draw new ship
                         ShipsList.ship_buttons_dic[(self.x_pos+1 + self.x_pos_move, self.y_pos + i + self.y_pos_move)].cell.set_label("@")
                     elif orientation == Orientation.EAST:
                         # take ship out of matrix
-                        ShipsList.ship_buttons_dic[(self.x_pos + i, self.y_pos+1)].cell.set_label("_")
+                        #ShipsList.ship_buttons_dic[(self.x_pos + i, self.y_pos+1)].cell.set_label("_")
                         # draw new ship
                         ShipsList.ship_buttons_dic[(self.x_pos + i + self.x_pos_move, self.y_pos+1 + self.y_pos_move)].cell.set_label("@")
-
-        self.connect_reference(self.x_pos, self.y_pos)
 
 
 class ShootingCell(urwid.PopUpLauncher):
@@ -179,7 +190,6 @@ class ShootingCell(urwid.PopUpLauncher):
     def shoot(self, button):
         #print("({}, {})".format(self.x_pos, self.y_pos))
         try:
-            # switched to follow RFC
             self.game_controller.shoot(self.x_pos, self.y_pos)
         except Exception as e:
             # TODO show a clear message of the illegale shoot

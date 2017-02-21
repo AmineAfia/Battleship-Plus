@@ -509,7 +509,8 @@ class GameController(GameLobbyData):
             self._timeout_handle.cancel()
 
     def to_create_game_msg(self):
-        params = {"board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}
+        params = {"board_size": self.length, "num_ships": NumShips(self.ships),
+                  "round_time": self.round_time, "options": self.options}
         if self.options == GameOptions.PASSWORD:
             params["password"] = self.password
         msg = ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME, params)
@@ -517,11 +518,13 @@ class GameController(GameLobbyData):
         return msg
 
     def to_game_msg(self):
-        params = {"game_id": self.game_id, "username": self.username, "board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}
+        params = {"game_id": self.game_id, "username": self.username, "board_size": self.length,
+                  "num_ships": NumShips(self.ships), "round_time": self.round_time, "options": self.options}
         return ProtocolMessage.create_single(ProtocolMessageType.GAME, params)
 
     def to_start_game_msg(self):
-        params = {"opponent_name": self.opponent_name, "board_size": self.length, "num_ships": NumShips(self.ships), "round_time": self.round_time}
+        params = {"opponent_name": self.opponent_name, "board_size": self.length,
+                  "num_ships": NumShips(self.ships), "round_time": self.round_time}
         return ProtocolMessage.create_single(ProtocolMessageType.STARTGAME, params)
 
     def get_place_msg(self):
@@ -531,7 +534,9 @@ class GameController(GameLobbyData):
         return ProtocolMessage.create_single(ProtocolMessageType.PLACE, {"ship_positions": ShipPositions(ship_positions)})
 
     def get_shoot_msg(self, x_pos, y_pos):
-        return ProtocolMessage.create_single(ProtocolMessageType.SHOOT, {"position": Position(y_pos, x_pos), "turn_counter": self.turn_counter})
+        return ProtocolMessage.create_single(ProtocolMessageType.SHOOT,
+                                             {"position": Position(y_pos, x_pos), "turn_counter": self.turn_counter})
 
     def get_move_msg(self, ship_id, direction):
-        return  ProtocolMessage.create_single(ProtocolMessageType.MOVE, {"ship_id": ship_id, "direction": direction, "turn_counter": self.turn_counter})
+        return  ProtocolMessage.create_single(ProtocolMessageType.MOVE,
+                                              {"ship_id": ship_id, "direction": direction, "turn_counter": self.turn_counter})

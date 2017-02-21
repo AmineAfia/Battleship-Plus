@@ -4,6 +4,8 @@ from pyfiglet import Figlet
 from ..game.battle import Battle
 from common.GameController import GameController
 from client.lobby import ClientLobbyController
+from common.protocol import ProtocolMessageType
+from ..common.StaticScreens import Screen
 
 
 class Waiting:
@@ -19,6 +21,14 @@ class Waiting:
                 ('inside', '', '', '', 'g38', '#808'),
                 ('outside', '', '', '', 'g27', '#a06'),
                 ('bg', '', '', '', 'g7', '#d06')]
+
+    # TODO figure out why the server close the connection when we raise the ExitMainLoop using a callback
+    #     self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.forward_to_join)
+    #
+    #
+    # def forward_to_join(self, key):
+    #     #Screen("PRESS ENTER").show()
+    #     raise urwid.ExitMainLoop()
 
     def exit_on_q(self, key):
         if key == 'enter':
@@ -37,12 +47,10 @@ class Waiting:
         inside = urwid.AttrMap(div, 'inside')
 
         # TODO game result to be received from client/server in the battle screen to lunch the forward here
-        result = 'win'
-        if result == 'win':
-            txt = urwid.Text(('banner', self.wlcm.renderText('Waiting !')), align='center')
-            streak = urwid.AttrMap(txt, 'streak')
-            pile = loop.widget.base_widget
-            for item in [outside, inside, streak, inside, outside]:
-                pile.contents.append((item, pile.options()))
+        txt = urwid.Text(('banner', self.wlcm.renderText('Waiting !')), align='center')
+        streak = urwid.AttrMap(txt, 'streak')
+        pile = loop.widget.base_widget
+        for item in [outside, inside, streak, inside, outside]:
+            pile.contents.append((item, pile.options()))
 
         loop.run()

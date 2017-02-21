@@ -7,6 +7,8 @@ from common.GameController import GameController
 from client.lobby import ClientLobbyController
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import GameOptions
+from ..common.StaticScreens import Screen
+from common.protocol import ProtocolMessageType
 
 palette = [
     ('hit', 'black', 'light gray', 'bold'),
