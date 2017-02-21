@@ -41,9 +41,15 @@ class ShipsList:
     # Dictionary with all buttons that can move ships
     movement_popups_dic = {}
 
+    # For testing perposes
+    test_refs = urwid.Button("")
+    test_refs_pile = urwid.Pile([test_refs])
+
     @staticmethod
     def get_ships():
         ShipsList.ships_info_length_list.append(urwid.Button(("{}".format(ShipsList.ships))))
+
+
 
 
 class PopUpDialog(urwid.WidgetWrap):
@@ -85,6 +91,11 @@ class PopUpDialog(urwid.WidgetWrap):
     def move_ship(self, direction):
         try:
             self.game_controller.move(self.ship_id, direction)
+
+            # For testing purposes
+            ShipsList.test_refs = urwid.Button(str("UI: ({}, {}) cont: {}".format(self.x_pos, self.y_pos, self.game_controller.get_all_ships_coordinates())))
+            ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
+
             self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type, direction)
             move_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
             move_task.add_done_callback(self.passing_callback)
@@ -148,7 +159,6 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         #self.connect_reference()
         urwid.connect_signal(ShipsList.ship_buttons_dic[(self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move)].cell, 'click',
                              lambda button: self.open_pop_up())
-
 
         for i in range(length):
                 if orientation == Orientation.NORTH:
@@ -242,6 +252,10 @@ class Battle:
         #setting round_time
         self.round_time = game_controller.get_round_time()
         self.round_time_pile = urwid.Pile([urwid.Button("0.0")])
+
+        # Testing purposes
+        ShipsList.test_refs = urwid.Button(str(game_controller.get_all_ships_coordinates()))
+        ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
 
     def you_wait(self):
         self.turn.contents.clear()
@@ -395,7 +409,8 @@ class Battle:
                 urwid.LineBox(urwid.Button('Abort', on_press=self.abort)),
             ], 2),
             blank,
-            urwid.Button(str(self.placed_ships)),
+            #urwid.Button(str(self.placed_ships)),
+            ShipsList.test_refs_pile,
             blank,
             self.round_time_pile
         ]
