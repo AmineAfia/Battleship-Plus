@@ -23,19 +23,16 @@ class Waiting:
                 ('bg', '', '', '', 'g7', '#d06')]
 
         # TODO figure out why the server close the connection when we raise the ExitMainLoop using a callback
-        # self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.forward_to_join)
+        self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.forward_to_join)
 
-    # def forward_to_join(self, msg, key):
-    #     raise urwid.ExitMainLoop()
-        # try:
-        #     raise urwid.ExitMainLoop()
-        # except Exception as e:
-        #     #print(type(e))
-        #     print(e)
+    def forward_to_join(self, msg):
+        print("You can start!!!!")
+        raise urwid.ExitMainLoop()
 
     def exit_on_q(self, key):
-        if key == 'enter':
-            raise urwid.ExitMainLoop()
+        # if key == 'enter':
+        #     raise urwid.ExitMainLoop()
+        pass
 
     def waiting_main(self, foo):
         placeholder = urwid.SolidFill()

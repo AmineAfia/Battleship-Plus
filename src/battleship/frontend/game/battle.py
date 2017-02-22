@@ -267,7 +267,7 @@ class Battle:
         self.lobby_controller.set_callback(ProtocolMessageType.FAIL, self.show_fail_position)
         self.lobby_controller.set_callback(ProtocolMessageType.HIT, self.hit_strike)
         self.lobby_controller.set_callback(ProtocolMessageType.ENDGAME, self.handle_endgame)
-        self.lobby_controller.set_callback(ProtocolMessageType.MOVED, self.change_player)
+        self.lobby_controller.set_callback(ProtocolMessageType.MOVED, self.hanle_moved)
 
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
@@ -301,6 +301,17 @@ class Battle:
         elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
             self.you_wait()
         print("Changed player")
+
+    def hanle_moved(self, positions):
+        try:
+            # TODO controller should switch the time counter
+            if self.game_controller.game_state == GameState.YOUR_TURN:
+                self.you_play()
+            elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
+                self.you_wait()
+            print("positions from battle.py: {}".format(positions))
+        except Exception as e:
+            print(e)
 
     def periodic_round_time_getter(self):
         self.round_time_pile.contents.clear()
