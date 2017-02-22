@@ -42,8 +42,12 @@ class ShipsList:
     movement_popups_dic = {}
 
     # For testing perposes
+    all_ships_coordinates = []
     test_refs = urwid.Button("")
     test_refs_pile = urwid.Pile([test_refs])
+
+    # variable to allow players to shoot and move fro the UI
+    your_turn = 0
 
     @staticmethod
     def get_ships():
@@ -64,13 +68,13 @@ class PopUpDialog(urwid.WidgetWrap):
         self.s_button = urwid.Button("South")
         self.w_button = urwid.Button("West")
         self.e_button = urwid.Button("East")
+        self.exit_button = urwid.Button("Exit")
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
         self.loop = loop
-        self.ship_id = self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos)
-        self.ship_type = self.game_controller.get_ship_type_by_id(self.ship_id)
-        self.ship_orientation = self.game_controller.get_ship_orientation_by_id(self.ship_id)
-        self.ship_length = ShipsList.length_dictionary[self.ship_type]
+
+        urwid.connect_signal(self.exit_button, 'click',
+                             lambda button: self._emit("close"))
 
         urwid.connect_signal(self.n_button, 'click',
                              lambda button: self.move_ship(Direction.NORTH))
@@ -84,25 +88,37 @@ class PopUpDialog(urwid.WidgetWrap):
         urwid.connect_signal(self.w_button, 'click',
                              lambda button: self.move_ship(Direction.WEST))
 
-        pile = urwid.Pile([self.n_button, urwid.Columns([self.w_button, self.e_button], 2), self.s_button])
+        self.coordinates = urwid.Text("({}, {})".format(self.x_pos, self.y_pos))
+
+        pile = urwid.Pile([self.coordinates, self.exit_button, self.n_button, urwid.Columns([self.w_button, self.e_button], 2), self.s_button])
         fill = urwid.Filler(pile)
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
     def move_ship(self, direction):
-        try:
-            self.game_controller.move(self.ship_id, direction)
+        if ShipsList.your_turn == 1:
+            self.ship_id = self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos)
+            self.ship_type = self.game_controller.get_ship_type_by_id(self.ship_id)
+            self.ship_orientation = self.game_controller.get_ship_orientation_by_id(self.ship_id)
+            self.ship_length = ShipsList.length_dictionary[self.ship_type]
 
-            # For testing purposes
-            ShipsList.test_refs = urwid.Button(str("UI: ({}, {}) cont: {}".format(self.x_pos, self.y_pos, self.game_controller.get_all_ships_coordinates())))
-            ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
+            try:
+                self.game_controller.move(self.ship_id, direction)
 
-            self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type, direction)
-            move_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
-            move_task.add_done_callback(self.passing_callback)
-        except Exception as e:
-            # TODO show a clear message of the failed shoot
-            #print("shoot sagt: {}".format(type(e)))
-            print("moving: {}".format(e))
+                # For testing purposes
+                ShipsList.test_refs = urwid.Button(str("UI: ({}, {}) cont: {}".format(self.x_pos, self.y_pos, self.game_controller.get_all_ships_coordinates())))
+                ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
+
+                self._emit("close")
+
+                self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type, direction)
+                move_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
+                move_task.add_done_callback(self.passing_callback)
+            except Exception as e:
+                # TODO show a clear message of the failed shoot
+                #print("shoot sagt: {}".format(type(e)))
+                print("moving: {}".format(e))
+                self._emit("close")
+        else:
             self._emit("close")
 
     def passing_callback(self, foo):
@@ -123,9 +139,9 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         self.x_pos_move = 0
         self.y_pos_move = 0
 
-        if (x_pos, y_pos) in self.game_controller.get_all_ships_coordinates():
-            urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos, self.y_pos], 'click',
-                                 lambda button: self.open_pop_up())
+        # if (x_pos, y_pos) in self.game_controller.get_all_ships_coordinates():
+        urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move], 'click',
+                             lambda button: self.open_pop_up())
 
     # def connect_reference(self):
     #     urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move], 'click',
@@ -155,10 +171,14 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
             self.x_pos_move = 0
             self.y_pos_move = 1
 
+        # urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move], 'click',
+        #                      lambda button: self.open_pop_up())
+
         # move the ability to move ships to the new reference of the ship
         #self.connect_reference()
-        urwid.connect_signal(ShipsList.ship_buttons_dic[(self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move)].cell, 'click',
-                             lambda button: self.open_pop_up())
+
+        # urwid.connect_signal(ShipsList.ship_buttons_dic[(self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move)].cell, 'click',
+        #                      lambda button: self.open_pop_up())
 
         for i in range(length):
                 if orientation == Orientation.NORTH:
@@ -198,22 +218,24 @@ class ShootingCell(urwid.PopUpLauncher):
         urwid.connect_signal(self.original_widget, 'click', lambda button: self.shoot(button))
 
     def shoot(self, button):
-        #print("({}, {})".format(self.x_pos, self.y_pos))
-        try:
-            self.game_controller.shoot(self.x_pos, self.y_pos)
-        except Exception as e:
-            # TODO show a clear message of the illegale shoot
-            #print("shoot sagt: {}".format(type(e)))
-            print(e)
-
-        try:
-            shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.x_pos, self.y_pos))
-            # shoot_task.add_done_callback(self.set_label_after_shoot(button))
-            shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
-        except Exception as e:
-            # TODO show a clear message of the failed shoot
-            #print("shoot sagt: {}".format(type(e)))
-            print(e)
+        if ShipsList.your_turn == 1:
+            #print("({}, {})".format(self.x_pos, self.y_pos))
+            try:
+                self.game_controller.shoot(self.x_pos, self.y_pos)
+            except Exception as e:
+                # TODO show a clear message of the illegale shoot
+                #print("shoot sagt: {}".format(type(e)))
+                print(e)
+            try:
+                shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.x_pos, self.y_pos))
+                # shoot_task.add_done_callback(self.set_label_after_shoot(button))
+                shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
+            except Exception as e:
+                # TODO show a clear message of the failed shoot
+                #print("shoot sagt: {}".format(type(e)))
+                print(e)
+        else:
+            button.set_label(".")
 
 
     def set_label_after_shoot(self, button, future):
@@ -257,6 +279,10 @@ class Battle:
         ShipsList.test_refs = urwid.Button(str(game_controller.get_all_ships_coordinates()))
         ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
 
+        ShipsList.all_ships_coordinates = game_controller.get_all_ship_states()
+        ShipsList.all_ships_coordinates_button = urwid.Button(str(ShipsList.all_ships_coordinates))
+        ShipsList.test_refs_pile.contents.append((ShipsList.all_ships_coordinates_button, ShipsList.test_refs_pile.options()))
+
     def you_wait(self):
         self.turn.contents.clear()
         self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Opponent Turn')), 'notturn'), self.turn.options()))
@@ -266,6 +292,7 @@ class Battle:
         self.turn.contents.clear()
         self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Your Turn')), 'turn'), self.turn.options()))
         self.periodic_round_time_getter()
+        ShipsList.your_turn = 1
 
     def change_player(self):
         # TODO controller should switch the time counter
