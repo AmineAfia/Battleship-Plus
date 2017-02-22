@@ -77,7 +77,7 @@ class Lobby(urwid.GridFlow):
     def delete_game_callback(self, game_id):
         try:
             self.games_pile_gridflow.contents.remove((self.games_list[game_id], self.games_pile_gridflow.options()))
-            #self.game_ids.remove(game_id)
+            self.game_ids.remove(game_id)
         except Exception as e:
             print(type(e))
             print(e)
