@@ -230,3 +230,6 @@ class Battlefield:
                         # strike because this ship moved over a hit field
                         ship.strike(coordinate[0],coordinate[1])
         return moved_to_hit_positions
+
+    def shot_missed(self, x_pos, y_pos):
+        self._enemy_battlefield[x_pos][y_pos] = 0
