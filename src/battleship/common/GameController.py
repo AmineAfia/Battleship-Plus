@@ -30,6 +30,7 @@ class GameController(GameLobbyData):
         self.timeout_counter: int = 0
         self._timeout_handle: asyncio.Handle = None
         self._last_shot = (0, 0)
+        self._my_shot = False
         self.client = client
 
     def reset_for_client(self):
@@ -272,10 +273,11 @@ class GameController(GameLobbyData):
                             # todo differentiate if called from UI -> SEND MSG TO SERVER AND WAIT FOR ANSWER -> Set new state
                             # todo if called from CLIENT -> set new state and answer to Client OK
                             # TODO: does this never return False after our checks above?
-                            result = self._battlefield.move(ship_id, direction)
-                            # becaus a ship can travel to HIT fields ....
-                            self._battlefield.strike_all_again()
-                            return result
+                            if self._state == GameState.YOUR_TURN:
+                                result = self._battlefield.move(ship_id, direction)
+                                return result
+                            else:
+                                raise BattleshipError(ErrorCode.ILLEGAL_STATE_NOT_YOUR_TURN)
                         else:
                             raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
                     else:
@@ -311,11 +313,15 @@ class GameController(GameLobbyData):
         if self._game_started:
             if self._battlefield.no_border_crossing(x_pos, y_pos):
                 if self._battlefield.no_hit_at_place(x_pos, y_pos):
-                    if self._battlefield.shoot(x_pos, y_pos):
-                        self._last_shot = (x_pos, y_pos)
-                        return True
+                    if self._state == GameState.YOUR_TURN:
+                        if self._battlefield.shoot(x_pos, y_pos):
+                            self._last_shot = (x_pos, y_pos)
+                            self._my_shot = True
+                            return True
+                        else:
+                            return False
                     else:
-                        return False
+                        raise BattleshipError(ErrorCode.ILLEGAL_STATE_NOT_YOUR_TURN)
                 else:
                     raise BattleshipError(ErrorCode.PARAMETER_ALREADY_HIT_POSITION)
             else:
@@ -338,6 +344,9 @@ class GameController(GameLobbyData):
 
     def get_all_ships_coordinates(self):
         return self._battlefield.get_all_ships_coordinates()
+
+    def get_ship_coordinates_by_id(self, ship_id):
+        return self._battlefield.get_ship_coordinates_by_id(ship_id)
 
     def increase_turn_counter(self):
         if self._turn_counter >= 256:
@@ -459,6 +468,10 @@ class GameController(GameLobbyData):
                 self._state = GameState.YOUR_TURN
             self.start_round_time()
             position = msg.parameters["position"]
+            if self._my_shot:
+                self._my_shot = False
+                x_pos, y_pos = self._last_shot
+                self._battlefield.shot_missed(x_pos, y_pos)
             self.increase_turn_counter()
 
         # A ship was moved. If the ship was moved to already shot fields, these fields are mentioned in the positions. This message is sent to both clients.

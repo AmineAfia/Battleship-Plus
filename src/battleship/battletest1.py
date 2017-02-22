@@ -31,6 +31,7 @@ def main():
         # Ding was die Verbindung managed zum Server
         battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
         await battleship_client.connect(Constants.SERVER_IP, Constants.SERVER_PORT)
+        #await battleship_client.connect("192.168.0.1", "4242")
         # the following messages are just to test
         # normally you can just call `await battleship_client.send(msg)`
         # await is necessary because it's asynchronous
@@ -85,8 +86,9 @@ def main():
 
             if end == "m":    
                 turn_counter = int(input("insert turn_counter to move: "))
+                move_direction = int(input("insert move direction: "))
                 msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
-                                           {"ship_id": 0, "direction": Direction.EAST,
+                                           {"ship_id": 0, "direction": move_direction,
                                             "turn_counter": turn_counter})
 
 
