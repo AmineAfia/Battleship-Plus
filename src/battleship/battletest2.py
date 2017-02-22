@@ -31,6 +31,7 @@ def main():
         # Ding was die Verbindung managed zum Server
         battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
         await battleship_client.connect(Constants.SERVER_IP, Constants.SERVER_PORT)
+        #await battleship_client.connect("192.168.0.1", "4242")
         # the following messages are just to test
         # normally you can just call `await battleship_client.send(msg)`
         # await is necessary because it's asynchronous
@@ -40,8 +41,8 @@ def main():
 
         input("PUSH THE BUTTON for chatting")
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": "testuser1".format((client_id + 1) % 2), "text": "Hi Loser, Grüße von client {}".format(client_id)}))
-        input("PUSH THE BUTTON to join a game")
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": 1}))
+        game_id = input("PUSH THE BUTTON game_id: ")
+        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN, {"game_id": game_id}))
 
         input("PUSH THE BUTTON to place a game")
         msg = ProtocolMessage.create_single(ProtocolMessageType.PLACE,
@@ -64,9 +65,10 @@ def main():
 
             if end == "m":    
                 turn_counter = int(input("insert turn_counter to move: "))
+                move_direction = int(input("insert move direction: "))
                 msg = ProtocolMessage.create_single(ProtocolMessageType.MOVE,
-                                           {"ship_id": 0, "direction": Direction.EAST,
-                                            "turn_counter": turn_counter})
+                                                    {"ship_id": 0, "direction": move_direction,
+                                                     "turn_counter": turn_counter})
 
 
             await _send_and_wait(msg)

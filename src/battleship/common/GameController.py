@@ -273,8 +273,6 @@ class GameController(GameLobbyData):
                             # todo if called from CLIENT -> set new state and answer to Client OK
                             # TODO: does this never return False after our checks above?
                             result = self._battlefield.move(ship_id, direction)
-                            # becaus a ship can travel to HIT fields ....
-                            self._battlefield.strike_all_again()
                             return result
                         else:
                             raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)

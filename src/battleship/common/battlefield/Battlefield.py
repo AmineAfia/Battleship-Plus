@@ -230,10 +230,3 @@ class Battlefield:
                         # strike because this ship moved over a hit field
                         ship.strike(coordinate[0],coordinate[1])
         return moved_to_hit_positions
-
-    def strike_all_again(self):
-        # TODO: check if this what flo wanted (removed -1)
-        for i in range(self._length):
-            for j in range(self._length):
-                if self._my_battlefield[i][j] == 1:
-                    self.strike(i,j)
