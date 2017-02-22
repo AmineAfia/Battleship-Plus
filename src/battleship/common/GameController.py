@@ -345,6 +345,9 @@ class GameController(GameLobbyData):
     def get_all_ships_coordinates(self):
         return self._battlefield.get_all_ships_coordinates()
 
+    def get_ship_coordinates_by_id(self, ship_id):
+        return self._battlefield.get_ship_coordinates_by_id(ship_id)
+
     def increase_turn_counter(self):
         if self._turn_counter >= 256:
             self._turn_counter = 0

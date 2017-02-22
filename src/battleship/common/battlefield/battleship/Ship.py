@@ -74,8 +74,8 @@ class Ship:
             for i in range(self._x_length):
                 for j in range(self._y_length):
                     # TODO: check if this what flo wanted (compare just the positions)
-                    if self._ship_state[i][j] == [(x_pos, y_pos), self._ship_state[i][j][1]]:
-                    # if self._ship_state[i][j][0] == (x_pos, y_pos):
+                    # if self._ship_state[i][j] == [(x_pos, y_pos), self._ship_state[i][j][1]]:
+                    if self._ship_state[i][j][0] == (x_pos, y_pos):
                         return True
         return False
 

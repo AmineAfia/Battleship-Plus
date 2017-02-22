@@ -30,6 +30,8 @@ class Battlefield:
                 if ship.strike(x_pos, y_pos):
                     self._my_battlefield[x_pos][y_pos] = 1
                     return True
+                else:
+                    self._my_battlefield[x_pos][y_pos] = 2
         # no hit
         return False
 
@@ -211,6 +213,13 @@ class Battlefield:
                     ship_coordinates_list.append(ship.get_ship_coordinate())
         return ship_coordinates_list
 
+    def get_ship_coordinates_by_id(self, ship_id):
+        ship_coordinates_list = []
+        for ship in self._ships:
+            if ship.get_ship_id() == ship_id:
+                ship_coordinates_list.append(ship.get_ship_coordinate())
+        return ship_coordinates_list
+
     def get_ship_state_with_type(self, ship_type):
         ship_state_list = []
         for ship in self._ships:
@@ -223,13 +232,12 @@ class Battlefield:
         moved_to_hit_positions = []
         for ship in self._ships:
             if ship.get_ship_id() == ship_id:
-                ship_positions = ship.get_ship_coordinates()
-                for coordinate in ship_positions:
-                    if self._my_battlefield[coordinate[0]][coordinate[1]] == 1:
-                        moved_to_hit_positions.append(coordinate)
-                        # strike because this ship moved over a hit field
-                        ship.strike(coordinate[0],coordinate[1])
+                for i in range(self._length):
+                    for j in range(self._length):
+                        if self._my_battlefield == 2:
+                            if ship.is_ship_at_location(i, j):
+                                moved_to_hit_positions.append((i, j))
         return moved_to_hit_positions
 
     def shot_missed(self, x_pos, y_pos):
-        self._enemy_battlefield[x_pos][y_pos] = 0
+        self._enemy_battlefield[x_pos][y_pos] = 2
