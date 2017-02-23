@@ -20,7 +20,11 @@ class GameLobbyData:
         return "#{} from '{}', size {}, {}s, ships {}, {}".format(self._game_id, self._username, self._board_size, self._round_time, self._num_ships, "passwd" if self._options == GameOptions.PASSWORD else "")
 
     def params_as_list(self):
-        return [self._game_id, self._board_size, self._num_ships.numbers]
+        password = 0
+        if self.options != 0:
+            password = 1
+
+        return [self._game_id, self._board_size, self._num_ships.numbers, password]
 
     @property
     def username(self):

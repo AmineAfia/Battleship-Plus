@@ -7,6 +7,63 @@ from client.lobby import ClientLobbyController
 from .join import Join
 from ..common.Chat import Chat
 
+
+class PasswordPopUpDialog(urwid.WidgetWrap):
+    """A dialog that appears with nothing but a close button """
+    signals = ['close']
+    def __init__(self, password_popup):
+        self.password_popup = password_popup
+        self.password = urwid.Edit(caption='password: ', multiline=False, align='left', wrap='space', allow_tab=False, mask="*")
+        join_button = urwid.Button("Join")
+
+        urwid.connect_signal(join_button, 'click',
+                             lambda button: self.go_to_join_the_game(self.password_popup.g, self.password.get_edit_text()))
+
+        pile = urwid.Pile([urwid.Text("Enter password"), self.password, join_button])
+        fill = urwid.Filler(pile)
+        self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
+
+    def go_to_join_the_game(self, game, password):
+        join_task = self.password_popup.loop.create_task(self.password_popup.lobby_controller.send_join(game[0], password))
+        join_task.add_done_callback(self.password_popup.init_controller_to_join_game(game))
+        self._emit("close")
+
+
+class PasswordPopUp(urwid.PopUpLauncher):
+    def __init__(self, g, loop, lobby_controller, game_controller):
+        self.g = g
+        self.loop = loop
+        self.lobby_controller = lobby_controller
+        self.game_controller = game_controller
+        self.__super.__init__(urwid.Button(str(self.g)))
+
+        if self.g[3] == 0:
+            urwid.connect_signal(self.original_widget, 'click',
+                                 lambda button: self.go_to_join_the_game(self.g))
+        else:
+            urwid.connect_signal(self.original_widget, 'click',
+                                 lambda button: self.open_pop_up())
+
+    def create_pop_up(self):
+        pop_up = PasswordPopUpDialog(self)
+        urwid.connect_signal(pop_up, 'close',
+            lambda button: self.close_pop_up())
+        return pop_up
+
+    def get_pop_up_parameters(self):
+        return {'left':0, 'top':1, 'overlay_width':32, 'overlay_height':7}
+
+    def go_to_join_the_game(self, game):
+        join_task = self.loop.create_task(self.lobby_controller.send_join(game[0], ""))
+        join_task.add_done_callback(self.init_controller_to_join_game(game))
+
+    def init_controller_to_join_game(self, game):
+        self.game_controller.game_id = game[0]
+        self.game_controller.create_battlefield(int(game[1]), game[2])
+        self.lobby_controller.is_joining_game = True
+        raise urwid.ExitMainLoop()
+
+
 class Lobby(urwid.GridFlow):
     # create game method (switch screen)
     def __init__(self, game_controller, lobby_controller, loop):
@@ -50,10 +107,11 @@ class Lobby(urwid.GridFlow):
     def forward_create(self, foo):
         raise urwid.ExitMainLoop()
 
+# Passed to the popup launcher
     def go_to_join_the_game(self, foo, game):
         join_task = self.loop.create_task(self.lobby_controller.send_join(game[0], ""))
         join_task.add_done_callback(self.init_controller_to_join_game(game))
-
+# Passed to the Popup Launcher
     def init_controller_to_join_game(self, game):
         self.game_controller.game_id = game[0]
         self.game_controller.create_battlefield(int(game[1]), game[2])
@@ -62,13 +120,14 @@ class Lobby(urwid.GridFlow):
 
     def get_games(self):
         for g in self.params_as_list:
-            # TODO: this should forward to join, with the appropriate game_id
-            self.games_list[g[0]] = urwid.Button(str(g), on_press=self.go_to_join_the_game, user_data=g)
+            # TODO: this should forward to join, with the appropriate game_id-----------------------------------------
+            #self.games_list[g[0]] = urwid.Button(str(g), on_press=self.go_to_join_the_game, user_data=g)
+            self.games_list[g[0]] = PasswordPopUp(g, self.loop, self.lobby_controller, self.game_controller)
         return self.games_list.values()
 
     def game_callback(self, game):
         try:
-            self.games_pile_gridflow.contents.append((urwid.Button(str(game.params_as_list()), on_press=self.go_to_join_the_game, user_data=game.params_as_list()), self.games_pile_gridflow.options()))
+            self.games_pile_gridflow.contents.append((PasswordPopUp(game.params_as_list(), self.loop, self.lobby_controller, self.game_controller), self.games_pile_gridflow.options()))
             self.game_ids.append(game.game_id)
         except Exception as e:
             print(type(e))

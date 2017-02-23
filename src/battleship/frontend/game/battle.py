@@ -41,6 +41,9 @@ class ShipsList:
     # Dictionary with all buttons that can move ships
     movement_popups_dic = {}
 
+    # Dictionary of shhoting feld matrix
+    shoot_matrix__buttons_dic = {}
+
     # For testing perposes
     all_ships_coordinates = []
     test_refs = urwid.Button("")
@@ -213,7 +216,8 @@ class ShootingCell(urwid.PopUpLauncher):
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
         self.loop = loop
-        super().__init__(urwid.Button("."))
+        self.cell = urwid.Button(".")
+        super().__init__(self.cell)
         #super().__init__(urwid.Button("({}, {})".format(self.x_pos, self.y_pos)))
         urwid.connect_signal(self.original_widget, 'click', lambda button: self.shoot(button))
 
@@ -267,7 +271,7 @@ class Battle:
         self.lobby_controller.set_callback(ProtocolMessageType.FAIL, self.show_fail_position)
         self.lobby_controller.set_callback(ProtocolMessageType.HIT, self.hit_strike)
         self.lobby_controller.set_callback(ProtocolMessageType.ENDGAME, self.handle_endgame)
-        self.lobby_controller.set_callback(ProtocolMessageType.MOVED, self.change_player)
+        self.lobby_controller.set_callback(ProtocolMessageType.MOVED, self.handle_moved)
 
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
@@ -301,6 +305,20 @@ class Battle:
         elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
             self.you_wait()
         print("Changed player")
+
+    def handle_moved(self, positions):
+        try:
+            # TODO controller should switch the time counter
+            if self.game_controller.game_state == GameState.YOUR_TURN:
+                self.you_play()
+                for position in positions["positions"].positions:
+                    ShipsList.shoot_matrix__buttons_dic[(position.horizontal, position.vertical)].cell.set_label("|")
+                    #print("({}, {})".format(position.horizontal, position.vertical))
+            elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
+                self.you_wait()
+
+        except Exception as e:
+            print(e)
 
     def periodic_round_time_getter(self):
         self.round_time_pile.contents.clear()
@@ -366,6 +384,7 @@ class Battle:
                 ship_cell = ShootingCell(x_pos, y_pos, self.game_controller, self.lobby_controller, self.loop)
                 shooting_line.append(ship_cell)
                 self.shoot_button_list.append(ship_cell)
+                ShipsList.shoot_matrix__buttons_dic[(x_pos, y_pos)] = ship_cell
             ship_zeil = urwid.GridFlow(shooting_line, 1, 1, 0, 'center')
             f.append(ship_zeil)
             shooting_line.clear()

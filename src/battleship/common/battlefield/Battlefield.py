@@ -25,13 +25,12 @@ class Battlefield:
 
     # enemy strike
     def strike(self, x_pos, y_pos):
+        self._my_battlefield[x_pos][y_pos] = 2
         for ship in self._ships:
             if ship.is_ship_at_location(x_pos, y_pos):
                 if ship.strike(x_pos, y_pos):
                     self._my_battlefield[x_pos][y_pos] = 1
                     return True
-                else:
-                    self._my_battlefield[x_pos][y_pos] = 2
         # no hit
         return False
 
@@ -88,13 +87,13 @@ class Battlefield:
         return True
 
     def no_strike_at_place(self, x_pos, y_pos):
-        if self._my_battlefield[x_pos][y_pos] == 0:
+        if self._my_battlefield[x_pos][y_pos] == 0 or self._my_battlefield[x_pos][y_pos] == 2:
             return True
         else:
             return False
 
     def no_hit_at_place(self, x_pos, y_pos):
-        if self._enemy_battlefield[x_pos][y_pos] == 0:
+        if self._enemy_battlefield[x_pos][y_pos] == 0 or self._enemy_battlefield[x_pos][y_pos] == 2:
             return True
         else:
             return False
@@ -234,7 +233,7 @@ class Battlefield:
             if ship.get_ship_id() == ship_id:
                 for i in range(self._length):
                     for j in range(self._length):
-                        if self._my_battlefield == 2:
+                        if self._my_battlefield[i][j] == 2:
                             if ship.is_ship_at_location(i, j):
                                 moved_to_hit_positions.append((i, j))
         return moved_to_hit_positions

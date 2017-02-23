@@ -205,8 +205,12 @@ class ClientLobbyController:
         await self.call_callback(ProtocolMessageType.FAIL, position)
 
     async def handle_moved(self, msg):
-        self.game_controller.run(msg)
-        await self.call_callback(ProtocolMessageType.MOVED)
+        try:
+            self.game_controller.run(msg)
+            positions: Positions = msg.parameters
+            await self.call_callback(ProtocolMessageType.MOVED, positions)
+        except Exception as e:
+            print(type(e))
 
     async def handle_start_game(self, msg):
         self.game_controller.run(msg)
