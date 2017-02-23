@@ -99,6 +99,7 @@ class PopUpDialog(urwid.WidgetWrap):
 
     def move_ship(self, direction):
         if ShipsList.your_turn == 1:
+
             self.ship_id = self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos)
             self.ship_type = self.game_controller.get_ship_type_by_id(self.ship_id)
             self.ship_orientation = self.game_controller.get_ship_orientation_by_id(self.ship_id)
@@ -106,7 +107,13 @@ class PopUpDialog(urwid.WidgetWrap):
 
             try:
                 self.game_controller.move(self.ship_id, direction)
+            except Exception as e:
+                # TODO show a clear message of the failed shoot
+                #print("shoot sagt: {}".format(type(e)))
+                print("moving: {}".format(e))
+                self._emit("close")
 
+            try:
                 # For testing purposes
                 ShipsList.test_refs = urwid.Button(str("UI: ({}, {}) cont: {}".format(self.x_pos, self.y_pos, self.game_controller.get_all_ships_coordinates())))
                 ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
