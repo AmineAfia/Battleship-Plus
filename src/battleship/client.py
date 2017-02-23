@@ -79,28 +79,29 @@ def main():
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
 
-    while not lobby_controller.quit_client:
-        create_lobby = Lobby(game_controller, lobby_controller, loop)
-        create_lobby.lobby_main()
+    while lobby_controller.state == ClientConnectionState.CONNECTED:
+        while not lobby_controller.quit_client:
+            create_lobby = Lobby(game_controller, lobby_controller, loop)
+            create_lobby.lobby_main()
 
-        if lobby_controller.is_joining_game is False:
-            create_game = CreateGame(game_controller, lobby_controller, loop)
-            create_game.create_game()
+            if lobby_controller.is_joining_game is False:
+                create_game = CreateGame(game_controller, lobby_controller, loop)
+                create_game.create_game()
 
-            # TODO: esc or normal continuation?
-            go_to_game = Waiting(game_controller, lobby_controller, loop)
-            # TODO: is this foo nedded in waiting_main?
-            go_to_game.waiting_main("")
+                # TODO: esc or normal continuation?
+                go_to_game = Waiting(game_controller, lobby_controller, loop)
+                # TODO: is this foo nedded in waiting_main?
+                go_to_game.waiting_main("")
 
-        join_battle = Join(game_controller, lobby_controller, loop)
-        join_battle.join_main()
+            join_battle = Join(game_controller, lobby_controller, loop)
+            join_battle.join_main()
 
-        battle_sessions = Battle(game_controller, lobby_controller, loop)
-        battle_sessions.battle_main()
+            battle_sessions = Battle(game_controller, lobby_controller, loop)
+            battle_sessions.battle_main()
 
-        # reset lobby and game controller
-        game_controller.reset_for_client()
-        lobby_controller.reset()
+            # reset lobby and game controller
+            game_controller.reset_for_client()
+            lobby_controller.reset()
 
     # TODO: go back to lobby, send GET_GAMES
 

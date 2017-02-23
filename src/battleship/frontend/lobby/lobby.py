@@ -35,7 +35,13 @@ class PasswordPopUp(urwid.PopUpLauncher):
         self.loop = loop
         self.lobby_controller = lobby_controller
         self.game_controller = game_controller
-        self.__super.__init__(urwid.Button(str(self.g)))
+
+        if self.g[3] == 1:
+            tmp_string = str("(Password) Game {}: board size {} & {} ships".format(self.g[0], self.g[1], self.g[2]))
+        else:
+            tmp_string = str("Game {}: board size {} & {} ships".format(self.g[0], self.g[1], self.g[2]))
+
+        self.__super.__init__(urwid.Button(tmp_string))
 
         if self.g[3] == 0:
             urwid.connect_signal(self.original_widget, 'click',
@@ -107,21 +113,8 @@ class Lobby(urwid.GridFlow):
     def forward_create(self, foo):
         raise urwid.ExitMainLoop()
 
-# Passed to the popup launcher
-    def go_to_join_the_game(self, foo, game):
-        join_task = self.loop.create_task(self.lobby_controller.send_join(game[0], ""))
-        join_task.add_done_callback(self.init_controller_to_join_game(game))
-# Passed to the Popup Launcher
-    def init_controller_to_join_game(self, game):
-        self.game_controller.game_id = game[0]
-        self.game_controller.create_battlefield(int(game[1]), game[2])
-        self.lobby_controller.is_joining_game = True
-        raise urwid.ExitMainLoop()
-
     def get_games(self):
         for g in self.params_as_list:
-            # TODO: this should forward to join, with the appropriate game_id-----------------------------------------
-            #self.games_list[g[0]] = urwid.Button(str(g), on_press=self.go_to_join_the_game, user_data=g)
             self.games_list[g[0]] = PasswordPopUp(g, self.loop, self.lobby_controller, self.game_controller)
         return self.games_list.values()
 

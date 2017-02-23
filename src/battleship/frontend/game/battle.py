@@ -174,14 +174,14 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
             self.x_pos_move = 0
             self.y_pos_move = 1
 
-        # urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move], 'click',
-        #                      lambda button: self.open_pop_up())
-
-        # move the ability to move ships to the new reference of the ship
-        #self.connect_reference()
-
-        # urwid.connect_signal(ShipsList.ship_buttons_dic[(self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move)].cell, 'click',
-        #                      lambda button: self.open_pop_up())
+        # new_coordinates = self.game_controller.get_ship_coordinates_by_id(self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos))
+        #
+        # for cord in new_coordinates:
+        #     if orientation == Orientation.NORTH:
+        #         ShipsList.ship_buttons_dic[cord].cell.set_label("@")
+        #     elif orientation == Orientation.EAST:
+        #         ShipsList.ship_buttons_dic[cord].cell.set_label("@")
+        #
 
         for i in range(length):
                 if orientation == Orientation.NORTH:
