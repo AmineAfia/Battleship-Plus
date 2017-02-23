@@ -210,8 +210,7 @@ class ClientLobbyController:
 
     async def handle_start_game(self, msg):
         self.game_controller.run(msg)
-        msg = self.game_controller.to_start_game_msg()
-        await self.call_callback(ProtocolMessageType.STARTGAME, msg)
+        await self.call_callback(ProtocolMessageType.STARTGAME)
 
     async def handle_placed(self, msg):
         self.game_controller.run(msg)
