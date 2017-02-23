@@ -16,8 +16,8 @@ class Waiting:
         self.lobby_controller = lobby_controller
         self.wlcm = Figlet(font='big')
 
-        self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.handle_start_game)
-        self.screen_finished: asyncio.Event = asyncio.Event()
+        # self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.handle_start_game)
+        # self.screen_finished: asyncio.Event = asyncio.Event()
 
         self.palette =[
                 ('banner', '', '', '', '#ffa', '#60a'),
@@ -35,10 +35,11 @@ class Waiting:
 
     def exit_on_q(self, key):
         if key == 'enter':
-            self.screen_finished.set()
+            # self.screen_finished.set()
+            raise urwid.ExitMainLoop()
 
-    def handle_start_game(self):
-        self.screen_finished.set()
+    # def handle_start_game(self):
+    #     self.screen_finished.set()
 
 
     def waiting_main(self, foo):
@@ -60,10 +61,10 @@ class Waiting:
         for item in [outside, inside, streak, inside, outside]:
             pile.contents.append((item, pile.options()))
 
-        self.loop.create_task(self.end_screen())
+        # self.loop.create_task(self.end_screen())
         loop.run()
 
-    async def end_screen(self):
-        await self.screen_finished.wait()
-        # TODO: kill all registered callbacks
-        raise urwid.ExitMainLoop()
+    # async def end_screen(self):
+    #     await self.screen_finished.wait()
+    #     # TODO: kill all registered callbacks
+    #     raise urwid.ExitMainLoop()

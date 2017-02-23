@@ -35,7 +35,13 @@ class PasswordPopUp(urwid.PopUpLauncher):
         self.loop = loop
         self.lobby_controller = lobby_controller
         self.game_controller = game_controller
-        self.__super.__init__(urwid.Button(str(self.g)))
+
+        if self.g[3] == 1:
+            tmp_string = str("(Password) Game {}: board size {} & {} ships".format(self.g[0], self.g[1], self.g[2]))
+        else:
+            tmp_string = str("Game {}: board size {} & {} ships".format(self.g[0], self.g[1], self.g[2]))
+
+        self.__super.__init__(urwid.Button(tmp_string))
 
         if self.g[3] == 0:
             urwid.connect_signal(self.original_widget, 'click',
