@@ -31,7 +31,7 @@ def main():
         # Ding was die Verbindung managed zum Server
         battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
         await battleship_client.connect(Constants.SERVER_IP, Constants.SERVER_PORT)
-        #await battleship_client.connect("192.168.0.1", "4242")
+        #await battleship_client.connect("192.168.0.2", "4242")
         # the following messages are just to test
         # normally you can just call `await battleship_client.send(msg)`
         # await is necessary because it's asynchronous
@@ -47,7 +47,8 @@ def main():
         input("PUSH THE BUTTON to place a game")
         msg = ProtocolMessage.create_single(ProtocolMessageType.PLACE,
                                             {"ship_positions": ShipPositions([
-                                                ShipPosition(Position(0, 0), Orientation.EAST)])})
+                                                ShipPosition(Position(0, 0), Orientation.EAST),
+                                                ShipPosition(Position(2, 0), Orientation.EAST)])})
 
         await _send_and_wait(msg)
 	####################################################################################################################
