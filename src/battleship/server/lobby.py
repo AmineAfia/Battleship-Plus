@@ -402,8 +402,6 @@ class ServerLobbyController:
         our_ctrl: GameController = self.user_game_ctrl[client.username]
         other_ctrl: GameController = self.user_game_ctrl[our_ctrl.opponent_name]
 
-        positions = Positions()
-
         try:
             positions: Positions = our_ctrl.run(msg)
         except BattleshipError as e:
@@ -419,7 +417,7 @@ class ServerLobbyController:
         # notify
         params = {}
         if not len(positions.positions) == 0:
-            params["positions"] = positions.positions
+            params["positions"] = positions
         msg_moved: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.MOVED, params)
 
         await self.send(other_ctrl.client, msg_moved)

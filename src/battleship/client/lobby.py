@@ -212,12 +212,12 @@ class ClientLobbyController:
         except Exception as e:
             print(type(e))
 
-    async def handle_start_game(self, msg):
-        try:
-            self.game_controller.run(msg)
-            await self.call_callback(ProtocolMessageType.STARTGAME, msg.parameters)
-        except Exception as e:
-            print(type(e))
+    # async def handle_start_game(self, msg):
+    #     try:
+    #         self.game_controller.run(msg)
+    #         await self.call_callback(ProtocolMessageType.STARTGAME, msg.parameters)
+    #     except Exception as e:
+    #         print(type(e))
 
     async def handle_placed(self, msg):
         self.game_controller.run(msg)

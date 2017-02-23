@@ -57,8 +57,8 @@ def main():
             await lobby_controller.handle_endgame(msg)
         elif msg.type == ProtocolMessageType.MOVED:
             await lobby_controller.handle_moved(msg)
-        elif msg.type == ProtocolMessageType.STARTGAME and lobby_controller.is_joining_game is False:
-            await lobby_controller.handle_start_game(msg)
+        # elif msg.type == ProtocolMessageType.STARTGAME and lobby_controller.is_joining_game is False:
+        #     await lobby_controller.handle_start_game(msg)
         # TODO: add the other types
         else:
             pass
