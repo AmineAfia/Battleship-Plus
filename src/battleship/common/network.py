@@ -33,6 +33,7 @@ class BattleshipClient:
             self.last_error = msg.parameters["error_code"]
         else:
             self.last_msg_was_error = False
+            self.last_error = ErrorCode.UNKNOWN
         await self.msg_callback(msg)
         self.answer_received.set()
 
