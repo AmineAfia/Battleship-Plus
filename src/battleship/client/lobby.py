@@ -2,7 +2,7 @@ import asyncio
 from typing import Any, Callable, Optional, List
 from common.states import ClientConnectionState
 from common.network import BattleshipClient
-from common.protocol import ProtocolMessage, ProtocolMessageType
+from common.protocol import ProtocolMessage, ProtocolMessageType, Position, Positions
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode, EndGameReason
 from common.game import GameLobbyData
@@ -16,8 +16,8 @@ class Callback:
         self._callback: Optional[Callable] = None
 
     def clear(self):
-        self._callback = None
         self._wait_until_set.clear()
+        self._callback = None
 
     @property
     def name(self):
@@ -47,6 +47,8 @@ class ClientLobbyController:
         self.game_controller = game_controller
         self.quit_client = False
         self.is_joining_game = False
+        self.is_cancelling_game = False
+        self.is_first_start = True
 
         self._callback_names: List[ProtocolMessageType] = [ProtocolMessageType.GAME,
                                 ProtocolMessageType.DELETE_GAME,
@@ -68,14 +70,19 @@ class ClientLobbyController:
     def set_callback(self, name: ProtocolMessageType, callback: Callable) -> None:
         self._callbacks[name].callback = callback
 
+    def clear_callback(self, name: ProtocolMessageType) -> None:
+        self._callbacks[name].clear()
+
     async def call_callback(self, name: ProtocolMessageType, *args):
         await self._callbacks[name].call(*args)
 
-    def reset(self):
+    def prepare_for_next(self):
         self.games = {}
         self.quit_client = False
         self.is_joining_game = False
-        for callback in self._callbacks:
+        self.is_cancelling_game = False
+        self.is_first_start = False
+        for callback in self._callbacks.values():
             callback.clear()
 
     async def try_login(self, server, port, username):
@@ -86,6 +93,15 @@ class ClientLobbyController:
             raise BattleshipError(ErrorCode.PARAMETER_INVALID_USERNAME)
 
         msg = ProtocolMessage.create_single(ProtocolMessageType.LOGIN, {"username": username})
+        await self.client.send_and_wait_for_answer(msg)
+
+        # TODO: timeouts
+        if self.client.last_msg_was_error:
+            raise BattleshipError(self.client.last_error)
+
+    async def send_get_games(self):
+        msg = ProtocolMessage.create_single(ProtocolMessageType.GET_GAMES)
+        self.games = {}
         await self.client.send_and_wait_for_answer(msg)
 
         # TODO: timeouts
@@ -118,7 +134,6 @@ class ClientLobbyController:
 
     async def send_shoot(self, x_pos, y_pos):
         msg = self.game_controller.get_shoot_msg(x_pos, y_pos)
-        #msg: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.SHOOT, params)
         await self.client.send_and_wait_for_answer(msg)
 
         # TODO: timeouts
@@ -149,10 +164,7 @@ class ClientLobbyController:
         self.ui_chat_recv_callback(msg.parameters["sender"], msg.parameters["recipient"], msg.parameters["text"])
 
     async def handle_games(self, msg):
-        # clear the list of games as we are just receiving a new one
-        # TODO: but only clear on the first GAMES message
-        self.games = {}
-
+        # Because the GAMES message is the implicit confirmation that the login was successful
         self.state = ClientConnectionState.CONNECTED
 
         # TODO: fix this. Why is the [{}] in an empty message?

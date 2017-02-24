@@ -4,6 +4,7 @@ import urwid.web_display
 import threading
 import time
 import functools
+import asyncio
 
 from ..common.StaticScreens import Screen
 from ..common.Chat import Chat
@@ -263,7 +264,6 @@ class Battle:
         self.loop = loop
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
-        self.win = Screen("YOU LOOSE").show
         self.p1 = None
         self.p2 = None
         self.cells_dictionary = {}
@@ -279,6 +279,8 @@ class Battle:
         self.lobby_controller.set_callback(ProtocolMessageType.HIT, self.hit_strike)
         self.lobby_controller.set_callback(ProtocolMessageType.ENDGAME, self.handle_endgame)
         self.lobby_controller.set_callback(ProtocolMessageType.MOVED, self.handle_moved)
+
+        self.screen_finished: asyncio.Event = asyncio.Event()
 
         self.turn = urwid.Pile([urwid.Text("Opponent placing ships")])
 
@@ -349,7 +351,7 @@ class Battle:
 
     def unhandled(self, key):
         if key == 'esc':
-            raise urwid.ExitMainLoop()
+            self.screen_finished.set()
 
     def abort(self, foo):
         abort_task = self.loop.create_task(self.lobby_controller.send_abort())
@@ -362,23 +364,26 @@ class Battle:
         elif e is not None:
             raise e
         else:
-            self.win()
-            raise urwid.ExitMainLoop()
+            the_screen = Screen("YOU LOOSE").show()
+            del the_screen
+            self.screen_finished.set()
 
     def handle_endgame(self, reason: EndGameReason):
+        the_screen = None
         if reason == EndGameReason.YOU_WON:
-            Screen("YOU WON").show()
+            the_screen = Screen("YOU WON").show()
         elif reason == EndGameReason.OPPONENT_WON:
-            Screen("YOU LOST").show()
+            the_screen = Screen("YOU LOST").show()
         elif reason == EndGameReason.OPPONENT_ABORT:
-            Screen("THEY ABORTED").show()
+            the_screen = Screen("THEY ABORTED").show()
         elif reason == EndGameReason.OPPONENT_TIMEOUT:
-            Screen("THEY TIMED OUT").show()
+            the_screen = Screen("THEY TIMED OUT").show()
         elif reason == EndGameReason.SERVER_CLOSED_CONNECTION:
-            Screen("SERVER CLOSED").show()
+            the_screen = Screen("SERVER CLOSED").show()
         else:
-            Screen("ENDED. WHYEVER.").show()
-        raise urwid.ExitMainLoop()
+            the_screen = Screen("ENDED. WHYEVER.").show()
+        del the_screen
+        self.screen_finished.set()
 
     def battle_main(self):
         field_offset = self.game_controller.length
@@ -496,6 +501,20 @@ class Battle:
         else:
             screen = urwid.raw_display.Screen()
 
+        self.loop.create_task(self.end_screen())
         urwid.MainLoop(frame, palette, screen,
                        unhandled_input=self.unhandled, pop_ups=True,
                        event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
+
+    async def end_screen(self):
+        await self.screen_finished.wait()
+        # TODO: kill all registered callbacks
+        self.lobby_controller.clear_callback(ProtocolMessageType.STARTGAME)
+        self.lobby_controller.clear_callback(ProtocolMessageType.WAIT)
+        self.lobby_controller.clear_callback(ProtocolMessageType.YOUSTART)
+        self.lobby_controller.clear_callback(ProtocolMessageType.TIMEOUT)
+        self.lobby_controller.clear_callback(ProtocolMessageType.FAIL)
+        self.lobby_controller.clear_callback(ProtocolMessageType.HIT)
+        self.lobby_controller.clear_callback(ProtocolMessageType.ENDGAME)
+        self.lobby_controller.clear_callback(ProtocolMessageType.MOVED)
+        raise urwid.ExitMainLoop()

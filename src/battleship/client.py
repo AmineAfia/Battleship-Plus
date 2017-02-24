@@ -57,8 +57,8 @@ def main():
             await lobby_controller.handle_endgame(msg)
         elif msg.type == ProtocolMessageType.MOVED:
             await lobby_controller.handle_moved(msg)
-        # elif msg.type == ProtocolMessageType.STARTGAME: # and lobby_controller.is_joining_game is False:
-        #      await lobby_controller.handle_start_game(msg)
+        elif msg.type == ProtocolMessageType.STARTGAME: # and lobby_controller.is_joining_game is False:
+            await lobby_controller.handle_start_game(msg)
         # TODO: add the other types
         else:
             pass
@@ -78,33 +78,46 @@ def main():
     while lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
+        del login
 
     while not lobby_controller.quit_client:
         create_lobby = Lobby(game_controller, lobby_controller, loop)
         create_lobby.lobby_main()
+        del create_lobby
 
         if lobby_controller.is_joining_game is False:
             create_game = CreateGame(game_controller, lobby_controller, loop)
             create_game.create_game()
+            del create_game
 
             # TODO: esc or normal continuation?
             go_to_game = Waiting(game_controller, lobby_controller, loop)
             # TODO: is this foo nedded in waiting_main?
             go_to_game.waiting_main("")
+            del go_to_game
 
-        join_battle = Join(game_controller, lobby_controller, loop)
-        join_battle.join_main()
+        if not lobby_controller.is_cancelling_game:
 
-        battle_sessions = Battle(game_controller, lobby_controller, loop)
-        battle_sessions.battle_main()
+            join_battle = Join(game_controller, lobby_controller, loop)
+            join_battle.join_main()
+            del join_battle
+
+            battle_sessions = Battle(game_controller, lobby_controller, loop)
+            battle_sessions.battle_main()
+            del battle_sessions
+
+        # TODO: what is needed to kill all the Screens?
+
+        os.system('cls' if os.name == 'nt' else 'clear')
 
         # reset lobby and game controller
         game_controller.reset_for_client()
-        lobby_controller.reset()
+        lobby_controller.prepare_for_next()
 
-    # TODO: go back to lobby, send GET_GAMES
+        # TODO: send GET_GAMES and receive GAMES (maybe inside frontend/lobby)
 
-    # TODO: why does "You win" appear twice? --> you start two clients and one of them still have his loop running(connected).
+        # TODO: CTRL+C should exit everything. Maybe a global QUIT_APP callback?
+
 
 if __name__ == '__main__':
     sys.exit(main())

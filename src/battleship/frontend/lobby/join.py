@@ -6,6 +6,7 @@ from common.constants import Orientation
 from client.lobby import ClientLobbyController
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode
+from common.protocol import ProtocolMessageType
 
 
 # common variables to place ships
@@ -176,6 +177,10 @@ class Join:
         self.field_offset = game_controller.length
         ShipsList.get_ships()
 
+        # in this case the STARTGAME is not handled by the Waiting screen
+        if self.lobby_controller.is_joining_game:
+            self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.handle_start_game)
+
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -193,6 +198,10 @@ class Join:
             ('popbg', 'white', 'dark gray')
         ]
         self.blank = urwid.Divider()
+
+    def handle_start_game(self):
+        # nothing to do here, we just need a callback
+        pass
 
     def forward_next(self, foo):
         # TODO: somehow tell the main client the difference between this and unhandled
