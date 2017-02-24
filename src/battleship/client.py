@@ -2,6 +2,7 @@ import sys
 import os
 import asyncio
 import argparse
+import logging
 from common.GameController import GameController
 from common.constants import Orientation, Direction, Constants, GameOptions
 from common.protocol import ProtocolMessage, ProtocolMessageType, ShipPositions, Position, Positions, ShipPosition, NumShips
@@ -19,20 +20,23 @@ from common.states import ClientConnectionState
 
 
 def main():
-    print("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--ip", help="server IP", type=str, default=Constants.SERVER_IP)
     parser.add_argument("-p", "--port", help="server port", type=int, default=Constants.SERVER_PORT)
+    parser.add_argument("-l", "--logfile", help="file for logs", type=argparse.FileType('w'), default='client.log')
     args = parser.parse_args()
 
     Constants.SERVER_IP = args.ip
     Constants.SERVER_PORT = args.port
+    logging.basicConfig(filename=args.logfile.name, level=logging.DEBUG)
+
+    logging.info("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
 
     loop = asyncio.get_event_loop()
 
     async def msg_callback(msg: ProtocolMessage):
-        print("< {}".format(msg))
+        logging.debug("< {}".format(msg))
         if msg.type == ProtocolMessageType.ERROR:
             pass
         elif msg.type == ProtocolMessageType.GAMES:
@@ -64,7 +68,7 @@ def main():
             pass
 
     def closed_callback():
-        print("< server closed connection".format())
+        logging.debug("< server closed connection".format())
 
     battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
 

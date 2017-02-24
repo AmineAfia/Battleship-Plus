@@ -1,6 +1,7 @@
 import urwid
 import asyncio
 from pyfiglet import Figlet
+import logging
 
 from ..game.battle import Battle
 from common.GameController import GameController
@@ -28,7 +29,7 @@ class Waiting:
 
     #
     # def forward_to_join(self, msg):
-    #     print("You can start!!!!")
+    #     logging.info("You can start!!!!")
     #     raise urwid.ExitMainLoop()
 
     def exit_on_q(self, key):
@@ -73,6 +74,5 @@ class Waiting:
 
     async def end_screen(self):
         await self.screen_finished.wait()
-        # TODO: kill all registered callbacks
         self.lobby_controller.clear_callback(ProtocolMessageType.STARTGAME)
         raise urwid.ExitMainLoop()

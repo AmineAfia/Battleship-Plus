@@ -1,4 +1,5 @@
 import urwid
+import logging
 import re
 
 class Chat:
@@ -39,7 +40,7 @@ class Chat:
             self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
             self.chat_message.set_edit_text("")
         except Exception as e:
-            print(e)
+            logging.error(str(e))
 
     def chat_recv_callback(self, sender, recipient, text):
         message_to_append = urwid.Text("")

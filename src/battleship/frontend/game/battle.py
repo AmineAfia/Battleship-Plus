@@ -5,6 +5,7 @@ import threading
 import time
 import functools
 import asyncio
+import logging
 
 from ..common.StaticScreens import Screen
 from ..common.Chat import Chat
@@ -110,8 +111,8 @@ class PopUpDialog(urwid.WidgetWrap):
                 self.game_controller.move(self.ship_id, direction)
             except Exception as e:
                 # TODO show a clear message of the failed shoot
-                #print("shoot sagt: {}".format(type(e)))
-                print("moving: {}".format(e))
+                #logging.debug("shoot sagt: {}".format(type(e)))
+                logging.debug("moving: {}".format(e))
                 self._emit("close")
 
             try:
@@ -126,8 +127,8 @@ class PopUpDialog(urwid.WidgetWrap):
                 move_task.add_done_callback(self.passing_callback)
             except Exception as e:
                 # TODO show a clear message of the failed shoot
-                #print("shoot sagt: {}".format(type(e)))
-                print("moving: {}".format(e))
+                #logging.debug("shoot sagt: {}".format(type(e)))
+                logging.debug("moving: {}".format(e))
                 self._emit("close")
         else:
             self._emit("close")
@@ -231,21 +232,21 @@ class ShootingCell(urwid.PopUpLauncher):
 
     def shoot(self, button):
         if ShipsList.your_turn == 1:
-            #print("({}, {})".format(self.x_pos, self.y_pos))
+            #logging.debug("({}, {})".format(self.x_pos, self.y_pos))
             try:
                 self.game_controller.shoot(self.x_pos, self.y_pos)
             except Exception as e:
                 # TODO show a clear message of the illegale shoot
-                #print("shoot sagt: {}".format(type(e)))
-                print(e)
+                #logging.debug("shoot sagt: {}".format(type(e)))
+                logging.error(str(e))
             try:
                 shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.x_pos, self.y_pos))
                 # shoot_task.add_done_callback(self.set_label_after_shoot(button))
                 shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
             except Exception as e:
                 # TODO show a clear message of the failed shoot
-                #print("shoot sagt: {}".format(type(e)))
-                print(e)
+                #logging.debug("shoot sagt: {}".format(type(e)))
+                logging.error(str(e))
         else:
             button.set_label(".")
 
@@ -254,8 +255,8 @@ class ShootingCell(urwid.PopUpLauncher):
         e = future.exception()
         if e is not None:
             raise e
-        #print(e)
-        #print(type(e))
+        #logging.error(str(e))
+        #logging.error(str(type(e)))
         button.set_label("X")
 
 
@@ -313,7 +314,7 @@ class Battle:
             self.you_play()
         elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
             self.you_wait()
-        print("Changed player")
+        logging.info("Changed player")
 
     def handle_moved(self, positions):
         try:
@@ -322,12 +323,12 @@ class Battle:
                 self.you_play()
                 for position in positions["positions"].positions:
                     ShipsList.shoot_matrix__buttons_dic[(position.horizontal, position.vertical)].cell.set_label("|")
-                    #print("({}, {})".format(position.horizontal, position.vertical))
+                    #logging.debug("({}, {})".format(position.horizontal, position.vertical))
             elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
                 self.you_wait()
 
         except Exception as e:
-            print(e)
+            logging.error(str(e))
 
     def periodic_round_time_getter(self):
         self.round_time_pile.contents.clear()
@@ -335,13 +336,13 @@ class Battle:
         threading.Timer(2, self.periodic_round_time_getter).start()
 
     def hit_strike(self, sunk: bool, position: Position):
-        # print("in hit strike")
+        # logging.debug("in hit strike")
         # self.game_controller.strike(position.horizontal, position.vertical)
         if self.game_controller.game_state == GameState.OPPONENTS_TURN:
             ShipsList.ship_buttons_dic[position.horizontal, position.vertical].cell.set_label("X")
 
     def fail_strike(self, position: Position):
-        print("in fail strike")
+        logging.debug("in fail strike")
         if self.game_controller.game_state == GameState.YOUR_TURN:
             ShipsList.ship_buttons_dic[position.horizontal, position.vertical].cell.set_label("X")
 
@@ -360,7 +361,7 @@ class Battle:
     def abort_result(self, future):
         e = future.exception()
         if type(e) is BattleshipError:
-            print(e.error_code)
+            logging.error(str(e.error_code))
         elif e is not None:
             raise e
         else:

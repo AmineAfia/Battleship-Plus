@@ -1,5 +1,6 @@
 import urwid
 import asyncio
+import logging
 
 from .lobby import Lobby
 from common.GameController import GameController
@@ -80,14 +81,12 @@ class Login:
             if e.error_code == ErrorCode.PARAMETER_INVALID_USERNAME:
                 # TODO: popup
                 self.popup.callback_for_popup("empty")
-                #print("username cannot be empty")
             elif e.error_code == ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS:
                 # TODO: popup
                 self.popup.callback_for_popup("exist")
-                #print("username already exists")
         elif e is not None:
             if type(e) is ConnectionRefusedError:
-                print("Server not reachable")
+                logging.error("Server not reachable")
             else:
                 raise e
         # and check if we are really logged in
@@ -96,7 +95,7 @@ class Login:
             raise urwid.ExitMainLoop()
         else:
             # TODO: popup
-            print("some other weird login error")
+            logging.error("some other weird login error")
 
     def login_main(self):
         dialog = urwid.Columns([

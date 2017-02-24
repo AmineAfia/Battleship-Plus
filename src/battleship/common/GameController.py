@@ -1,4 +1,5 @@
 import time
+import logging
 import asyncio
 from typing import Callable
 from .battlefield.Battlefield import Battlefield
@@ -527,7 +528,6 @@ class GameController(GameLobbyData):
         if self.options == GameOptions.PASSWORD:
             params["password"] = self.password
         msg = ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME, params)
-        print("{}".format(msg))
         return msg
 
     def to_game_msg(self):

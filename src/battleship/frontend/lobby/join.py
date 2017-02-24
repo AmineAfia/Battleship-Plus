@@ -1,4 +1,5 @@
 import urwid
+import logging
 
 from .waitting import Waiting
 from common.GameController import GameController
@@ -218,19 +219,19 @@ class Join:
         if type(e) is BattleshipError:
             if e.error_code == ErrorCode.SYNTAX_INVALID_PARAMETER:
                 # TODO: popup
-                print("orientation parameter has invalid value")
+                logging.warning("orientation parameter has invalid value")
             elif e.error_code == ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS:
                 # TODO: popup
-                print("position out of bounds")
+                logging.warning("position out of bounds")
             elif e.error_code == ErrorCode.PARAMETER_OVERLAPPING_SHIPS:
-                print("overlapping ships")
+                logging.warning("overlapping ships")
             elif e.error_code == ErrorCode.PARAMETER_WRONG_NUMBER_OF_SHIPS:
-                print("wrong number of ships")
+                logging.warning("wrong number of ships")
             else:
-                print("other battleship error")
+                logging.warning("other battleship error")
         elif e is not None:
             if type(e) is ConnectionRefusedError:
-                print("Server not reachable")
+                logging.error("Server not reachable")
             else:
                 raise e
         # the ships are placed, we know this only when a WAIT or YOUSTART arrives

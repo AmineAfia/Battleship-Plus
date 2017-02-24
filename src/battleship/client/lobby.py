@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Any, Callable, Optional, List
 from common.states import ClientConnectionState
 from common.network import BattleshipClient
@@ -226,7 +227,7 @@ class ClientLobbyController:
             positions: Positions = msg.parameters
             await self.call_callback(ProtocolMessageType.MOVED, positions)
         except Exception as e:
-            print(type(e))
+            logging.error(str(type(e)))
 
     async def handle_start_game(self, msg):
         self.game_controller.run(msg)
