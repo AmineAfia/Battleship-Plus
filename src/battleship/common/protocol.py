@@ -1,3 +1,4 @@
+import logging
 from enum import Enum, IntEnum
 from typing import Dict, List, Any, Optional
 from .constants import Orientation, EndGameReason, Direction, ErrorCode, GameOptions
@@ -504,7 +505,7 @@ class ProtocolMessage:
         # append type
         msg_bytes_type += self.type.to_bytes(1, byteorder=ProtocolConfig.BYTEORDER, signed=False)
 
-        # print("> msg_type={}, ".format(self.type.name), end="")
+        # logging.debug("> msg_type={}, ".format(self.type.name), end="")
 
         num_fields = len(ProtocolMessageParameters[self.type])
 
@@ -535,7 +536,7 @@ class ProtocolMessage:
                 elif protocol_field.type in [NumShips, Position, Positions, ShipPosition, ShipPositions]:
                     parameter_bytes = parameter_value.to_bytes()
                 else:
-                    print("ERROR(send): unimplemented parameter type: {}".format(type(parameter_value)))
+                    logging.error("ERROR(send): unimplemented parameter type: {}".format(type(parameter_value)))
 
                 # length field?
                 # if not last_field and not protocol_field.fixed_length:
@@ -547,28 +548,23 @@ class ProtocolMessage:
                 # data
                 msg_bytes_payload += parameter_bytes
 
-                # print("{}({}, {} byte)={}, ".format(
-                #     protocol_field.name, type(parameter_value), protocol_field.length_bytes, parameter_value), end="")
-
         msg_bytes_payload_length = len(msg_bytes_payload)
 
         # this raises OverflowError if the payload is too long
         msg_bytes_length = _bytes_from_int(msg_bytes_payload_length, length=ProtocolConfig.PAYLOAD_LENGTH_BYTES)
 
-        #print("> {}".format(self))
+        # logging.debug("> {}".format(self))
         writer.write(msg_bytes_type)
-        # print("type({})".format(msg_bytes_type))
+        # logging.debug("type({})".format(msg_bytes_type))
 
         writer.write(msg_bytes_length)
-        # print("length({})".format(msg_bytes_length))
+        # logging.debug("length({})".format(msg_bytes_length))
 
         if msg_bytes_payload_length > 0:
             writer.write(msg_bytes_payload)
-            # print("payload({})".format(msg_bytes_payload))
+            # logging.debug("payload({})".format(msg_bytes_payload))
 
         await writer.drain()
-
-        # print(".", flush=True)
 
 
 async def parse_from_stream(client_reader, client_writer, msg_callback):
@@ -621,7 +617,7 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
             msg_type = _msg_type_from_bytes(data)
             # TODO: handle NONE
             msg = ProtocolMessage(msg_type)
-            # print("start parsing type {}".format(msg_type))
+            # logging.debug("start parsing type {}".format(msg_type))
             parameter_count = len(ProtocolMessageParameters[msg_type])
 
         elif waiting_for_payload_length:
@@ -637,7 +633,7 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
                 if parameter.type is str:
                     parameters[parameter.name] = ""
                 else:
-                    print("ERROR(parse_from_stream): empty parameter for type: {}".format(parameter.type))
+                    logging.error("ERROR(parse_from_stream): empty parameter for type: {}".format(parameter.type))
 
         else:
             msg_remaining_payload_bytes -= bytes_to_read_next
@@ -649,7 +645,7 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
             elif parameter.type in [NumShips, Position, Positions, ShipPosition, ShipPositions]:
                 parameters[parameter.name] = parameter.type.from_bytes(data)
             else:
-                print("ERROR(parse_from_stream): unimplemented parameter type: {}".format(parameter.type))
+                logging.error("ERROR(parse_from_stream): unimplemented parameter type: {}".format(parameter.type))
 
         # prepare the next loop
         if waiting_for_msg_type:

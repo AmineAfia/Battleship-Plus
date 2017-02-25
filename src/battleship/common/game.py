@@ -1,3 +1,4 @@
+import logging
 from common.constants import GameOptions, ErrorCode
 from common.errorHandler.BattleshipError import BattleshipError
 from common.states import GameState
@@ -74,7 +75,6 @@ class GameLobbyData:
 
     @round_time.setter
     def round_time(self, round_time):
-        print(round_time)
         if round_time not in range(25, 65, 5):
             raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
         else:
