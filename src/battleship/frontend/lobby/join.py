@@ -235,6 +235,13 @@ class Join:
         if key == 'esc':
             raise urwid.ExitMainLoop()
 
+    def dummy_function_for_cancel(self, foo):
+        raise urwid.ExitMainLoop()
+
+    def cancel_game(self, foo):
+        login_task = self.loop.create_task(self.lobby_controller.send_cancel())
+        login_task.add_done_callback(self.dummy_function_for_cancel)
+
     def join_main(self):
         # Constructing ships field
         ship_button_list = []
@@ -248,6 +255,7 @@ class Join:
             ship_f.append(ship_zeil)
             ship_button_list.clear()
 
+        cancel_button = urwid.Button("Cancel", on_press=self.cancel_game)
         forward_button = urwid.Button('Next', on_press=self.forward_next)
         ship_pile = urwid.Pile(ship_f)
 
@@ -263,7 +271,10 @@ class Join:
                 urwid.LineBox(ShipsList.info_pile_2, 'Ships')
             ], 2),
             self.blank,
-            forward_button,
+            urwid.Columns([
+                forward_button,
+                cancel_button
+            ], 2),
         ]
 
         header = urwid.AttrWrap(urwid.Text("Battleship+"), 'header')

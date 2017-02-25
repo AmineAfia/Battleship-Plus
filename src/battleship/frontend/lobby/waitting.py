@@ -34,19 +34,12 @@ class Waiting:
     #     raise urwid.ExitMainLoop()
 
     def exit_on_q(self, key):
-        if key == 'esc':
+        if key == 'esc' or "enter":
             # self.screen_finished.set()
             raise urwid.ExitMainLoop()
 
     # def handle_start_game(self):
     #     self.screen_finished.set()
-
-    def dummy_function_for_cancel(self, foo):
-        raise urwid.ExitMainLoop()
-
-    def cancel_game(self, foo):
-        login_task = self.loop.create_task(self.lobby_controller.send_cancel())
-        login_task.add_done_callback(self.dummy_function_for_cancel)
 
     def waiting_main(self, foo):
         placeholder = urwid.SolidFill()
@@ -65,8 +58,7 @@ class Waiting:
         streak = urwid.AttrMap(txt, 'streak')
         pile = loop.widget.base_widget
 
-        cancel_button = urwid.Button("Cancel", on_press=self.cancel_game)
-        for item in [cancel_button, outside, inside, streak, inside, outside]:
+        for item in [outside, inside, streak, inside, outside]:
             pile.contents.append((item, pile.options()))
 
         # self.loop.create_task(self.end_screen())
