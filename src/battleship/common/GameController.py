@@ -1,4 +1,5 @@
 import time
+import logging
 import asyncio
 from typing import Callable
 from .battlefield.Battlefield import Battlefield
@@ -262,10 +263,9 @@ class GameController(GameLobbyData):
         if self._game_started:
             if self._battlefield.ship_id_exists(ship_id):
                 if self._battlefield.ship_is_moveable(ship_id):
-                    x_pos, y_pos = self._battlefield.get_ship_coordinate(ship_id)
-                    if self._battlefield.no_ship_at_place_but(x_pos, y_pos, ship_id):
-                        x_pos, y_pos = self._battlefield.get_move_coordinate(ship_id, direction)
-                        if self._battlefield.no_border_crossing(x_pos, y_pos):
+                    x_pos, y_pos = self._battlefield.get_move_coordinate(ship_id, direction)
+                    if self._battlefield.no_border_crossing(x_pos, y_pos):
+                        if self._battlefield.no_ship_at_place_but(x_pos, y_pos, ship_id):
                             try:
                                 direction = Direction(direction)
                             except ValueError:
@@ -279,9 +279,9 @@ class GameController(GameLobbyData):
                             else:
                                 raise BattleshipError(ErrorCode.ILLEGAL_STATE_NOT_YOUR_TURN)
                         else:
-                            raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
+                            raise BattleshipError(ErrorCode.PARAMETER_OVERLAPPING_SHIPS)
                     else:
-                        raise BattleshipError(ErrorCode.PARAMETER_OVERLAPPING_SHIPS)
+                        raise BattleshipError(ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS)
                 else:
                     raise BattleshipError(ErrorCode.PARAMETER_SHIP_IMMOVABLE)
             else:
@@ -528,7 +528,6 @@ class GameController(GameLobbyData):
         if self.options == GameOptions.PASSWORD:
             params["password"] = self.password
         msg = ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME, params)
-        print("{}".format(msg))
         return msg
 
     def to_game_msg(self):

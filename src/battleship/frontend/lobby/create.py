@@ -1,6 +1,7 @@
 # parameters form (optional password input) and create button for next screen (witting)
 import urwid
 import traceback
+import logging
 
 from .join import Join
 from common.GameController import GameController
@@ -109,7 +110,7 @@ class CreateGame:
         #        self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
         #        raise urwid.ExitMainLoop()
         #    except BattleshipError as e:
-        #        print("{}".format(e))
+        #        logging.error("{}".format(e))
 
         # ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
         #                                  self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
@@ -128,7 +129,7 @@ class CreateGame:
         # check if there is an error message to display
         e = future.exception()
         if type(e) is BattleshipError:
-            print(e.error_code)
+            logging.error(str(e.error_code))
         elif e is not None:
             raise e
         else:
@@ -143,7 +144,7 @@ class CreateGame:
         self.round_time_line = urwid.Columns([urwid.Text("Round time: "), self.round_time])
         self.password = urwid.Edit(caption='password: ', multiline=False, align='left', wrap='space', allow_tab=False)
         self.password_checkbox = urwid.CheckBox("Password")
-        print(self.password_checkbox.state)
+        logging.debug(str(self.password_checkbox.state))
         self.carrier = urwid.Edit(caption='carrier: ', edit_text='1', multiline=False, align='left', wrap='space', allow_tab=False,)
         self.battleship = urwid.Edit(caption='battleship: ', edit_text='0', multiline=False, align='left', wrap='space', allow_tab=False)
         self.cruiser = urwid.Edit(caption='cruiser: ', edit_text='0', multiline=False, align='left', wrap='space', allow_tab=False)

@@ -1,4 +1,5 @@
 import urwid
+import logging
 
 from .waitting import Waiting
 from common.GameController import GameController
@@ -6,6 +7,7 @@ from common.constants import Orientation
 from client.lobby import ClientLobbyController
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode
+from common.protocol import ProtocolMessageType
 
 
 # common variables to place ships
@@ -176,6 +178,10 @@ class Join:
         self.field_offset = game_controller.length
         ShipsList.get_ships()
 
+        # in this case the STARTGAME is not handled by the Waiting screen
+        if self.lobby_controller.is_joining_game:
+            self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.handle_start_game)
+
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
             ('miss', 'black', 'black', ''),
@@ -194,6 +200,10 @@ class Join:
         ]
         self.blank = urwid.Divider()
 
+    def handle_start_game(self):
+        # nothing to do here, we just need a callback
+        pass
+
     def forward_next(self, foo):
         # TODO: somehow tell the main client the difference between this and unhandled
         # Why should the client know about unhandlded? it is just for testing purposes, to exit the game at this time
@@ -209,19 +219,19 @@ class Join:
         if type(e) is BattleshipError:
             if e.error_code == ErrorCode.SYNTAX_INVALID_PARAMETER:
                 # TODO: popup
-                print("orientation parameter has invalid value")
+                logging.warning("orientation parameter has invalid value")
             elif e.error_code == ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS:
                 # TODO: popup
-                print("position out of bounds")
+                logging.warning("position out of bounds")
             elif e.error_code == ErrorCode.PARAMETER_OVERLAPPING_SHIPS:
-                print("overlapping ships")
+                logging.warning("overlapping ships")
             elif e.error_code == ErrorCode.PARAMETER_WRONG_NUMBER_OF_SHIPS:
-                print("wrong number of ships")
+                logging.warning("wrong number of ships")
             else:
-                print("other battleship error")
+                logging.warning("other battleship error")
         elif e is not None:
             if type(e) is ConnectionRefusedError:
-                print("Server not reachable")
+                logging.error("Server not reachable")
             else:
                 raise e
         # the ships are placed, we know this only when a WAIT or YOUSTART arrives
@@ -234,6 +244,13 @@ class Join:
     def unhandled(self, key):
         if key == 'esc':
             raise urwid.ExitMainLoop()
+
+    def dummy_function_for_cancel(self, foo):
+        raise urwid.ExitMainLoop()
+
+    def cancel_game(self, foo):
+        login_task = self.loop.create_task(self.lobby_controller.send_cancel())
+        login_task.add_done_callback(self.dummy_function_for_cancel)
 
     def join_main(self):
         # Constructing ships field
@@ -248,6 +265,7 @@ class Join:
             ship_f.append(ship_zeil)
             ship_button_list.clear()
 
+        cancel_button = urwid.Button("Cancel", on_press=self.cancel_game)
         forward_button = urwid.Button('Next', on_press=self.forward_next)
         ship_pile = urwid.Pile(ship_f)
 
@@ -263,7 +281,10 @@ class Join:
                 urwid.LineBox(ShipsList.info_pile_2, 'Ships')
             ], 2),
             self.blank,
-            forward_button,
+            urwid.Columns([
+                forward_button,
+                cancel_button
+            ], 2),
         ]
 
         header = urwid.AttrWrap(urwid.Text("Battleship+"), 'header')

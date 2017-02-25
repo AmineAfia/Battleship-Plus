@@ -1,5 +1,7 @@
 import urwid
+import logging
 import re
+
 
 class Chat:
     def __init__(self, loop, lobby_controller):
@@ -13,7 +15,7 @@ class Chat:
         self.lobby_controller.ui_chat_recv_callback = self.chat_recv_callback
 
     def render_chat(self):
-        self.chat_messages = urwid.Pile([urwid.Text("Hello!"), urwid.Text("Hey sup"), urwid.Text("join my game")])
+        self.chat_messages = urwid.Pile([urwid.Text(""), urwid.Text(""), urwid.Text("")])
         self.chat_message = urwid.Edit("->", edit_text=" ")
         self.post_chat_message = urwid.Button("Send")
         urwid.connect_signal(self.post_chat_message, 'click', lambda button: self.append_message())
@@ -39,7 +41,7 @@ class Chat:
             self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
             self.chat_message.set_edit_text("")
         except Exception as e:
-            print(e)
+            logging.error(str(e))
 
     def chat_recv_callback(self, sender, recipient, text):
         message_to_append = urwid.Text("")

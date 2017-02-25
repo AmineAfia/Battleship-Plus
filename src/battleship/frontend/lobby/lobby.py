@@ -1,4 +1,5 @@
 import urwid
+import logging
 
 from .create import CreateGame
 from common.GameController import GameController
@@ -64,6 +65,7 @@ class PasswordPopUp(urwid.PopUpLauncher):
         join_task.add_done_callback(self.init_controller_to_join_game(game))
 
     def init_controller_to_join_game(self, game):
+        # TODO: handle exceptions
         self.game_controller.game_id = game[0]
         self.game_controller.create_battlefield(int(game[1]), game[2])
         self.lobby_controller.is_joining_game = True
@@ -123,16 +125,16 @@ class Lobby(urwid.GridFlow):
             self.games_pile_gridflow.contents.append((PasswordPopUp(game.params_as_list(), self.loop, self.lobby_controller, self.game_controller), self.games_pile_gridflow.options()))
             self.game_ids.append(game.game_id)
         except Exception as e:
-            print(type(e))
-            print(e)
+            logging.error(str(type(e)))
+            logging.error(str(e))
 
     def delete_game_callback(self, game_id):
         try:
             self.games_pile_gridflow.contents.remove((self.games_list[game_id], self.games_pile_gridflow.options()))
-            self.game_ids.remove(game_id)
+            #self.game_ids.remove(game_id)
         except Exception as e:
-            print(type(e))
-            print(e)
+            logging.error(str(type(e)))
+            logging.error(str(e))
 
     def lobby_main(self):
         # TODO: make some kind of table with columns and GridFlows or whatever

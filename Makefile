@@ -12,6 +12,12 @@ run-client1:
 run-client2:
 	python3 src/battleship/client.py -l client2.log
 
+run-client1:
+	python src/battleship/client.py -l client1.log
+
+run-client2:
+	python src/battleship/client.py -l client2.log
+
 mypy-server:
 	cd src/battleship; mypy --fast-parser --strict-optional --check-untyped-defs --show-column-numbers --warn-no-return --python-version 3.6 server.py; cd ../../
 
