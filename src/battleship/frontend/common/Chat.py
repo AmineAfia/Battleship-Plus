@@ -15,7 +15,7 @@ class Chat:
         self.lobby_controller.ui_chat_recv_callback = self.chat_recv_callback
 
     def render_chat(self):
-        self.chat_messages = urwid.Pile([urwid.Text(""), urwid.Text(""), urwid.Text("")])
+        self.chat_messages = urwid.Pile([])
         self.chat_message = urwid.Edit("->", edit_text="")
         self.post_chat_message = urwid.Button("Send")
         urwid.connect_signal(self.post_chat_message, 'click', lambda button: self.append_message())
