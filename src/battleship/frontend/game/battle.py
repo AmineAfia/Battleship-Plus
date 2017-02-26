@@ -242,8 +242,8 @@ class ShootingCell(urwid.PopUpLauncher):
                 # TODO show a clear message of the failed shoot
                 #logging.debug("shoot sagt: {}".format(type(e)))
                 logging.error(str(e))
-        else:
-            button.set_label(".")
+        # else:
+        #     button.set_label(".")
 
 
     def set_label_after_shoot(self, button, future):
@@ -293,6 +293,7 @@ class Battle:
         self.turn.contents.clear()
         self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Opponent Turn')), 'notturn'), self.turn.options()))
         self.periodic_round_time_getter()
+        ShipsList.your_turn = 0
 
     def you_play(self):
         self.turn.contents.clear()
