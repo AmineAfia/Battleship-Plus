@@ -29,7 +29,7 @@ class PasswordPopUpDialog(urwid.WidgetWrap):
         join_task.add_done_callback(self.password_popup.init_controller_to_join_game(game))
         self._emit("close")
 
-
+# Popup launcher with password support as a popup
 class PasswordPopUp(urwid.PopUpLauncher):
     def __init__(self, g, loop, lobby_controller, game_controller):
         self.g = g
@@ -41,8 +41,9 @@ class PasswordPopUp(urwid.PopUpLauncher):
             tmp_string = str("(Password) Game {}: board size {} & {} ships".format(self.g[0], self.g[1], self.g[2]))
         else:
             tmp_string = str("Game {}: board size {} & {} ships".format(self.g[0], self.g[1], self.g[2]))
-
-        self.__super.__init__(urwid.Button(tmp_string))
+        
+        self.game_button = urwid.Button(tmp_string)
+        self.__super.__init__(self.game_button)
 
         if self.g[3] == 0:
             urwid.connect_signal(self.original_widget, 'click',
@@ -54,7 +55,7 @@ class PasswordPopUp(urwid.PopUpLauncher):
     def create_pop_up(self):
         pop_up = PasswordPopUpDialog(self)
         urwid.connect_signal(pop_up, 'close',
-            lambda button: self.close_pop_up())
+                             lambda button: self.close_pop_up())
         return pop_up
 
     def get_pop_up_parameters(self):
@@ -75,10 +76,10 @@ class PasswordPopUp(urwid.PopUpLauncher):
 class Lobby(urwid.GridFlow):
     # create game method (switch screen)
     def __init__(self, game_controller, lobby_controller, loop):
-        self.loop = loop
         self.blank = urwid.Divider()
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
+        self.loop = loop
         self.lobby_controller.set_callback(ProtocolMessageType.GAME, self.game_callback)
         self.lobby_controller.set_callback(ProtocolMessageType.DELETE_GAME, self.delete_game_callback)
         self.palette = [
@@ -98,14 +99,14 @@ class Lobby(urwid.GridFlow):
             ('popbg', 'white', 'dark gray')
         ]
         # TODO: build kind of a table
-        #self.games = [str(game) for game in lobby_controller.games.values()]
-        #self.game_ids = [game_id for game_id in lobby_controller.games.keys()]
+        self.game_ids = [game_id for game_id in lobby_controller.games.keys()]
         self.params_as_list = [game.params_as_list() for game in lobby_controller.games.values()]
-        # self.game_ids1 = [str(game_id) for game_id, game in lobby_controller.games.items()]
         self.games_list = {}
         self.chat = Chat(self.loop, self.lobby_controller)
         self.games_pile = None
-        self.games_pile_gridflow = None
+        self.games_pile_gridflow = []
+        self.ui_games_list = list(self.get_games())
+        self.ui_games_dic = {}
 
     @staticmethod
     def unhandled(key):
@@ -117,13 +118,14 @@ class Lobby(urwid.GridFlow):
 
     def get_games(self):
         for g in self.params_as_list:
+            logging.debug("get_games ID: {}".format(g[0]))
             self.games_list[g[0]] = PasswordPopUp(g, self.loop, self.lobby_controller, self.game_controller)
         return self.games_list.values()
 
     def game_callback(self, game):
         try:
-            self.games_pile_gridflow.contents.append((PasswordPopUp(game.params_as_list(), self.loop, self.lobby_controller, self.game_controller), self.games_pile_gridflow.options()))
-            self.game_ids.append(game.game_id)
+            self.games_list[game.game_id] = PasswordPopUp(game.params_as_list(), self.loop, self.lobby_controller, self.game_controller)
+            self.games_pile_gridflow.contents.append((self.games_list[game.game_id], self.games_pile_gridflow.options()))
         except Exception as e:
             logging.error(str(type(e)))
             logging.error(str(e))
@@ -131,10 +133,9 @@ class Lobby(urwid.GridFlow):
     def delete_game_callback(self, game_id):
         try:
             self.games_pile_gridflow.contents.remove((self.games_list[game_id], self.games_pile_gridflow.options()))
-            #self.game_ids.remove(game_id)
         except Exception as e:
-            logging.error(str(type(e)))
-            logging.error(str(e))
+            logging.error("delete handler: {}".format(type(e)))
+            logging.error("delete handler: {}".format(str(e)))
 
     def lobby_main(self):
         # TODO: make some kind of table with columns and GridFlows or whatever
