@@ -173,12 +173,12 @@ class ServerLobbyController:
 
         if client.state is not ClientConnectionState.NOT_CONNECTED:
             answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
-            self.print_client(client, "Client already logged in")
+        elif len(params["username"]) > ProtocolConfig.USERNAME_MAX_LENGTH:
+            answer = ProtocolMessage.create_error(ErrorCode.SYNTAX_USERNAME_TOO_LONG)
         else:
             login_successful: bool = self.login_user(params["username"], client)
             if not login_successful:
                 answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS)
-                self.print_client(client, "User name already exists")
             else:
                 client.state = ClientConnectionState.GAME_SELECTION
                 #self.users[username].state = ClientConnectionState.GAME_SELECTION
@@ -188,7 +188,6 @@ class ServerLobbyController:
                 await self.send_games_to_user(client)
 
         if answer is not None:
-            print("> [{}] {}".format(client.id, answer))
             await self.send(client, answer)
 
     async def handle_logout(self, client: Client, msg: ProtocolMessage):
@@ -205,7 +204,6 @@ class ServerLobbyController:
 
         if len(text) > ProtocolConfig.CHAT_MAX_TEXT_LENGTH:
             answer = ProtocolMessage.create_error(ErrorCode.SYNTAX_MESSAGE_TEXT_TOO_LONG)
-            self.print_client(client, "Max text length exceeded")
 
         # check if the message is for all users
         elif recipient == "":
@@ -217,7 +215,6 @@ class ServerLobbyController:
 
         elif recipient not in self.users:
             answer = ProtocolMessage.create_error(ErrorCode.PARAMETER_USERNAME_DOES_NOT_EXIST)
-            self.print_client(client, "Chat error: username '{}' does not exist".format(recipient))
 
         else:
             forward = ProtocolMessage.create_single(ProtocolMessageType.CHAT_RECV,
@@ -227,7 +224,6 @@ class ServerLobbyController:
             self.print_client(client, "Forwarding chat message to '{}'".format(recipient))
 
         if answer is not None:
-            print("> [{}] {}".format(client.id, answer))
             await self.send(client, answer)
 
     async def handle_create_game(self, client: Client, msg: ProtocolMessage):

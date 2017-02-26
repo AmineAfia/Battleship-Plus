@@ -8,11 +8,13 @@ from client.lobby import ClientLobbyController
 from common.states import ClientConnectionState
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode, Constants
+from common.protocol import ProtocolConfig
 
 
 class ErrorMessages:
     empty = "Empty usernames are not allowed"
     exist = "Username already exists"
+    too_long = "Username too long, max {} chars allowed"
     other = "Some other network problem :("
     default = None
 
@@ -44,6 +46,8 @@ class LoginButtonWithAPopUp(urwid.PopUpLauncher):
             ErrorMessages.default = ErrorMessages.empty
         elif show == "exist":
             ErrorMessages.default = ErrorMessages.exist
+        elif show == "too_long":
+            ErrorMessages.default = ErrorMessages.too_long.format(ProtocolConfig.USERNAME_MAX_LENGTH)
         elif show == "other":
             ErrorMessages.default = ErrorMessages.other
 
@@ -79,11 +83,11 @@ class Login:
         e = future.exception()
         if type(e) is BattleshipError:
             if e.error_code == ErrorCode.PARAMETER_INVALID_USERNAME:
-                # TODO: popup
                 self.popup.callback_for_popup("empty")
             elif e.error_code == ErrorCode.PARAMETER_USERNAME_ALREADY_EXISTS:
-                # TODO: popup
                 self.popup.callback_for_popup("exist")
+            elif e.error_code == ErrorCode.SYNTAX_USERNAME_TOO_LONG:
+                self.popup.callback_for_popup("too_long")
         elif e is not None:
             if type(e) is ConnectionRefusedError:
                 logging.error("Server not reachable")

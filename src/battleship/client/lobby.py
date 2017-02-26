@@ -92,6 +92,8 @@ class ClientLobbyController:
 
         if username.strip() == "":
             raise BattleshipError(ErrorCode.PARAMETER_INVALID_USERNAME)
+        elif len(username) > ProtocolConfig.USERNAME_MAX_LENGTH:
+            raise BattleshipError(ErrorCode.SYNTAX_USERNAME_TOO_LONG)
 
         msg = ProtocolMessage.create_single(ProtocolMessageType.LOGIN, {"username": username})
         await self.client.send_and_wait_for_answer(msg)

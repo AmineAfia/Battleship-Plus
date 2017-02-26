@@ -12,6 +12,7 @@ class ProtocolConfig:
     BYTEORDER = 'big'
     STR_ENCODING = 'utf-8'
     PAYLOAD_LENGTH_BYTES = 2
+    USERNAME_MAX_LENGTH = 22
     CHAT_MAX_TEXT_LENGTH = 63
     BOARD_SIZE_MIN = 10
     BOARD_SIZE_MAX = 26
