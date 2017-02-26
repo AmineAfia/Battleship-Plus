@@ -447,10 +447,23 @@ class ProtocolMessage:
     @classmethod
     def random_from_type(cls, msg_type: ProtocolMessageType):
         fields = ProtocolMessageParameters[msg_type]
-        params: Dict[str, Any] = {}
-        for field in fields:
-            params[field.name] = field.random_value()
-        return cls.create_single(msg_type, params)
+
+        if msg_type in ProtocolMessageRepeatingTypes:
+            repeating_params = []
+            num_repeating = 5000 #randrange(2000, 2000)
+            print(num_repeating)
+            for _ in range(num_repeating):
+                params: Dict[str, Any] = {}
+                for field in fields:
+                    params[field.name] = field.random_value()
+                repeating_params.append(params)
+            return cls.create_repeating(msg_type, repeating_params)
+
+        else:
+            params: Dict[str, Any] = {}
+            for field in fields:
+                params[field.name] = field.random_value()
+            return cls.create_single(msg_type, params)
 
     def __eq__(self, other):
         if not self.type == other.type:
