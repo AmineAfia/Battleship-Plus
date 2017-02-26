@@ -1,5 +1,6 @@
 import urwid
 import logging
+import asyncio
 
 from .waitting import Waiting
 from common.GameController import GameController
@@ -8,6 +9,7 @@ from client.lobby import ClientLobbyController
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode
 from common.protocol import ProtocolMessageType
+from ..common.StaticScreens import Screen
 
 
 # common variables to place ships
@@ -181,6 +183,9 @@ class Join:
         # in this case the STARTGAME is not handled by the Waiting screen
         if self.lobby_controller.is_joining_game:
             self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.handle_start_game)
+        self.lobby_controller.set_callback(ProtocolMessageType.ENDGAME, self.handle_canceled_game)
+
+        self.screen_finished: asyncio.Event = asyncio.Event()
 
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
@@ -204,12 +209,16 @@ class Join:
         # nothing to do here, we just need a callback
         pass
 
-    def forward_next(self, foo):
-        # TODO: somehow tell the main client the difference between this and unhandled
-        # Why should the client know about unhandlded? it is just for testing purposes, to exit the game at this time
-        # It can be used as and exit for players as well but needs a warning + communication termination for an appropriate exit
+    def handle_canceled_game(self, foo):
+        try:
+            the_screen = Screen("OPPONENT LEFT").show()
+            del the_screen
+            self.lobby_controller.received_cancel = True
+            self.screen_finished.set()
+        except Exception as e:
+            logging.debug(e)
 
-        # TODO: check if all ships are placed to start the game and go to the next screen
+    def forward_next(self, foo):
         place_task = self.loop.create_task(self.lobby_controller.send_place())
         place_task.add_done_callback(self.place_result)
 
@@ -246,10 +255,11 @@ class Join:
             raise urwid.ExitMainLoop()
 
     def dummy_function_for_cancel(self, foo):
+        self.lobby_controller.is_cancelling_game = True
         raise urwid.ExitMainLoop()
 
     def cancel_game(self, foo):
-        login_task = self.loop.create_task(self.lobby_controller.send_cancel())
+        login_task = self.loop.create_task(self.lobby_controller.send_abort())
         login_task.add_done_callback(self.dummy_function_for_cancel)
 
     def join_main(self):
@@ -291,6 +301,12 @@ class Join:
         listbox = urwid.ListBox(urwid.SimpleListWalker(widget_list))
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
 
+        self.loop.create_task(self.end_screen())
         loop = urwid.MainLoop(frame, self.palette,
                               unhandled_input=self.unhandled, pop_ups=True,
                               event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
+
+    async def end_screen(self):
+        await self.screen_finished.wait()
+        self.lobby_controller.clear_callback(ProtocolMessageType.ENDGAME)
+        raise urwid.ExitMainLoop()

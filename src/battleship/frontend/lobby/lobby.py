@@ -104,7 +104,7 @@ class Lobby(urwid.GridFlow):
         self.games_list = {}
         self.chat = Chat(self.loop, self.lobby_controller)
         self.games_pile = None
-        self.games_pile_gridflow = []
+        self.games_pile_gridflow = urwid.GridFlow(self.get_games(), 60, 1, 1, 'center')
         self.ui_games_list = list(self.get_games())
         self.ui_games_dic = {}
 
@@ -118,7 +118,6 @@ class Lobby(urwid.GridFlow):
 
     def get_games(self):
         for g in self.params_as_list:
-            logging.debug("get_games ID: {}".format(g[0]))
             self.games_list[g[0]] = PasswordPopUp(g, self.loop, self.lobby_controller, self.game_controller)
         return self.games_list.values()
 

@@ -284,7 +284,7 @@ class Battle:
         self.round_time = game_controller.get_round_time()
         self.round_time_pile = urwid.Pile([urwid.Button("0.0")])
 
-        # Testing purposes
+        # For testing purposes
         ShipsList.test_refs = urwid.Button(str(game_controller.get_all_ships_coordinates()))
         ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
 

@@ -49,6 +49,7 @@ class ClientLobbyController:
         self.quit_client = False
         self.is_joining_game = False
         self.is_cancelling_game = False
+        self.received_cancel = False
         self.is_first_start = True
 
         self._callback_names: List[ProtocolMessageType] = [ProtocolMessageType.GAME,
@@ -82,6 +83,7 @@ class ClientLobbyController:
         self.quit_client = False
         self.is_joining_game = False
         self.is_cancelling_game = False
+        received_cancel = False
         self.is_first_start = False
         for callback in self._callbacks.values():
             callback.clear()
