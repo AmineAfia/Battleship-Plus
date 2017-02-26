@@ -3,7 +3,7 @@ import logging
 from typing import Any, Callable, Optional, List
 from common.states import ClientConnectionState
 from common.network import BattleshipClient
-from common.protocol import ProtocolMessage, ProtocolMessageType, Position, Positions
+from common.protocol import ProtocolMessage, ProtocolMessageType, Position, Positions, ProtocolConfig
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode, EndGameReason
 from common.game import GameLobbyData
@@ -92,6 +92,8 @@ class ClientLobbyController:
 
         if username.strip() == "":
             raise BattleshipError(ErrorCode.PARAMETER_INVALID_USERNAME)
+        elif len(username) > ProtocolConfig.USERNAME_MAX_LENGTH:
+            raise BattleshipError(ErrorCode.SYNTAX_USERNAME_TOO_LONG)
 
         msg = ProtocolMessage.create_single(ProtocolMessageType.LOGIN, {"username": username})
         await self.client.send_and_wait_for_answer(msg)
@@ -111,8 +113,16 @@ class ClientLobbyController:
 
     # the default value for the username means the message is sent to everyone
     async def send_chat(self, username, text):
-        msg = ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": username, "text": text})
-        await self.client.send(msg)
+        if len(text) > ProtocolConfig.CHAT_MAX_TEXT_LENGTH:
+            offset = 0
+            while offset < len(text):
+                next_text = text[offset:offset+ProtocolConfig.CHAT_MAX_TEXT_LENGTH]
+                offset += ProtocolConfig.CHAT_MAX_TEXT_LENGTH
+                msg = ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": username, "text": next_text})
+                await self.client.send(msg)
+        else:
+            msg = ProtocolMessage.create_single(ProtocolMessageType.CHAT_SEND, {"username": username, "text": text})
+            await self.client.send(msg)
 
     async def send_place(self):
         msg = self.game_controller.get_place_msg()
