@@ -51,6 +51,9 @@ class ShipsList:
     test_refs = urwid.Button("")
     test_refs_pile = urwid.Pile([test_refs])
 
+    # Dictionary to keep track of ships movement 
+    ships_dictionary = {}
+
     # variable to allow players to shoot and move fro the UI
     your_turn = 0
 
@@ -116,13 +119,9 @@ class PopUpDialog(urwid.WidgetWrap):
                 self._emit("close")
 
             try:
-                # For testing purposes
-                ShipsList.test_refs = urwid.Button(str("UI: ({}, {}) cont: {}".format(self.x_pos, self.y_pos, self.game_controller.get_all_ships_coordinates())))
-                ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
-
                 self._emit("close")
 
-                self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type, direction)
+                self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type, direction, self.ship_id)
                 move_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
                 move_task.add_done_callback(self.passing_callback)
             except Exception as e:
@@ -168,7 +167,7 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
     def get_pop_up_parameters(self):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 7}
 
-    def move_ship_in_position(self, orientation, length, ship_type, direction):
+    def move_ship_in_position(self, orientation, length, ship_type, direction, ship_id):
 
         if direction == Direction.EAST:
             self.x_pos_move = 1
@@ -183,39 +182,35 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
             self.x_pos_move = 0
             self.y_pos_move = 1
 
-        # new_coordinates = self.game_controller.get_ship_coordinates_by_id(self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos))
-        #
-        # for cord in new_coordinates:
-        #     if orientation == Orientation.NORTH:
-        #         ShipsList.ship_buttons_dic[cord].cell.set_label("@")
-        #     elif orientation == Orientation.EAST:
-        #         ShipsList.ship_buttons_dic[cord].cell.set_label("@")
-        #
-
-        for i in range(length):
-                if orientation == Orientation.NORTH:
-                    # take ship out of matrix
-                    ShipsList.ship_buttons_dic[(self.x_pos, self.y_pos + i)].cell.set_label("_")
-                    # draw new ship
-                    ShipsList.ship_buttons_dic[(self.x_pos + self.x_pos_move, self.y_pos + i + self.y_pos_move)].cell.set_label("@")
-                elif orientation == Orientation.EAST:
-                    # take ship out of matrix
-                    ShipsList.ship_buttons_dic[(self.x_pos + i, self.y_pos)].cell.set_label("_")
-                    # draw new ship
-                    ShipsList.ship_buttons_dic[(self.x_pos + i + self.x_pos_move, self.y_pos + self.y_pos_move)].cell.set_label("@")
-
-        if ship_type == "carrier":
-            for i in range(length):
+        for ship_cell_k, ship_cell_v in ShipsList.ships_dictionary.items():
+            if ship_cell_k == ship_id:
+                ship_cell_v_copy = list(ship_cell_v)
+                # take the existing ship out of the board
+                for (ship_cell_x, ship_cell_y) in ship_cell_v_copy:
                     if orientation == Orientation.NORTH:
-                        # take ship out of matrix
-                        #ShipsList.ship_buttons_dic[(self.x_pos+1, self.y_pos + i)].cell.set_label("_")
-                        # draw new ship
-                        ShipsList.ship_buttons_dic[(self.x_pos+1 + self.x_pos_move, self.y_pos + i + self.y_pos_move)].cell.set_label("@")
+                        ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y)].cell.set_label("_")
+                        if ship_type == "carrier":
+                            ShipsList.ship_buttons_dic[(ship_cell_x - 1, ship_cell_y)].cell.set_label("_")
                     elif orientation == Orientation.EAST:
-                        # take ship out of matrix
-                        #ShipsList.ship_buttons_dic[(self.x_pos + i, self.y_pos+1)].cell.set_label("_")
-                        # draw new ship
-                        ShipsList.ship_buttons_dic[(self.x_pos + i + self.x_pos_move, self.y_pos+1 + self.y_pos_move)].cell.set_label("@")
+                        ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y)].cell.set_label("_")
+                        if ship_type == "carrier":
+                            ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y - 1)].cell.set_label("_")
+                # draw new ship
+                for (ship_cell_x, ship_cell_y) in ship_cell_v_copy:
+                    if orientation == Orientation.NORTH:
+                        ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move)].cell.set_label("@")
+                        if ship_type == "carrier":
+                            ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move - 1, ship_cell_y + self.y_pos_move)].cell.set_label("@")
+                    elif orientation == Orientation.EAST:
+                        ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move)].cell.set_label("@")
+                        if ship_type == "carrier":
+                            ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move - 1)].cell.set_label("@")
+                    ShipsList.ships_dictionary[ship_id].remove((ship_cell_x, ship_cell_y))
+                    ShipsList.ships_dictionary[ship_id].append((ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move))
+                    
+                # DEBUGING: showing the new ships position
+                # ShipsList.all_ships_coordinates_button = urwid.Button(str(ShipsList.ships_dictionary))
+                # ShipsList.test_refs_pile.contents.append((ShipsList.all_ships_coordinates_button, ShipsList.test_refs_pile.options()))
 
 
 class ShootingCell(urwid.PopUpLauncher):
@@ -293,9 +288,6 @@ class Battle:
         ShipsList.test_refs = urwid.Button(str(game_controller.get_all_ships_coordinates()))
         ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
 
-        ShipsList.all_ships_coordinates = game_controller.get_all_ship_states()
-        ShipsList.all_ships_coordinates_button = urwid.Button(str(ShipsList.all_ships_coordinates))
-        ShipsList.test_refs_pile.contents.append((ShipsList.all_ships_coordinates_button, ShipsList.test_refs_pile.options()))
 
     def you_wait(self):
         self.turn.contents.clear()
@@ -427,25 +419,41 @@ class Battle:
                     ship_id = self.game_controller.get_ship_id_from_location(x_pos_1, y_pos_2)
                     ship_type = self.game_controller.get_ship_type_by_id(ship_id)
 
+                    tmp_ship_list = []
                     if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
                         for s in range(ShipsList.length_dictionary[ship_type]):
                             ShipsList.ship_buttons_dic[(x_pos_1, y_pos_2+s)].cell.set_label("@")
+                            tmp_ship_list.append((x_pos_1, y_pos_2+s))
+                        ShipsList.ships_dictionary[ship_id] = tmp_ship_list
+                        tmp_ship_list = []
 
                     elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                         for s in range(ShipsList.length_dictionary[ship_type]):
                             ShipsList.ship_buttons_dic[(x_pos_1+s, y_pos_2)].cell.set_label("@")
+                            tmp_ship_list.append((x_pos_1+s, y_pos_2))
+                        ShipsList.ships_dictionary[ship_id] = tmp_ship_list
+                        tmp_ship_list = []
 
                     if ship_type == "carrier":
                         if self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.NORTH:
                             for s in range(ShipsList.length_dictionary[ship_type]):
                                 ShipsList.ship_buttons_dic[(x_pos_1+1, y_pos_2+s)].cell.set_label("@")
+                                tmp_ship_list.append((x_pos_1+1, y_pos_2+s))
+                            ShipsList.ships_dictionary[ship_id] = tmp_ship_list
+                            tmp_ship_list = []
                         elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                             for s in range(ShipsList.length_dictionary[ship_type]):
                                 ShipsList.ship_buttons_dic[(x_pos_1+s, y_pos_2+1)].cell.set_label("@")
+                                tmp_ship_list.append((x_pos_1+s, y_pos_2+1))
+                            ShipsList.ships_dictionary[ship_id] = tmp_ship_list
+                            tmp_ship_list = []
 
         # insert the matrix in piles
         shooting_pile = urwid.Pile(f)
         ship_pile = urwid.Pile(ship_f)
+
+        ShipsList.all_ships_coordinates_button = urwid.Button(str(ShipsList.ships_dictionary))
+        ShipsList.test_refs_pile.contents.append((ShipsList.all_ships_coordinates_button, ShipsList.test_refs_pile.options()))
 
         # The rendered layout
         blank = urwid.Divider()
