@@ -15,7 +15,7 @@ class Chat:
 
     def render_chat(self):
         self.chat_messages = urwid.Pile([urwid.Text("Hello!"), urwid.Text("Hey sup"), urwid.Text("join my game")])
-        self.chat_message = urwid.Edit("->", edit_text=" ")
+        self.chat_message = urwid.Edit("->", edit_text="")
         self.post_chat_message = urwid.Button("Send")
         urwid.connect_signal(self.post_chat_message, 'click', lambda button: self.append_message())
 
