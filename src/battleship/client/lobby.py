@@ -248,8 +248,11 @@ class ClientLobbyController:
         await self.call_callback(ProtocolMessageType.PLACED)
 
     async def handle_endgame(self, msg):
-        self.game_controller.run(msg)
-        await self.call_callback(ProtocolMessageType.ENDGAME, msg.parameters["reason"])
+        try:
+            self.game_controller.run(msg)
+            await self.call_callback(ProtocolMessageType.ENDGAME, msg.parameters["reason"])
+        except Exception as e:
+            print("{} - {}".format(e, type(e)))
 
     async def handle_msg(self, msg):
         pass

@@ -17,3 +17,4 @@ mypy-server:
 
 mypy-client:
 	cd src/battleship; mypy --fast-parser --strict-optional --check-untyped-defs --show-column-numbers --warn-no-return --python-version 3.6 --ignore-missing-imports client.py; cd ../../
+
