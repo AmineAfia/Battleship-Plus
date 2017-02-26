@@ -27,7 +27,7 @@ class ShipsList:
     ships = [0, 0, 0, 0, 0]
     info_pile = None
     # pile of ships typs with how much we have (shown in Available Ships)
-    info_pile_2 = None
+    info_pile_2 = []
     # pile to be shown in the popup for placing ships
     info_pile_3 = None
     ships_info_length_list = []
@@ -38,16 +38,14 @@ class ShipsList:
     buttons_list = {}
     list_of_placed_cells = []
 
+    # buttons in the popup dailog, they need to be refreshed when we use asyncio to switche the screens
+    orientation_buttons = urwid.Pile([])
+
     @staticmethod
     def get_ships():
-        # ShipsList.ships_list.append(urwid.Button(("carrier {}".format(ShipsList.ships[0]))))
-        # ShipsList.ships_list.append(urwid.Button(('battleship {}'.format(ShipsList.ships[1]))))
-        # ShipsList.ships_list.append(urwid.Button(('cruiser {}'.format(ShipsList.ships[2]))))
-        # ShipsList.ships_list.append(urwid.Button(('destroyer {}'.format(ShipsList.ships[3]))))
-        # ShipsList.ships_list.append(urwid.Button(('submarine {}'.format(ShipsList.ships[4]))))
-        # ShipsList.info_pile = urwid.Pile(ShipsList.ships_list)
         i = 0
-
+        ShipsList.ships_info_length_list.clear()
+        ShipsList.ships_categories_place.clear()
         for k, v in ShipsList.length_dictionary.items():
             ShipsList.ships_info_length_list.append(urwid.Button(("You have {} {} with length {}".format(ShipsList.ships[i], k, v))))
             ShipsList.ships_categories_place.append(urwid.Button(k))
@@ -90,7 +88,7 @@ class PopUpDialog(urwid.WidgetWrap):
 
         urwid.connect_signal(self.north_button, 'click',
                              lambda button: self.set_ship_position(Orientation.NORTH))
-
+        
         orientation_pile = urwid.LineBox(urwid.Pile([self.self_exit_button, urwid.Columns([self.east_button, self.north_button], 2)]), 'Direction')
         # TODO: change buttons to radio buttons
         ships_pile = urwid.LineBox(ShipsList.info_pile_3, 'Ships')
@@ -247,6 +245,7 @@ class Join:
         # TODO.
         else:
             # ok, we are ready
+            self.lobby_controller.received_cancel = False
             self.game_controller.start_game()
             raise urwid.ExitMainLoop()
 
@@ -308,5 +307,6 @@ class Join:
 
     async def end_screen(self):
         await self.screen_finished.wait()
+        ShipsList.info_pile_2.contents.clear()
         self.lobby_controller.clear_callback(ProtocolMessageType.ENDGAME)
         raise urwid.ExitMainLoop()
