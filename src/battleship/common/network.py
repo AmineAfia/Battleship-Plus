@@ -1,4 +1,5 @@
 from typing import Tuple, Dict, List, Callable
+import logging
 import inspect
 import asyncio.streams
 from asyncio import Event, StreamReader, StreamWriter
@@ -40,6 +41,7 @@ class BattleshipClient:
     async def connect(self, server, port):
         self.server = server
         self.port = port
+        logging.info("Trying login on server {}:{}".format(server, port))
         try:
             self.reader, self.writer = await asyncio.streams.open_connection(
                 self.server, self.port, loop=self.loop)

@@ -15,8 +15,10 @@ class ErrorMessages:
     empty = "Empty usernames are not allowed"
     exist = "Username already exists"
     too_long = "Username too long, max {} chars allowed"
-    other = "Some other network problem :("
-    default = None
+    unreachable = "Server unreachable"
+    other = "Weird problem. Maybe try a restart?"
+    #default = None
+    default = ""
 
 
 class LoginPopUpDialog(urwid.WidgetWrap):
@@ -37,8 +39,9 @@ class LoginPopUpDialog(urwid.WidgetWrap):
 class LoginButtonWithAPopUp(urwid.PopUpLauncher):
     def __init__(self):
         self.__super.__init__(urwid.Button(""))
-        urwid.connect_signal(self.original_widget, 'click',
-                             lambda button: self.open_pop_up())
+        #urwid.connect_signal(self.original_widget, 'click',
+        #                     lambda button: None)
+        #                     #lambda button: self.open_pop_up())
 
     def callback_for_popup(self, show):
 
@@ -48,6 +51,8 @@ class LoginButtonWithAPopUp(urwid.PopUpLauncher):
             ErrorMessages.default = ErrorMessages.exist
         elif show == "too_long":
             ErrorMessages.default = ErrorMessages.too_long.format(ProtocolConfig.USERNAME_MAX_LENGTH)
+        elif show == "unreachable":
+            ErrorMessages.default = ErrorMessages.unreachable
         elif show == "other":
             ErrorMessages.default = ErrorMessages.other
 
@@ -90,6 +95,7 @@ class Login:
                 self.popup.callback_for_popup("too_long")
         elif e is not None:
             if type(e) is ConnectionRefusedError:
+                self.popup.callback_for_popup("unreachable")
                 logging.error("Server not reachable")
             else:
                 raise e
@@ -98,7 +104,7 @@ class Login:
             # ok, we are logged in
             raise urwid.ExitMainLoop()
         else:
-            # TODO: popup
+            self.popup.callback_for_popup("other")
             logging.error("some other weird login error")
 
     def login_main(self):

@@ -31,8 +31,6 @@ def main():
     Constants.SERVER_PORT = args.port
     logging.basicConfig(filename=args.logfile.name, level=logging.DEBUG)
 
-    logging.info("Connecting to server {}:{}".format(Constants.SERVER_IP, Constants.SERVER_PORT))
-
     loop = asyncio.get_event_loop()
 
     async def msg_callback(msg: ProtocolMessage):
