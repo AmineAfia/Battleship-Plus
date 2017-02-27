@@ -43,6 +43,8 @@ class ShipsList:
 
     placement_notification = urwid.Pile([urwid.Text("")])
 
+    # bgroup = [] # button group for radio buttons in (place) popup
+
     @staticmethod
     def get_ships():
         i = 0
@@ -50,6 +52,7 @@ class ShipsList:
         ShipsList.ships_categories_place.clear()
         for k, v in ShipsList.length_dictionary.items():
             ShipsList.ships_info_length_list.append(urwid.Button(("You have {} {} with length {}".format(ShipsList.ships[i], k, v))))
+            # ShipsList.ships_categories_place.append(urwid.RadioButton(ShipsList.bgroup, k))
             ShipsList.ships_categories_place.append(urwid.Button(k))
             i += 1
 
@@ -96,14 +99,15 @@ class PopUpDialog(urwid.WidgetWrap):
         ships_pile = urwid.LineBox(ShipsList.info_pile_3, 'Ships')
 
         for ship_type_button in ShipsList.ships_categories_place:
+            # urwid.connect_signal(ship_type_button, 'change', lambda ship, foo: self.set_ship_type_to_place(ship.get_label(), foo))
             urwid.connect_signal(ship_type_button, 'click', lambda ship: self.set_ship_type_to_place(ship.get_label()))
 
         pile = urwid.Pile([ships_pile, orientation_pile])
         fill = urwid.Filler(pile)
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
-    @staticmethod
-    def set_ship_type_to_place(ship_type_button):
+    def set_ship_type_to_place(self, ship_type_button):
+        logging.debug("{}".format(ship_type_button))
         ShipsList.ship_type = ship_type_button
         ShipsList.ship_length = ShipsList.length_dictionary[ship_type_button]
 
@@ -122,6 +126,7 @@ class PopUpDialog(urwid.WidgetWrap):
             logging.debug(str(e))
 
         for ship_type_button in ShipsList.ships_categories_place:
+            # urwid.connect_signal(ship_type_button, 'change', lambda ship, foo: self.set_ship_type_to_place(ship.get_label(), foo))
             urwid.connect_signal(ship_type_button, 'click', lambda ship: self.set_ship_type_to_place(ship.get_label()))
 
         ShipsList.ships = self.button_with_pop_up.game_controller.ships

@@ -64,8 +64,8 @@ class ClientLobbyController:
                                 ProtocolMessageType.ABORT,
                                 ProtocolMessageType.HIT,
                                 ProtocolMessageType.MOVED,
-                                # ProtocolMessageType.ENDGAME,
-                                ProtocolMessageType.GAMES]
+                                # ProtocolMessageType.GAMES
+                                ProtocolMessageType.ENDGAME,]
         self._callbacks: Dict[ProtocolMessageType, Callback] = {}
         for callback_name in self._callback_names:
             self._callbacks[callback_name] = Callback(callback_name)
@@ -106,9 +106,12 @@ class ClientLobbyController:
             raise BattleshipError(self.client.last_error)
 
     async def send_get_games(self):
-        msg = ProtocolMessage.create_single(ProtocolMessageType.GET_GAMES)
-        self.games = {}
-        await self.client.send_and_wait_for_answer(msg)
+        try:
+            msg = ProtocolMessage.create_single(ProtocolMessageType.GET_GAMES)
+            self.games = {}
+            await self.client.send_and_wait_for_answer(msg)
+        except Exception as e:
+            logging.debug("send_get_games-->".format(str(e)))
 
         # TODO: timeouts
         if self.client.last_msg_was_error:
@@ -183,22 +186,18 @@ class ClientLobbyController:
 
         # TODO: fix this. Why is the [{}] in an empty message?
         if not msg.repeating_parameters == [] or not msg.repeating_parameters == [{}]:
-            # all_games = {}
+            all_games = {}
             for params in msg.repeating_parameters:
                 # TODO: this is a dirty hack to detect if this is an empty game
                 if not "game_id" in params.keys():
                     continue
                 game = GameLobbyData(params["game_id"], params["username"], params["board_size"], params["num_ships"], params["round_time"], params["options"])
                 self.games[params["game_id"]] = game
-            # try:
-            #     self.games[params["game_id"]] = game
-            #     all_games[params["game_id"]] = {params["game_id"], params["username"], params["board_size"], params["num_ships"] , params["round_time"], params["options"]}
-
-            #     logging.debug(">>>>>>>>>>game_id>>>>>>>>>>>>>{}".format(params["game_id"]))
-            #     logging.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>{}".format(all_games))
-            #     await self.call_callback(ProtocolMessageType.GAMES)
-            # except Exception as e:
-            #     logging.debug(":-:-:-:-:-:Lobbyclient:-:-:-:-:-:{} -- {}".format(str(type(e)), str(e)))
+            try:
+                all_games[params["game_id"]] = {params["game_id"], params["username"], params["board_size"], params["round_time"], params["options"]}
+                await self.call_callback(ProtocolMessageType.GAMES)
+            except Exception as e:
+                logging.debug("Lobbyclient{} -- {}".format(str(type(e)), str(e)))
 
     async def handle_game(self, msg):
         # check if this is our game

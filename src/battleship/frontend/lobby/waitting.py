@@ -18,6 +18,7 @@ class Waiting:
         self.wlcm = Figlet(font='big')
 
         self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.handle_start_game)
+
         self.screen_finished: asyncio.Event = asyncio.Event()
 
         self.palette =[
@@ -31,6 +32,7 @@ class Waiting:
         self.screen_finished.set()
 
     def dummy_function_for_cancel(self, foo):
+        
         self.lobby_controller.is_cancelling_game = True
         self.screen_finished.set()
 
