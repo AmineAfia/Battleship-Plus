@@ -67,7 +67,7 @@ class BattleshipClient:
 
     def close(self):
         self.writer.close()
-        # TODO: should we call the closed_callback here?
+        # TODO: should we call the closed_callback here? No, because close is called from outside, they can decide this themselves.
 
 
 class BattleshipServer:
