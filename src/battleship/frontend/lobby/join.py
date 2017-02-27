@@ -184,6 +184,8 @@ class Join:
         ShipsList.ships = game_controller.ships
         self.field_offset = game_controller.length
         ShipsList.get_ships()
+        
+        ShipsList.placement_notification.contents.clear()
 
         # in this case the STARTGAME is not handled by the Waiting screen
         if self.lobby_controller.is_joining_game:
@@ -218,6 +220,7 @@ class Join:
         pass
 
     def handle_placed(self):
+        ShipsList.placement_notification.contents.clear()
         ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "Opponent placed his ships")), ShipsList.placement_notification.options()))
 
     def handle_canceled_game(self, foo):
@@ -326,6 +329,7 @@ class Join:
     async def end_screen(self):
         await self.screen_finished.wait()
         ShipsList.info_pile_2.contents.clear()
+        ShipsList.placement_notification.contents.clear()
         self.lobby_controller.clear_callback(ProtocolMessageType.ENDGAME)
         self.lobby_controller.clear_callback(ProtocolMessageType.PLACED)
         raise urwid.ExitMainLoop()

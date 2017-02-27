@@ -32,7 +32,6 @@ class Waiting:
 
     def dummy_function_for_cancel(self, foo):
         self.lobby_controller.is_cancelling_game = True
-        
         self.screen_finished.set()
 
     def cancel_game(self, key):

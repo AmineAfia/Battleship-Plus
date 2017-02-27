@@ -64,7 +64,8 @@ class ClientLobbyController:
                                 ProtocolMessageType.ABORT,
                                 ProtocolMessageType.HIT,
                                 ProtocolMessageType.MOVED,
-                                ProtocolMessageType.ENDGAME]
+                                # ProtocolMessageType.ENDGAME,
+                                ProtocolMessageType.GAMES]
         self._callbacks: Dict[ProtocolMessageType, Callback] = {}
         for callback_name in self._callback_names:
             self._callbacks[callback_name] = Callback(callback_name)
@@ -182,13 +183,22 @@ class ClientLobbyController:
 
         # TODO: fix this. Why is the [{}] in an empty message?
         if not msg.repeating_parameters == [] or not msg.repeating_parameters == [{}]:
+            # all_games = {}
             for params in msg.repeating_parameters:
-                # TODO: this is a dirty hack.
+                # TODO: this is a dirty hack to detect if this is an empty game
                 if not "game_id" in params.keys():
                     continue
                 game = GameLobbyData(params["game_id"], params["username"], params["board_size"], params["num_ships"], params["round_time"], params["options"])
                 self.games[params["game_id"]] = game
-            # await self.call_callback(ProtocolMessageType.GAMES, self.games)
+            # try:
+            #     self.games[params["game_id"]] = game
+            #     all_games[params["game_id"]] = {params["game_id"], params["username"], params["board_size"], params["num_ships"] , params["round_time"], params["options"]}
+
+            #     logging.debug(">>>>>>>>>>game_id>>>>>>>>>>>>>{}".format(params["game_id"]))
+            #     logging.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>{}".format(all_games))
+            #     await self.call_callback(ProtocolMessageType.GAMES)
+            # except Exception as e:
+            #     logging.debug(":-:-:-:-:-:Lobbyclient:-:-:-:-:-:{} -- {}".format(str(type(e)), str(e)))
 
     async def handle_game(self, msg):
         # check if this is our game

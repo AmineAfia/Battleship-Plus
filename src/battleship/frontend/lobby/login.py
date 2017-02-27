@@ -9,6 +9,7 @@ from common.states import ClientConnectionState
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode, Constants
 from common.protocol import ProtocolConfig
+from common.protocol import ProtocolMessageType
 
 
 class ErrorMessages:
@@ -77,6 +78,12 @@ class Login:
         self.server_port = urwid.Edit("Server Port: ", str(Constants.SERVER_PORT))
         self.popup = LoginButtonWithAPopUp()
 
+        # self.lobby_controller.set_callback(ProtocolMessageType.GAMES, self.handle_games)
+        # self.screen_finished: asyncio.Event = asyncio.Event()
+
+    # def handle_games(self):
+    #     self.screen_finished.set()
+
     def forward_lobby(self, key):
         if key == 'enter':
             login_task = self.loop.create_task(self.lobby_controller.try_login(self.server_ip.get_edit_text(), int(self.server_port.get_edit_text()), self.username.get_edit_text()))
@@ -114,5 +121,11 @@ class Login:
                     ], 2)
         f = urwid.Filler(dialog)
 
+        # self.loop.create_task(self.end_screen())
         urwid.MainLoop(f, [('popbg', 'white', 'dark blue')], unhandled_input=self.forward_lobby,
                        event_loop=urwid.AsyncioEventLoop(loop=self.loop), pop_ups=True).run()
+
+    # async def end_screen(self):
+    #     await self.screen_finished.wait()
+        #self.lobby_controller.clear_callback(ProtocolMessageType.GAMES)
+        #raise urwid.ExitMainLoop()

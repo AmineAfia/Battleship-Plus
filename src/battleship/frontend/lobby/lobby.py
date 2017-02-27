@@ -81,6 +81,11 @@ class Lobby:
         self.lobby_controller = lobby_controller
         self.loop = loop
         self.lobby_controller.set_callback(ProtocolMessageType.GAME, self.game_callback)
+        # try:
+        #     self.lobby_controller.set_callback(ProtocolMessageType.GAMES, self.games_callback)
+        # except Exception as e:
+        #     logging.debug(":-:-:-:-:-:GAMES:-:-:-:-:-:{} -- {}".format(str(type(e)), str(e)))
+
         self.lobby_controller.set_callback(ProtocolMessageType.DELETE_GAME, self.delete_game_callback)
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
@@ -100,13 +105,14 @@ class Lobby:
             ('turn', 'light cyan', 'black'),
             ('notturn', 'dark red', 'black'),
         ]
-        # TODO: build kind of a table
-        self.game_ids = [game_id for game_id in lobby_controller.games.keys()]
-        self.params_as_list = [game.params_as_list() for game in lobby_controller.games.values()]
         self.games_list = {}
         self.chat = Chat(self.loop, self.lobby_controller)
         self.games_pile = None
         self.games_pile_gridflow = urwid.GridFlow([], 60, 1, 1, 'center')
+
+        # TODO: build kind of a table
+        self.game_ids = [game_id for game_id in lobby_controller.games.keys()]
+        self.params_as_list = []
         self.get_games()
 
     @staticmethod
@@ -118,11 +124,23 @@ class Lobby:
         raise urwid.ExitMainLoop()
 
     def get_games(self):
+        self.params_as_list = [game.params_as_list() for game in self.lobby_controller.games.values()]
         for g in self.params_as_list:
             self.games_list[g[0]] = PasswordPopUp(g, self.loop, self.lobby_controller, self.game_controller)
             self.games_pile_gridflow.contents.clear()
             self.games_pile_gridflow.contents.append((self.games_list[g[0]], self.games_pile_gridflow.options()))
         #return self.games_list.values()
+
+    def games_callback(self, games):
+        try:
+            logging.debug("__________games_callback_______ {}".format(games))
+            # self.games_list = {}
+            # self.games_list[game.game_id] = PasswordPopUp(game.params_as_list(), self.loop, self.lobby_controller, self.game_controller)
+            # self.games_pile_gridflow.contents.clear()
+            # self.games_pile_gridflow.contents.append((self.games_list[game.game_id], self.games_pile_gridflow.options()))
+        except Exception as e:
+            logging.error(str(type(e)))
+            logging.error(str(e))
 
     def game_callback(self, game):
         try:
@@ -142,6 +160,14 @@ class Lobby:
     def lobby_main(self):
         # TODO: make some kind of table with columns and GridFlows or whatever
         # self.games_pile_gridflow = urwid.GridFlow(self.get_games(), 60, 1, 1, 'center')
+        # Get GAMES each time we render the lobby screen
+
+        # try:
+        #     get_games_task = loop.create_task(lobby_controller.send_get_games())
+        #     get_games_task.add_done_callback(self.get_games())
+        # except Exception as e:
+        #     logging.debug("get_games_task: {}".format(str(type(e))))
+
         self.get_games()
         self.games_pile = urwid.LineBox(self.games_pile_gridflow, title='Games List')
 
