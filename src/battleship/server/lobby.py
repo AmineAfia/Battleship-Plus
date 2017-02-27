@@ -26,6 +26,17 @@ class ServerLobbyController:
         # games: game_id -> [game_controller1, game_controller2]
         self.games: Dict[int, Tuple[GameController, Optional[GameController]]] = {}
 
+    def print_stats(self):
+        stats = """
+#users: {}
+#clients: {}
+#games: {}
+#user_gid: {}
+#user_game_ctrl: {}
+""".format(len(self.users), len(self.clients), len(self.games), len(self.user_gid), len(self.user_game_ctrl))
+
+        print(stats)
+
     def add_client(self, client: Client):
         self.clients[client.id] = client
 
@@ -103,14 +114,19 @@ class ServerLobbyController:
 
     # send message to all logged in users
     async def msg_to_all(self, msg: ProtocolMessage):
-        for username, client in self.users.items():
-            await self.send(client, msg)
+        usernames = list(self.users.keys())
+        for username in usernames:
+            # check if the user is still logged in, could have logged out in the meanwhile
+            if username in self.users:
+                await self.send(self.users[username], msg)
 
     # send message to all logged in users but the one mentioned in the last parameter
     async def msg_to_all_but_one(self, msg: ProtocolMessage, except_username: str):
-        for username, client in self.users.items():
-            if not username == except_username:
-                await self.send(client, msg)
+        usernames = list(self.users.keys())
+        for username in usernames:
+            # check if the user is still logged in, could have logged out in the meanwhile
+            if not username == except_username and username in self.users:
+                await self.send(self.users[username], msg)
 
     async def send_delete_game(self, game_id: int):
         del_msg: ProtocolMessage = ProtocolMessage.create_single(ProtocolMessageType.DELETE_GAME, {"game_id": game_id})
@@ -241,7 +257,6 @@ class ServerLobbyController:
         game_controller: GameController = await GameController.create_from_msg(game_id, client, self.loop, msg, client.username)
 
         if game_controller is not None:
-            print("game controller is not None")
             client.state = ClientConnectionState.GAME_CREATED
             self.user_gid[client.username] = game_id
             self.games[game_id] = (game_controller, None)
@@ -249,8 +264,12 @@ class ServerLobbyController:
             # and send the game to all users
             game_msg: ProtocolMessage = game_controller.to_game_msg()
             await self.msg_to_all(game_msg)
+
+        # the game controller already sends the error messages, so this is fine.
+        # TODO: move this here to be consistent.
         else:
-            print("Fail in Creation of Game Controller")
+            pass
+            #print("Fail in Creation of Game Controller")
 
     async def handle_cancel(self, client: Client, msg: ProtocolMessage):
         if client.state == ClientConnectionState.GAME_CREATED:

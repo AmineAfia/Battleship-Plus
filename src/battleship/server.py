@@ -1,4 +1,5 @@
 from typing import Optional
+import logging
 import sys
 import asyncio
 import asyncio.streams
@@ -20,6 +21,7 @@ def main():
 
     Constants.SERVER_IP = args.ip
     Constants.SERVER_PORT = args.port
+    logging.basicConfig(level=logging.DEBUG)
 
     loop = asyncio.get_event_loop()
 
@@ -73,6 +75,9 @@ def main():
     except KeyboardInterrupt:
         print("\nReceived SIGINT, terminating …")
         pass
+
+    # print some stats
+    lobby_ctrl.print_stats()
 
     server.stop()
     loop.close()
