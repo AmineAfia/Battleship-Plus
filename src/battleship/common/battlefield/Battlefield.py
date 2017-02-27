@@ -36,7 +36,7 @@ class Battlefield:
 
     # shoot at enemy battlefield
     def shoot(self, x_pos, y_pos):
-        if self._enemy_battlefield[x_pos][y_pos] == 0:
+        if self._enemy_battlefield[x_pos][y_pos] == 0 or self._enemy_battlefield[x_pos][y_pos] == 2:
             # todo: is enemy ship hit?
             self._enemy_battlefield[x_pos][y_pos] = 1
             return True

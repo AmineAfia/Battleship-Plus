@@ -58,6 +58,8 @@ class ShipsList:
     your_turn = 0
 
     immovable_coordinates = []
+    # notifications for illegal shoots/ fail - hit notifications
+    battle_notifications = urwid.Pile([urwid.Text("Opponent field")])
 
     @staticmethod
     def get_ships():
@@ -234,24 +236,28 @@ class ShootingCell(urwid.PopUpLauncher):
         urwid.connect_signal(self.original_widget, 'click', lambda button: self.shoot(button))
 
     def shoot(self, button):
+        allowed_shoot_bool = False
         if ShipsList.your_turn == 1:
             #logging.debug("({}, {})".format(self.x_pos, self.y_pos))
             try:
                 self.game_controller.shoot(self.x_pos, self.y_pos)
+                allowed_shoot_bool = True
             except Exception as e:
-                # TODO show a clear message of the illegale shoot
-                #logging.debug("shoot sagt: {}".format(type(e)))
+                allowed_shoot_bool = False
+                ShipsList.battle_notifications.contents.clear()
+                ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field!"), ShipsList.battle_notifications.options()))
+                ShipsList.battle_notifications.contents.append((urwid.Text(('notturn', "Try another time! you already have a hit in that field")), ShipsList.battle_notifications.options()))
                 logging.error(str(e))
             try:
-                shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.x_pos, self.y_pos))
-                # shoot_task.add_done_callback(self.set_label_after_shoot(button))
-                shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
+                if allowed_shoot_bool is True:
+                    shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.x_pos, self.y_pos))
+                    # shoot_task.add_done_callback(self.set_label_after_shoot(button))
+                    shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
             except Exception as e:
-                # TODO show a clear message of the failed shoot
-                #logging.debug("shoot sagt: {}".format(type(e)))
+                ShipsList.battle_notifications.contents.clear()
+                ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field!"), ShipsList.battle_notifications.options()))
+                ShipsList.battle_notifications.contents.append((urwid.Text(('notturn', "Try another time! you already have a hit in that field")), ShipsList.battle_notifications.options()))
                 logging.error(str(e))
-        # else:
-        #     button.set_label(".")
 
 
     def set_label_after_shoot(self, button, future):
@@ -352,15 +358,24 @@ class Battle:
                             # urwid.disconnect_signal(ShipsList.movement_popups_dic[ship_x, ship_y], 'click', getattr(ShipsList.ship_buttons_dic[ship_x, ship_y], 'dummy_pop_up_opener'))
                         except Exception as e:
                             logging.debug("_____hit____: {} / {}".format(e, type(e)))
+        else:
+            ShipsList.shoot_matrix__buttons_dic[(position.horizontal, position.vertical)].cell.set_label(('hit', "X"))
+            ShipsList.battle_notifications.contents.clear()
+            ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field!"), ShipsList.battle_notifications.options()))
+            ShipsList.battle_notifications.contents.append((urwid.Text(('hit', "HIT!")), ShipsList.battle_notifications.options()))
 
     def fail_strike(self, position: Position):
         logging.debug("in fail strike")
         if self.game_controller.game_state == GameState.YOUR_TURN:
             ShipsList.ship_buttons_dic[position.horizontal, position.vertical].cell.set_label("X")
+        else:
+            ShipsList.battle_notifications.contents.clear()
+            ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field"), ShipsList.battle_notifications.options()))
+            ShipsList.battle_notifications.contents.append((urwid.Text(('notturn', "FAIL!")), ShipsList.battle_notifications.options()))
 
     def show_fail_position(self, position: Position):
-        self.fail_strike(position)
         self.change_player()
+        self.fail_strike(position)
 
     def unhandled(self, key):
         if key == 'esc':
@@ -479,7 +494,7 @@ class Battle:
         blank = urwid.Divider()
         widget_list = [
             urwid.Columns([
-                urwid.Padding(urwid.Text("Opponent field"), left=2, right=0, min_width=20),
+                ShipsList.battle_notifications,
                 urwid.Pile([urwid.Text("Your field")]),
                 self.turn,
             ], 2),
@@ -512,6 +527,7 @@ class Battle:
             ('untouched', 'white', 'black', ''),
             ('body', 'white', 'black', 'standout'),
             ('turn', 'dark blue', 'black'),
+            ('hit', 'dark green', 'black'),
             ('notturn', 'dark red', 'black'),
             ('header', 'white', 'dark red', 'bold'),
             ('important', 'dark blue', 'light gray', ('standout', 'underline')),
@@ -521,7 +537,7 @@ class Battle:
             ('bright', 'dark gray', 'light gray', ('bold', 'standout')),
             ('buttn', 'white', 'black'),
             ('buttnf', 'white', 'dark blue', 'bold'),
-            ('popbg', 'white', 'dark gray')
+            ('popbg', 'white', 'dark gray'),
         ]
 
         # use appropriate Screen class
@@ -537,6 +553,9 @@ class Battle:
 
     async def end_screen(self):
         await self.screen_finished.wait()
+        # reset variables
+        ShipsList.battle_notifications.contents.clear()
+        ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field"), ShipsList.battle_notifications.options()))
         # TODO: kill all registered callbacks
         self.lobby_controller.clear_callback(ProtocolMessageType.STARTGAME)
         self.lobby_controller.clear_callback(ProtocolMessageType.WAIT)

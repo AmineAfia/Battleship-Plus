@@ -14,7 +14,13 @@ class Chat:
         self.message_without_username = None
         self.lobby_controller.ui_chat_recv_callback = self.chat_recv_callback
 
+        palette = [
+            ('turn', 'light cyan', 'black'),
+            ('notturn', 'dark red', 'black'),
+        ]
+
     def render_chat(self):
+        # self.chat_messages = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("HEEEEE"), urwid.Text("LOOOL")]))
         self.chat_messages = urwid.Pile([])
         self.chat_message = urwid.Edit("->", edit_text="")
         self.post_chat_message = urwid.Button("Send")
@@ -36,8 +42,19 @@ class Chat:
 
         try:
             self.loop.create_task(self.lobby_controller.send_chat(self.username, self.message_without_username))
+
             message_to_append = urwid.Text("")
             message_to_append.set_text(self.chat_message.get_edit_text())
+
+            # TODO maybe colors to recognize own messaged
+            my_identifier = urwid.Text(('turn', "Me: "))
+
+            # apppp1 = urwid.SimpleFocusListWalker([my_identifier, message_to_append])
+            # apppp2 = urwid.ListBox(urwid.SimpleListWalker([my_identifier, message_to_append]))
+
+            # chat_grid_flow1 = urwid.GridFlow([my_identifier], 4, 1, 1, 'left')
+            # chat_grid_flow2 = urwid.GridFlow([message_to_append], 20, 1, 1, 'left')
+
             self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
             self.chat_message.set_edit_text("")
         except Exception as e:

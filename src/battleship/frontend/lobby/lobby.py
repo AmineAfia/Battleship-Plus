@@ -73,7 +73,7 @@ class PasswordPopUp(urwid.PopUpLauncher):
         raise urwid.ExitMainLoop()
 
 
-class Lobby(urwid.GridFlow):
+class Lobby:
     # create game method (switch screen)
     def __init__(self, game_controller, lobby_controller, loop):
         self.blank = urwid.Divider()
@@ -96,7 +96,9 @@ class Lobby(urwid.GridFlow):
             ('bright', 'dark gray', 'light gray', ('bold', 'standout')),
             ('buttn', 'white', 'black'),
             ('buttnf', 'white', 'dark blue', 'bold'),
-            ('popbg', 'white', 'dark gray')
+            ('popbg', 'white', 'dark gray'),
+            ('turn', 'light cyan', 'black'),
+            ('notturn', 'dark red', 'black'),
         ]
         # TODO: build kind of a table
         self.game_ids = [game_id for game_id in lobby_controller.games.keys()]
@@ -104,9 +106,8 @@ class Lobby(urwid.GridFlow):
         self.games_list = {}
         self.chat = Chat(self.loop, self.lobby_controller)
         self.games_pile = None
-        self.games_pile_gridflow = urwid.GridFlow(self.get_games(), 60, 1, 1, 'center')
-        self.ui_games_list = list(self.get_games())
-        self.ui_games_dic = {}
+        self.games_pile_gridflow = urwid.GridFlow([], 60, 1, 1, 'center')
+        self.get_games()
 
     @staticmethod
     def unhandled(key):
@@ -119,7 +120,9 @@ class Lobby(urwid.GridFlow):
     def get_games(self):
         for g in self.params_as_list:
             self.games_list[g[0]] = PasswordPopUp(g, self.loop, self.lobby_controller, self.game_controller)
-        return self.games_list.values()
+            self.games_pile_gridflow.contents.clear()
+            self.games_pile_gridflow.contents.append((self.games_list[g[0]], self.games_pile_gridflow.options()))
+        #return self.games_list.values()
 
     def game_callback(self, game):
         try:
@@ -138,7 +141,8 @@ class Lobby(urwid.GridFlow):
 
     def lobby_main(self):
         # TODO: make some kind of table with columns and GridFlows or whatever
-        self.games_pile_gridflow = urwid.GridFlow(self.get_games(), 60, 1, 1, 'center')
+        # self.games_pile_gridflow = urwid.GridFlow(self.get_games(), 60, 1, 1, 'center')
+        self.get_games()
         self.games_pile = urwid.LineBox(self.games_pile_gridflow, title='Games List')
 
         widget_list = [
