@@ -13,7 +13,9 @@ def main():
 
     loop = asyncio.get_event_loop()
 
+    do_join = asyncio.Event()
     finished = asyncio.Event()
+    num_clients: int = 100
 
     async def client(client_id: int):
 
@@ -39,7 +41,8 @@ def main():
         await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.LOGIN,
                                                     {"username": "user{}".format(client_id)}))
 
-        await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
+        if client_id % 2 == 0:
+            await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.CREATE_GAME,
                                          {"board_size": 10,
                                           "num_ships": NumShips([1, 1, 1, 1, 1]),
                                           "round_time": 25,
@@ -47,20 +50,30 @@ def main():
                                           "password": "foobar"
                                               }))
 
-        await finished.wait()
+        #await do_join.wait()
+        await asyncio.sleep(10)
 
+        if client_id % 2 == 1:
+            await _send_and_wait(ProtocolMessage.create_single(ProtocolMessageType.JOIN,
+                                                    {"game_id": int((client_id+1)/2), "password": "foobar"}))
+
+        #await finished.wait()
+        await asyncio.sleep(10)
         battleship_client.close()
 
     # creates a client and connects to our server
     try:
-        num_clients: int = 10
         tasks = []
-        for i in range(num_clients):
+        for i in range(1, num_clients+1):
+            #loop.create_task(client(i))
             tasks.append(asyncio.ensure_future(client(i)))
         loop.run_until_complete(asyncio.gather(*tasks))
 
-        input("press any key to exit")
-        finished.set()
+        #loop.run_forever()
+        #except KeyboardInterrupt:
+        #    print("\nReceived SIGINT, next stage …")
+
+        #do_join.set()
     finally:
         loop.close()
 
