@@ -168,7 +168,7 @@ class ClientLobbyController:
     async def send_cancel(self):
         msg = ProtocolMessage.create_single(ProtocolMessageType.CANCEL)
         await self.client.send_and_wait_for_answer(msg)
-
+        
         # TODO: timeouts
         if self.client.last_msg_was_error:
             raise BattleshipError(self.client.last_error)
@@ -188,6 +188,7 @@ class ClientLobbyController:
                     continue
                 game = GameLobbyData(params["game_id"], params["username"], params["board_size"], params["num_ships"], params["round_time"], params["options"])
                 self.games[params["game_id"]] = game
+            # await self.call_callback(ProtocolMessageType.GAMES, self.games)
 
     async def handle_game(self, msg):
         # check if this is our game
