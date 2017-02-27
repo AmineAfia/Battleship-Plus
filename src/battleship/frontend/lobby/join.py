@@ -41,6 +41,8 @@ class ShipsList:
     # buttons in the popup dailog, they need to be refreshed when we use asyncio to switche the screens
     orientation_buttons = urwid.Pile([])
 
+    placement_notification = urwid.Pile([urwid.Text("")])
+
     @staticmethod
     def get_ships():
         i = 0
@@ -106,13 +108,18 @@ class PopUpDialog(urwid.WidgetWrap):
         ShipsList.ship_length = ShipsList.length_dictionary[ship_type_button]
 
     def set_ship_position(self, orientation):
-        ShipsList.ship_orientation = orientation
-        ShipsList.ship_id = self.button_with_pop_up.game_controller.get_next_ship_id_by_type_to_place(ShipsList.ship_type)
-        ShipsList.ship_x_pos = self.x_pos
-        ShipsList.ship_y_pos = self.y_pos
-        self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length, ShipsList.ship_type)
-        # switched x an y to follow the RFC
-        self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, orientation)
+        try:
+            ShipsList.ship_orientation = orientation
+            ShipsList.ship_id = self.button_with_pop_up.game_controller.get_next_ship_id_by_type_to_place(ShipsList.ship_type)
+            ShipsList.ship_x_pos = self.x_pos
+            ShipsList.ship_y_pos = self.y_pos
+            # switched x an y to follow the RFC
+            self.button_with_pop_up.game_controller.place_ship(ShipsList.ship_id, ShipsList.ship_x_pos, ShipsList.ship_y_pos, orientation)
+            self.button_with_pop_up.place_ship_in_position(orientation, ShipsList.ship_length, ShipsList.ship_type)
+        except Exception as e:
+            ShipsList.placement_notification.contents.clear()
+            ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "You have no more ships to place or your ships are overlaping/touching")), ShipsList.placement_notification.options()))
+            logging.debug(str(e))
 
         for ship_type_button in ShipsList.ships_categories_place:
             urwid.connect_signal(ship_type_button, 'click', lambda ship: self.set_ship_type_to_place(ship.get_label()))
@@ -182,6 +189,7 @@ class Join:
         if self.lobby_controller.is_joining_game:
             self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.handle_start_game)
         self.lobby_controller.set_callback(ProtocolMessageType.ENDGAME, self.handle_canceled_game)
+        self.lobby_controller.set_callback(ProtocolMessageType.PLACED, self.handle_placed)
 
         self.screen_finished: asyncio.Event = asyncio.Event()
 
@@ -199,13 +207,18 @@ class Join:
             ('bright', 'dark gray', 'light gray', ('bold', 'standout')),
             ('buttn', 'white', 'black'),
             ('buttnf', 'white', 'dark blue', 'bold'),
-            ('popbg', 'white', 'dark gray')
+            ('popbg', 'white', 'dark gray'),
+            ('turn', 'dark blue', 'black'),
+            ('notturn', 'dark red', 'black'),
         ]
         self.blank = urwid.Divider()
 
     def handle_start_game(self):
         # nothing to do here, we just need a callback
         pass
+
+    def handle_placed(self):
+        ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "Opponent placed his ships")), ShipsList.placement_notification.options()))
 
     def handle_canceled_game(self, foo):
         try:
@@ -225,19 +238,23 @@ class Join:
         e = future.exception()
         if type(e) is BattleshipError:
             if e.error_code == ErrorCode.SYNTAX_INVALID_PARAMETER:
-                # TODO: popup
+                ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "orientation parameter has invalid value")), ShipsList.placement_notification.options()))
                 logging.warning("orientation parameter has invalid value")
             elif e.error_code == ErrorCode.PARAMETER_POSITION_OUT_OF_BOUNDS:
-                # TODO: popup
+                ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "position out of bounds")), ShipsList.placement_notification.options()))
                 logging.warning("position out of bounds")
             elif e.error_code == ErrorCode.PARAMETER_OVERLAPPING_SHIPS:
+                ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "overlapping ships")), ShipsList.placement_notification.options()))
                 logging.warning("overlapping ships")
             elif e.error_code == ErrorCode.PARAMETER_WRONG_NUMBER_OF_SHIPS:
+                ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "wrong number of ships")), ShipsList.placement_notification.options()))
                 logging.warning("wrong number of ships")
             else:
+                ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "other battleship error")), ShipsList.placement_notification.options()))
                 logging.warning("other battleship error")
         elif e is not None:
             if type(e) is ConnectionRefusedError:
+                ShipsList.placement_notification.contents.append((urwid.Text(('notturn', "Server not reachable")), ShipsList.placement_notification.options()))
                 logging.error("Server not reachable")
             else:
                 raise e
@@ -248,6 +265,7 @@ class Join:
             self.lobby_controller.received_cancel = False
             self.game_controller.start_game()
             raise urwid.ExitMainLoop()
+        ShipsList.placement_notification.contents.clear()
 
     def unhandled(self, key):
         if key == 'esc':
@@ -281,7 +299,7 @@ class Join:
         widget_list = [
             urwid.Columns([
                 urwid.Padding(urwid.Text("Ship positioning"), left=2, right=0, min_width=20),
-                urwid.Pile([urwid.Text("")]),
+                ShipsList.placement_notification,
             ], 2),
             self.blank,
 
@@ -309,4 +327,5 @@ class Join:
         await self.screen_finished.wait()
         ShipsList.info_pile_2.contents.clear()
         self.lobby_controller.clear_callback(ProtocolMessageType.ENDGAME)
+        self.lobby_controller.clear_callback(ProtocolMessageType.PLACED)
         raise urwid.ExitMainLoop()
