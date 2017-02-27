@@ -199,22 +199,22 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
                 for (ship_cell_x, ship_cell_y) in ship_cell_v_copy:
                     if orientation == Orientation.NORTH:
                         ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y)].cell.set_label("_")
-                        if ship_type == "carrier":
-                            ShipsList.ship_buttons_dic[(ship_cell_x - 1, ship_cell_y)].cell.set_label("_")
+                        # if ship_type == "carrier":
+                        #     ShipsList.ship_buttons_dic[(ship_cell_x - 1, ship_cell_y)].cell.set_label("_")
                     elif orientation == Orientation.EAST:
                         ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y)].cell.set_label("_")
-                        if ship_type == "carrier":
-                            ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y - 1)].cell.set_label("_")
+                        # if ship_type == "carrier":
+                        #     ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y - 1)].cell.set_label("_")
                 # draw new ship
                 for (ship_cell_x, ship_cell_y) in ship_cell_v_copy:
                     if orientation == Orientation.NORTH:
                         ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move)].cell.set_label("@")
-                        if ship_type == "carrier":
-                            ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move - 1, ship_cell_y + self.y_pos_move)].cell.set_label("@")
+                        # if ship_type == "carrier":
+                        #     ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move - 1, ship_cell_y + self.y_pos_move)].cell.set_label("@")
                     elif orientation == Orientation.EAST:
                         ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move)].cell.set_label("@")
-                        if ship_type == "carrier":
-                            ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move - 1)].cell.set_label("@")
+                        # if ship_type == "carrier":
+                        #     ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move - 1)].cell.set_label("@")
                     ShipsList.ships_dictionary[ship_id].remove((ship_cell_x, ship_cell_y))
                     ShipsList.ships_dictionary[ship_id].append((ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move))
                     
