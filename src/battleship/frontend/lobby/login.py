@@ -24,7 +24,6 @@ class ErrorMessages:
 class LoginPopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with nothing but a close button """
     signals = ['close']
-
     def __init__(self):
         close_button = urwid.Button("close")
         urwid.connect_signal(close_button, 'click', self.reenter_username)

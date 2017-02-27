@@ -27,16 +27,6 @@ class Waiting:
                 ('outside', '', '', '', 'g27', '#a06'),
                 ('bg', '', '', '', 'g7', '#d06')]
 
-    #
-    # def forward_to_join(self, msg):
-    #     logging.info("You can start!!!!")
-    #     raise urwid.ExitMainLoop()
-
-    def exit_on_q(self, key):
-        if key == 'esc':
-            self.screen_finished.set()
-            #raise urwid.ExitMainLoop()
-
     def handle_start_game(self):
         self.screen_finished.set()
 
@@ -44,13 +34,14 @@ class Waiting:
         self.lobby_controller.is_cancelling_game = True
         self.screen_finished.set()
 
-    def cancel_game(self, foo):
-        login_task = self.loop.create_task(self.lobby_controller.send_cancel())
-        login_task.add_done_callback(self.dummy_function_for_cancel)
+    def cancel_game(self, key):
+        if key == "esc":
+            login_task = self.loop.create_task(self.lobby_controller.send_cancel())
+            login_task.add_done_callback(self.dummy_function_for_cancel)
 
     def waiting_main(self, foo):
         placeholder = urwid.SolidFill()
-        loop = urwid.MainLoop(placeholder, self.palette, unhandled_input=self.exit_on_q, pop_ups=True,
+        loop = urwid.MainLoop(placeholder, self.palette, unhandled_input=self.cancel_game, pop_ups=True,
                               event_loop=urwid.AsyncioEventLoop(loop=self.loop))
         loop.screen.set_terminal_properties(colors=256)
         loop.widget = urwid.AttrMap(placeholder, 'bg')
@@ -65,8 +56,8 @@ class Waiting:
         streak = urwid.AttrMap(txt, 'streak')
         pile = loop.widget.base_widget
 
-        cancel_button = urwid.Button("Cancel", on_press=self.cancel_game)
-        for item in [cancel_button, outside, inside, streak, inside, outside]:
+        cancel_mesage = urwid.Text("press 'esc' to cancel the game and go back to the lobby", align='center')
+        for item in [cancel_mesage, outside, inside, streak, inside, outside]:
             pile.contents.append((item, pile.options()))
 
         self.loop.create_task(self.end_screen())

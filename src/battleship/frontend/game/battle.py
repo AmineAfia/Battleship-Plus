@@ -57,6 +57,8 @@ class ShipsList:
     # variable to allow players to shoot and move fro the UI
     your_turn = 0
 
+    immovable_coordinates = []
+
     @staticmethod
     def get_ships():
         ShipsList.ships_info_length_list.append(urwid.Button(("{}".format(ShipsList.ships))))
@@ -98,7 +100,11 @@ class PopUpDialog(urwid.WidgetWrap):
 
         self.coordinates = urwid.Text("({}, {})".format(self.x_pos, self.y_pos))
 
-        pile = urwid.Pile([self.coordinates, self.exit_button, self.n_button, urwid.Columns([self.w_button, self.e_button], 2), self.s_button])
+
+        if (self.x_pos , self.y_pos) in ShipsList.immovable_coordinates:
+            pile = urwid.Pile([self.exit_button, urwid.Text("This ship is immovable!")])
+        else:
+            pile = urwid.Pile([self.coordinates, self.exit_button, self.n_button, urwid.Columns([self.w_button, self.e_button], 2), self.s_button])
         fill = urwid.Filler(pile)
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
@@ -152,11 +158,13 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
 
         # if (x_pos, y_pos) in self.game_controller.get_all_ships_coordinates():
         urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move], 'click',
-                             lambda button: self.open_pop_up())
-
+                             lambda button: self.dummy_pop_up_opener())
     # def connect_reference(self):
     #     urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move], 'click',
     #                          lambda button: self.open_pop_up())
+
+    def dummy_pop_up_opener(self):
+        self.open_pop_up()
 
     def create_pop_up(self):
         pop_up = PopUpDialog(self, self.x_pos, self.y_pos, self.game_controller, self.lobby_controller, self.loop)
@@ -242,8 +250,8 @@ class ShootingCell(urwid.PopUpLauncher):
                 # TODO show a clear message of the failed shoot
                 #logging.debug("shoot sagt: {}".format(type(e)))
                 logging.error(str(e))
-        else:
-            button.set_label(".")
+        # else:
+        #     button.set_label(".")
 
 
     def set_label_after_shoot(self, button, future):
@@ -284,15 +292,15 @@ class Battle:
         self.round_time = game_controller.get_round_time()
         self.round_time_pile = urwid.Pile([urwid.Button("0.0")])
 
-        # Testing purposes
+        # For testing purposes
         ShipsList.test_refs = urwid.Button(str(game_controller.get_all_ships_coordinates()))
         ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
-
 
     def you_wait(self):
         self.turn.contents.clear()
         self.turn.contents.append((urwid.AttrWrap(urwid.LineBox(urwid.Text('Opponent Turn')), 'notturn'), self.turn.options()))
         self.periodic_round_time_getter()
+        ShipsList.your_turn = 0
 
     def you_play(self):
         self.turn.contents.clear()
@@ -331,7 +339,19 @@ class Battle:
         # logging.debug("in hit strike")
         # self.game_controller.strike(position.horizontal, position.vertical)
         if self.game_controller.game_state == GameState.OPPONENTS_TURN:
-            ShipsList.ship_buttons_dic[position.horizontal, position.vertical].cell.set_label("X")
+            ShipsList.ship_buttons_dic[position.horizontal, position.vertical].cell.set_label(('notturn', "@"))
+            hited_ship_id = self.game_controller.get_ship_id_from_location(position.horizontal, position.vertical)
+            # Disconnect the hited ship popup signal so the user can't move it
+            for ship_k, ship_v in ShipsList.ships_dictionary.items():
+                if ship_k == hited_ship_id:
+                    ship_v_copy = list(ship_v)
+                    for (ship_x, ship_y) in ship_v_copy:
+                        try:
+                            ShipsList.immovable_coordinates.append((ship_x, ship_y))
+                            # urwid.disconnect_signal(ShipsList.ship_buttons_dic[ship_x, ship_y], 'click', ButtonWithAPopUp.open_pop_up(ShipsList.ship_buttons_dic[ship_x, ship_y].cell))
+                            # urwid.disconnect_signal(ShipsList.movement_popups_dic[ship_x, ship_y], 'click', getattr(ShipsList.ship_buttons_dic[ship_x, ship_y], 'dummy_pop_up_opener'))
+                        except Exception as e:
+                            logging.debug("_____hit____: {} / {}".format(e, type(e)))
 
     def fail_strike(self, position: Position):
         logging.debug("in fail strike")

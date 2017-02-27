@@ -1,5 +1,6 @@
 import urwid
 import logging
+import asyncio
 
 from .waitting import Waiting
 from common.GameController import GameController
@@ -8,6 +9,7 @@ from client.lobby import ClientLobbyController
 from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode
 from common.protocol import ProtocolMessageType
+from ..common.StaticScreens import Screen
 
 
 # common variables to place ships
@@ -25,7 +27,7 @@ class ShipsList:
     ships = [0, 0, 0, 0, 0]
     info_pile = None
     # pile of ships typs with how much we have (shown in Available Ships)
-    info_pile_2 = None
+    info_pile_2 = []
     # pile to be shown in the popup for placing ships
     info_pile_3 = None
     ships_info_length_list = []
@@ -36,16 +38,14 @@ class ShipsList:
     buttons_list = {}
     list_of_placed_cells = []
 
+    # buttons in the popup dailog, they need to be refreshed when we use asyncio to switche the screens
+    orientation_buttons = urwid.Pile([])
+
     @staticmethod
     def get_ships():
-        # ShipsList.ships_list.append(urwid.Button(("carrier {}".format(ShipsList.ships[0]))))
-        # ShipsList.ships_list.append(urwid.Button(('battleship {}'.format(ShipsList.ships[1]))))
-        # ShipsList.ships_list.append(urwid.Button(('cruiser {}'.format(ShipsList.ships[2]))))
-        # ShipsList.ships_list.append(urwid.Button(('destroyer {}'.format(ShipsList.ships[3]))))
-        # ShipsList.ships_list.append(urwid.Button(('submarine {}'.format(ShipsList.ships[4]))))
-        # ShipsList.info_pile = urwid.Pile(ShipsList.ships_list)
         i = 0
-
+        ShipsList.ships_info_length_list.clear()
+        ShipsList.ships_categories_place.clear()
         for k, v in ShipsList.length_dictionary.items():
             ShipsList.ships_info_length_list.append(urwid.Button(("You have {} {} with length {}".format(ShipsList.ships[i], k, v))))
             ShipsList.ships_categories_place.append(urwid.Button(k))
@@ -88,7 +88,7 @@ class PopUpDialog(urwid.WidgetWrap):
 
         urwid.connect_signal(self.north_button, 'click',
                              lambda button: self.set_ship_position(Orientation.NORTH))
-
+        
         orientation_pile = urwid.LineBox(urwid.Pile([self.self_exit_button, urwid.Columns([self.east_button, self.north_button], 2)]), 'Direction')
         # TODO: change buttons to radio buttons
         ships_pile = urwid.LineBox(ShipsList.info_pile_3, 'Ships')
@@ -181,6 +181,9 @@ class Join:
         # in this case the STARTGAME is not handled by the Waiting screen
         if self.lobby_controller.is_joining_game:
             self.lobby_controller.set_callback(ProtocolMessageType.STARTGAME, self.handle_start_game)
+        self.lobby_controller.set_callback(ProtocolMessageType.ENDGAME, self.handle_canceled_game)
+
+        self.screen_finished: asyncio.Event = asyncio.Event()
 
         self.palette = [
             ('hit', 'black', 'light gray', 'bold'),
@@ -204,12 +207,16 @@ class Join:
         # nothing to do here, we just need a callback
         pass
 
-    def forward_next(self, foo):
-        # TODO: somehow tell the main client the difference between this and unhandled
-        # Why should the client know about unhandlded? it is just for testing purposes, to exit the game at this time
-        # It can be used as and exit for players as well but needs a warning + communication termination for an appropriate exit
+    def handle_canceled_game(self, foo):
+        try:
+            the_screen = Screen("OPPONENT LEFT").show()
+            del the_screen
+            self.lobby_controller.received_cancel = True
+            self.screen_finished.set()
+        except Exception as e:
+            logging.debug(e)
 
-        # TODO: check if all ships are placed to start the game and go to the next screen
+    def forward_next(self, foo):
         place_task = self.loop.create_task(self.lobby_controller.send_place())
         place_task.add_done_callback(self.place_result)
 
@@ -238,6 +245,7 @@ class Join:
         # TODO.
         else:
             # ok, we are ready
+            self.lobby_controller.received_cancel = False
             self.game_controller.start_game()
             raise urwid.ExitMainLoop()
 
@@ -246,10 +254,11 @@ class Join:
             raise urwid.ExitMainLoop()
 
     def dummy_function_for_cancel(self, foo):
+        self.lobby_controller.is_cancelling_game = True
         raise urwid.ExitMainLoop()
 
     def cancel_game(self, foo):
-        login_task = self.loop.create_task(self.lobby_controller.send_cancel())
+        login_task = self.loop.create_task(self.lobby_controller.send_abort())
         login_task.add_done_callback(self.dummy_function_for_cancel)
 
     def join_main(self):
@@ -291,6 +300,13 @@ class Join:
         listbox = urwid.ListBox(urwid.SimpleListWalker(widget_list))
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
 
+        self.loop.create_task(self.end_screen())
         loop = urwid.MainLoop(frame, self.palette,
                               unhandled_input=self.unhandled, pop_ups=True,
                               event_loop=urwid.AsyncioEventLoop(loop=self.loop)).run()
+
+    async def end_screen(self):
+        await self.screen_finished.wait()
+        ShipsList.info_pile_2.contents.clear()
+        self.lobby_controller.clear_callback(ProtocolMessageType.ENDGAME)
+        raise urwid.ExitMainLoop()
