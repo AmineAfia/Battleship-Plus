@@ -19,3 +19,7 @@ class Client:
     async def send(self, msg: ProtocolMessage):
         print("> [{}] {}".format(self.id, msg))
         await msg.send(self.writer)
+
+    async def send_repeating(self, msg: ProtocolMessage):
+        print("> [{}] {}".format(self.id, msg))
+        await msg.send_repeating(self.writer)

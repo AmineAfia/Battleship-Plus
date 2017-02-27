@@ -509,6 +509,14 @@ class ProtocolMessage:
                 self.missing_or_unkown_param = True
                 return
 
+    async def send_repeating(self, writer) -> None:
+        try:
+            await self.send(writer)
+        except ProtocolRepeatingMessageError as e:
+            # construct new msg with the remaining. And there _are_ remaining, otherwise the error would not have been raised
+            new_msg: ProtocolMessage = ProtocolMessage.create_repeating(self.type, self.repeating_parameters[e.last_index+1:])
+            await new_msg.send_repeating(writer)
+
     async def send(self, writer) -> None:
 
         msg_bytes_type: bytes = self.type.to_bytes(1, byteorder=ProtocolConfig.BYTEORDER, signed=False)

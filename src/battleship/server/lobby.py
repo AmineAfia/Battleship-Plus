@@ -109,6 +109,13 @@ class ServerLobbyController:
             # this client/user needs to be removed
             await self.remove_client(client)
 
+    async def send_repeating(self, client, msg):
+        try:
+            await client.send_repeating(msg)
+        except ConnectionResetError:
+            # this client/user needs to be removed
+            await self.remove_client(client)
+
     async def msg_to_user(self, msg: ProtocolMessage, username: str):
         await self.send(self.users[username], msg)
 
@@ -523,14 +530,6 @@ class ServerLobbyController:
                               "num_ships": NumShips(game_controller1.ships), "round_time": game_controller1.round_time,
                               "options": game_controller1.options}
                 repeating_parameters.append(parameters)
-        # TODO: remove dummy game
-        #dummy = {"game_id": 42, "username": "foo", "board_size": 10,
-        #         "num_ships": NumShips([1,2,3,4,5]), "round_time": 25,
-        #         "options": GameOptions.PASSWORD}
-        #dummy2 = {"game_id": 43, "username": "bar", "board_size": 8,
-        #         "num_ships": NumShips([1,2,5,4,5]), "round_time": 30,
-        #         "options": 0}
-        #repeating_parameters.append(dummy)
-        #repeating_parameters.append(dummy2)
+
         msg: ProtocolMessage = ProtocolMessage.create_repeating(ProtocolMessageType.GAMES, repeating_parameters)
-        await self.send(client, msg)
+        await self.send_repeating(client, msg)
