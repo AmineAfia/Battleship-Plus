@@ -356,6 +356,7 @@ class Battle:
                             ShipsList.immovable_coordinates.append((ship_x, ship_y))
                             # urwid.disconnect_signal(ShipsList.ship_buttons_dic[ship_x, ship_y], 'click', ButtonWithAPopUp.open_pop_up(ShipsList.ship_buttons_dic[ship_x, ship_y].cell))
                             # urwid.disconnect_signal(ShipsList.movement_popups_dic[ship_x, ship_y], 'click', getattr(ShipsList.ship_buttons_dic[ship_x, ship_y], 'dummy_pop_up_opener'))
+
                         except Exception as e:
                             logging.debug("_____hit____: {} / {}".format(e, type(e)))
         else:
@@ -474,13 +475,19 @@ class Battle:
                             for s in range(ShipsList.length_dictionary[ship_type]):
                                 ShipsList.ship_buttons_dic[(x_pos_1+1, y_pos_2+s)].cell.set_label("@")
                                 tmp_ship_list.append((x_pos_1+1, y_pos_2+s))
-                            ShipsList.ships_dictionary[ship_id] = tmp_ship_list
+                            tmp_cords = ShipsList.ships_dictionary.get(ship_id)
+                            for tmp_ship in tmp_ship_list:
+                                tmp_cords.append(tmp_ship)
+                            ShipsList.ships_dictionary[ship_id] = tmp_cords
                             tmp_ship_list = []
                         elif self.game_controller.get_ship_orientation_by_id(ship_id) == Orientation.EAST:
                             for s in range(ShipsList.length_dictionary[ship_type]):
                                 ShipsList.ship_buttons_dic[(x_pos_1+s, y_pos_2+1)].cell.set_label("@")
                                 tmp_ship_list.append((x_pos_1+s, y_pos_2+1))
-                            ShipsList.ships_dictionary[ship_id] = tmp_ship_list
+                            tmp_cords = ShipsList.ships_dictionary.get(ship_id)
+                            for tmp_ship in tmp_ship_list:
+                                tmp_cords.append(tmp_ship)
+                            ShipsList.ships_dictionary[ship_id] = tmp_cords
                             tmp_ship_list = []
 
         # insert the matrix in piles
