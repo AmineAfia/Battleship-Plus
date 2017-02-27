@@ -447,19 +447,20 @@ class ProtocolMessage:
     @classmethod
     def random_from_type(cls, msg_type: ProtocolMessageType):
         fields = ProtocolMessageParameters[msg_type]
+        params: Dict[str, Any]
 
         if msg_type in ProtocolMessageRepeatingTypes:
             repeating_params = []
             num_repeating = randrange(1, 5)
             for _ in range(num_repeating):
-                params: Dict[str, Any] = {}
+                params = {}
                 for field in fields:
                     params[field.name] = field.random_value()
                 repeating_params.append(params)
             return cls.create_repeating(msg_type, repeating_params)
 
         else:
-            params: Dict[str, Any] = {}
+            params = {}
             for field in fields:
                 params[field.name] = field.random_value()
             return cls.create_single(msg_type, params)
@@ -624,10 +625,12 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
     parameters: dict = {}
     waiting_for_field_length: bool = False
     waiting_for_payload_length: bool = False
+    waiting_for_garbage: bool = False
 
     async def finalize_msg_and_prepare_for_next():
-        nonlocal waiting_for_msg_type, parameter_index, bytes_to_read_next, parameters
+        nonlocal waiting_for_msg_type, parameter_index, bytes_to_read_next, parameters, waiting_for_garbage
         waiting_for_msg_type = True
+        waiting_for_garbage = False
         parameter_index = -1
         msg.append_parameters(parameters)
         parameters = {}
@@ -664,10 +667,14 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
         # parse data
         if waiting_for_msg_type:
             msg_type = _msg_type_from_bytes(data)
-            # TODO: handle NONE
+            # TODO: handle NONE: read the length field, and then skip over the stuff without parsing it (to prevent some strange encoding bugs)
             msg = ProtocolMessage(msg_type)
             # logging.debug("start parsing type {}".format(msg_type))
             parameter_count = len(ProtocolMessageParameters[msg_type])
+
+        elif waiting_for_garbage:
+            # don't even look at it
+            pass
 
         elif waiting_for_payload_length:
             msg_payload_bytes = _int_from_bytes(data)
@@ -713,12 +720,19 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
             # else:
             #    await finalize_msg_and_prepare_for_next()
 
+        elif waiting_for_garbage:
+            await finalize_msg_and_prepare_for_next()
+
         elif waiting_for_payload_length or not waiting_for_field_length or (waiting_for_field_length and bytes_to_read_next == 0):
             waiting_for_payload_length = False
 
             if msg_payload_bytes == 0:
                 # for example empty GAMES message
                 await finalize_msg_and_prepare_for_next()
+            elif msg_type == ProtocolMessageType.NONE:
+                # read everything in case of an invalid message type
+                bytes_to_read_next = msg_payload_bytes
+                waiting_for_garbage = True
             else:
 
                 # the next thing to do is read the length field of a parameter,
