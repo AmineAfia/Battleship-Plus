@@ -653,9 +653,12 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
                 # this means the client disconnected(?)
                 break
         except ConnectionResetError as e:
-            # TODO: check if the client_disconnected callback is called anyways
+            # TODO: check if the client_disconnected callback is called anyways. Yes, it should, as done callback of this task.
+            logging.info("ConnectionResetError while reading, stop reading from this stream")
             break
-
+        except Exception as e:
+            logging.info("Some other error while reading, stop reading from this stream")
+            break
         # logging.debug("recv: " + str(data))
 
         # parse data
@@ -768,9 +771,16 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
             # next is to read the actual data
             waiting_for_field_length = False
 
-        # This enables us to have flow control in our connection.
-        await client_writer.drain()
-
+        try:
+            # This enables us to have flow control in our connection.
+            await client_writer.drain()
+        except ConnectionResetError as e:
+            # TODO: check if the client_disconnected callback is called anyways. Yes, it should, as done callback of this task.
+            logging.info("ConnectionResetError while draining, stop reading from this stream")
+            break
+        except Exception as e:
+            logging.info("Some other error while draining, stop reading from this stream")
+            break
 
 def _msg_type_from_bytes(data) -> ProtocolMessageType:
     msg_type: ProtocolMessageType
