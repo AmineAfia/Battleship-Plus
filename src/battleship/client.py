@@ -61,6 +61,8 @@ def main():
             await lobby_controller.handle_moved(msg)
         elif msg.type == ProtocolMessageType.STARTGAME:
             await lobby_controller.handle_start_game(msg)
+        elif msg.type == ProtocolMessageType.PLACED:
+            await lobby_controller.handle_placed(msg)
         # add the other types if needed
         else:
             pass
