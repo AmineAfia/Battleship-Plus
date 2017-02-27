@@ -83,7 +83,7 @@ class ProtocolField:
         elif self.name == "round_time":
             value = choice(ProtocolConfig.ROUND_TIMES)
         elif self.name == "game_id":
-            value = randrange(0, 65536+1)
+            value = randrange(0, 65535+1)
         elif self.name == "turn_counter":
             value = randrange(0, 255+1)
         elif self.name == "sunk":
@@ -450,8 +450,7 @@ class ProtocolMessage:
 
         if msg_type in ProtocolMessageRepeatingTypes:
             repeating_params = []
-            num_repeating = 5000 #randrange(2000, 2000)
-            print(num_repeating)
+            num_repeating = randrange(1, 5)
             for _ in range(num_repeating):
                 params: Dict[str, Any] = {}
                 for field in fields:
@@ -512,18 +511,23 @@ class ProtocolMessage:
 
     async def send(self, writer) -> None:
 
-        msg_bytes_type = b''
-        msg_bytes_length = b''
-        msg_bytes_payload = b''
+        msg_bytes_type: bytes = self.type.to_bytes(1, byteorder=ProtocolConfig.BYTEORDER, signed=False)
+        # initialize with 0
+        msg_bytes_length: bytes = _bytes_from_int(0, length=ProtocolConfig.PAYLOAD_LENGTH_BYTES)
+        msg_bytes_payload: bytes = b''
+        msg_bytes_payload_length: int = 0
+
+        overflow: bool = False
 
         # append type
-        msg_bytes_type += self.type.to_bytes(1, byteorder=ProtocolConfig.BYTEORDER, signed=False)
 
         # logging.debug("> msg_type={}, ".format(self.type.name), end="")
 
-        num_fields = len(ProtocolMessageParameters[self.type])
+        num_fields: int = len(ProtocolMessageParameters[self.type])
 
-        for parameters in self.repeating_parameters:
+        for parameters_index, parameters in enumerate(self.repeating_parameters):
+            params_bytes_payload: bytes = b''
+
             # send each parameter with length and value in the defined order
             for num_field, protocol_field in enumerate(ProtocolMessageParameters[self.type]):
                 #last_field = (num_field == num_fields-1)
@@ -557,28 +561,46 @@ class ProtocolMessage:
                 if not protocol_field.fixed_length and not protocol_field.implicit_length:
                     # We have a length field for this field. And it has length 1 by definition
                     parameter_bytes_length = len(parameter_bytes)
-                    msg_bytes_payload += _bytes_from_int(parameter_bytes_length)
+                    params_bytes_payload += _bytes_from_int(parameter_bytes_length)
 
                 # data
-                msg_bytes_payload += parameter_bytes
+                params_bytes_payload += parameter_bytes
 
-        msg_bytes_payload_length = len(msg_bytes_payload)
+            # after each parameter list, test if the payload would still fit
+            tmp_msg_bytes_payload_length: int = msg_bytes_payload_length + len(params_bytes_payload)
+            try:
+                # this raises OverflowError if the payload is too long
+                tmp_msg_bytes_length = _bytes_from_int(tmp_msg_bytes_payload_length, length=ProtocolConfig.PAYLOAD_LENGTH_BYTES)
+                # no OverflowError, thus we can append the stuff
+                msg_bytes_payload += params_bytes_payload
+                msg_bytes_payload_length = tmp_msg_bytes_payload_length
+                msg_bytes_length = tmp_msg_bytes_length
+            except OverflowError:
+                # in this case, don't add the payload bytes, quit the loop, and at the end of the function, raise an exception
+                overflow = True
+                last_index = parameters_index-1
+                break
 
-        # this raises OverflowError if the payload is too long
-        msg_bytes_length = _bytes_from_int(msg_bytes_payload_length, length=ProtocolConfig.PAYLOAD_LENGTH_BYTES)
+        # check if we had an overflow directly during the first parameters, thus nothing can be sent
+        if overflow and last_index < 0:
+            raise OverflowError()
 
         # logging.debug("> {}".format(self))
         writer.write(msg_bytes_type)
-        # logging.debug("type({})".format(msg_bytes_type))
+        # logging.debug("send: type({})".format(msg_bytes_type))
 
         writer.write(msg_bytes_length)
-        # logging.debug("length({})".format(msg_bytes_length))
+        # logging.debug("send: length({})".format(msg_bytes_length))
 
         if msg_bytes_payload_length > 0:
             writer.write(msg_bytes_payload)
-            # logging.debug("payload({})".format(msg_bytes_payload))
+            # logging.debug("send: payload({})".format(msg_bytes_payload))
 
         await writer.drain()
+
+        # inform the caller, that not all of the repeating parameters have been sent
+        if overflow:
+            raise ProtocolRepeatingMessageError(last_index)
 
 
 async def parse_from_stream(client_reader, client_writer, msg_callback):
@@ -626,6 +648,8 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
             # TODO: check if the client_disconnected callback is called anyways
             break
 
+        # logging.debug("recv: " + str(data))
+
         # parse data
         if waiting_for_msg_type:
             msg_type = _msg_type_from_bytes(data)
@@ -653,7 +677,10 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
             msg_remaining_payload_bytes -= bytes_to_read_next
 
             if parameter.type is str:
+                # try:
                 parameters[parameter.name] = _str_from_bytes(data)
+                # except UnicodeDecodeError as e:
+                #     logging.error("UnicodeDecodeError while decoding parameter {} in type {}, parameters until now: {}".format(parameter.name, msg_type, parameters))
             elif parameter.type in [int, Orientation, EndGameReason, Direction, ErrorCode, GameOptions]:
                 parameters[parameter.name] = _int_from_bytes(data)
             elif parameter.type in [NumShips, Position, Positions, ShipPosition, ShipPositions]:
@@ -766,3 +793,10 @@ def _protocol_parameters_to_str(parameters: dict) -> str:
             s += "{}: {}, ".format(key, value)
     s += "}"
     return s
+
+class ProtocolRepeatingMessageError(Exception):
+    def __init__(self, last_index):
+        self.last_index = last_index
+
+    def __str__(self):
+        return "Last sent index was {}".format(self.last_index)
