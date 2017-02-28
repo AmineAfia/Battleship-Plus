@@ -205,8 +205,6 @@ games: {}
         params: Dict[str, Any] = msg.parameters
         answer: Optional[ProtocolMessage] = None
 
-        self.print_stats()
-
         if client.state is not ClientConnectionState.NOT_CONNECTED:
             answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
         elif len(params["username"]) > ProtocolConfig.USERNAME_MAX_LENGTH:
@@ -225,6 +223,8 @@ games: {}
 
         if answer is not None:
             await self.send(client, answer)
+
+        self.print_stats()
 
     async def handle_logout(self, client: Client, msg: ProtocolMessage):
         await self.logout_user(client)
