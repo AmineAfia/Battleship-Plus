@@ -111,6 +111,7 @@ class PopUpDialog(urwid.WidgetWrap):
         super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
     def move_ship(self, direction):
+        allowed_shoot_bool = False
         if ShipsList.your_turn == 1:
 
             self.ship_id = self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos)
@@ -120,21 +121,26 @@ class PopUpDialog(urwid.WidgetWrap):
 
             try:
                 self.game_controller.move(self.ship_id, direction)
+                allowed_shoot_bool = True
             except Exception as e:
-                # TODO show a clear message of the failed shoot
-                #logging.debug("shoot sagt: {}".format(type(e)))
+                allowed_shoot_bool = False
+                ShipsList.battle_notifications.contents.clear()
+                ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field!"), ShipsList.battle_notifications.options()))
+                ShipsList.battle_notifications.contents.append((urwid.Text(('notturn', "Your move is not allowed")), ShipsList.battle_notifications.options()))
                 logging.debug("moving: {}".format(e))
                 self._emit("close")
 
             try:
-                self._emit("close")
+                if allowed_shoot_bool is True:
+                    self._emit("close")
 
-                self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type, direction, self.ship_id)
-                move_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
-                move_task.add_done_callback(self.passing_callback)
+                    self.button_with_pop_up.move_ship_in_position(self.ship_orientation, self.ship_length, self.ship_type, direction, self.ship_id)
+                    move_task = self.loop.create_task(self.lobby_controller.send_move(self.ship_id, direction))
+                    move_task.add_done_callback(self.passing_callback)
             except Exception as e:
-                # TODO show a clear message of the failed shoot
-                #logging.debug("shoot sagt: {}".format(type(e)))
+                ShipsList.battle_notifications.contents.clear()
+                ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field!"), ShipsList.battle_notifications.options()))
+                ShipsList.battle_notifications.contents.append((urwid.Text(('notturn', "Try another time! you already have a hit in that field")), ShipsList.battle_notifications.options()))
                 logging.debug("moving: {}".format(e))
                 self._emit("close")
         else:
