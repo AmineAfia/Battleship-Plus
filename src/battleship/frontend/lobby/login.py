@@ -10,6 +10,7 @@ from common.errorHandler.BattleshipError import BattleshipError
 from common.constants import ErrorCode, Constants
 from common.protocol import ProtocolConfig
 from common.protocol import ProtocolMessageType
+from ..common.Chat import Chat
 
 
 class ErrorMessages:
@@ -77,8 +78,11 @@ class Login:
         self.server_ip = urwid.Edit("Server IP: ", Constants.SERVER_IP)
         self.server_port = urwid.Edit("Server Port: ", str(Constants.SERVER_PORT))
         self.popup = LoginButtonWithAPopUp()
+        self.chat = Chat(self.loop, self.lobby_controller)
 
         # self.lobby_controller.set_callback(ProtocolMessageType.GAMES, self.handle_games)
+
+        # self.lobby_controller.set_callback(ProtocolMessageType.CHAT_RECV, self.handle_message_receive)
         # self.screen_finished: asyncio.Event = asyncio.Event()
 
     # def handle_games(self):
@@ -114,6 +118,8 @@ class Login:
             logging.error("some other weird login error")
 
     def login_main(self):
+        self.chat.render_chat()
+
         dialog = urwid.Columns([
                     urwid.Text(""),
                     urwid.LineBox(urwid.Pile([self.username, self.popup, self.server_ip, self.server_port]), 'Login'),
@@ -127,5 +133,5 @@ class Login:
 
     # async def end_screen(self):
     #     await self.screen_finished.wait()
-        #self.lobby_controller.clear_callback(ProtocolMessageType.GAMES)
-        #raise urwid.ExitMainLoop()
+    #     self.lobby_controller.clear_callback(ProtocolMessageType.CHAT_RECV)
+    #     raise urwid.ExitMainLoop()

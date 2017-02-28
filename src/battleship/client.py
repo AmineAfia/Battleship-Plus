@@ -32,6 +32,7 @@ def main():
     logging.basicConfig(filename=args.logfile.name, level=logging.DEBUG)
 
     loop = asyncio.get_event_loop()
+    in_lobby_or_battle = False
 
     async def msg_callback(msg: ProtocolMessage):
         logging.debug("< {}".format(msg))
@@ -44,7 +45,8 @@ def main():
         elif msg.type == ProtocolMessageType.DELETE_GAME:
             await lobby_controller.handle_delete_game(msg)
         elif msg.type == ProtocolMessageType.CHAT_RECV:
-            await lobby_controller.handle_chat_recv(msg)
+            if in_lobby_or_battle is True:
+                await lobby_controller.handle_chat_recv(msg)
         elif msg.type == ProtocolMessageType.HIT:
             await lobby_controller.handle_hit(msg)
         elif msg.type == ProtocolMessageType.WAIT:
@@ -86,8 +88,10 @@ def main():
 
     while not lobby_controller.quit_client:
         create_lobby = Lobby(game_controller, lobby_controller, loop)
+        in_lobby_or_battle = True
         create_lobby.lobby_main()
         del create_lobby
+        in_lobby_or_battle = False
 
         if lobby_controller.is_joining_game is False:
             create_game = CreateGame(game_controller, lobby_controller, loop)
@@ -103,8 +107,10 @@ def main():
         if not lobby_controller.is_cancelling_game:
 
             join_battle = Join(game_controller, lobby_controller, loop)
+            in_lobby_or_battle = True
             join_battle.join_main()
             del join_battle
+            in_lobby_or_battle = False
 
             if not lobby_controller.received_cancel:
                 battle_sessions = Battle(game_controller, lobby_controller, loop)

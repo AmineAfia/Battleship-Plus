@@ -186,7 +186,7 @@ class Lobby:
 
         # self.get_games()
         self.games_pile = urwid.LineBox(self.games_pile_gridflow, title='Games List')
-
+        self.games_pile_gridflow.render((1,))
         widget_list = [
             urwid.Columns([
                 urwid.Padding(urwid.Text("Games"), left=2, right=0, min_width=20),
