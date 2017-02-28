@@ -80,7 +80,7 @@ class ClientLobbyController:
         await self._callbacks[name].call(*args)
 
     def prepare_for_next(self):
-        self.games = {}
+        # self.games = {}
         self.quit_client = False
         self.is_joining_game = False
         self.is_cancelling_game = False
@@ -214,6 +214,7 @@ class ClientLobbyController:
     async def handle_delete_game(self, msg):
         params = msg.parameters
         try:
+            #logging.debug("handle_delete_____: {}".format(self.games[params["game_id"]]))
             del self.games[params["game_id"]]
             await self.call_callback(ProtocolMessageType.DELETE_GAME, params["game_id"])
         except KeyError:

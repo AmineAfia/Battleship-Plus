@@ -109,9 +109,9 @@ class Lobby:
         self.games_pile = None
         self.games_pile_gridflow = urwid.GridFlow([], 60, 1, 1, 'center')
 
-        # TODO: build kind of a table
         # self.game_ids = [game_id for game_id in lobby_controller.games.keys()]
         self.params_as_list = [game.params_as_list() for game in self.lobby_controller.games.values()]
+        #logging.debug("params______: {}".format(self.params_as_list))
         # self.params_as_list = []
 
         # try:
@@ -122,7 +122,7 @@ class Lobby:
         #     get_games_task.add_done_callback(self.get_games())
 
         # self.get_games()
-        self.games_pile_gridflow = urwid.GridFlow(self.get_games(), 60, 1, 1, 'center')
+        self.games_pile_gridflow = urwid.GridFlow(self.games_list.values(), 60, 1, 1, 'center')
 
     def handle_games(self):
         self.screen_finished.set()
@@ -136,7 +136,7 @@ class Lobby:
         raise urwid.ExitMainLoop()
 
     def get_games(self):
-        # self.params_as_list = [game.params_as_list() for game in self.lobby_controller.games.values()]
+        self.params_as_list = [game.params_as_list() for game in self.lobby_controller.games.values()]
         for g in self.params_as_list:
             self.games_list[g[0]] = PasswordPopUp(g, self.loop, self.lobby_controller, self.game_controller)
             # self.games_pile_gridflow.contents.clear()

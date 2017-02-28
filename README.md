@@ -25,12 +25,36 @@ Open 2 new Terminal windows/tabs, cd to the battleship directory and run
 - Terminal 4: `tail -f client1.log`
 - Terminal 5: `tail -f client2.log`
 
+#### Command arguments for custome ip and port
+
+```
+usage: server.py [-h] [-i IP] [-p PORT]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i IP, --ip IP        IP to listen on for client connections
+  -p PORT, --port PORT  Port to listen on for client connections
+```
+
+```
+usage: client.py [-h] [-i IP] [-p PORT] [-l LOGFILE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i IP, --ip IP        server IP
+  -p PORT, --port PORT  server port
+  -l LOGFILE, --logfile LOGFILE
+                        file for logs
+```
+
 # Tests/debuging
 
 - We tested all functionalities of our client and server in the pre-interop test, 
 the following [link](https://amineafia.github.io/Battleship-test-cases/) is a check list for the test cases we examed.
 
 - To test the server's functionalities: use the scripts in `src/battleship/battletest1` and `src/battleship/battletest2`. 
+
+- To test the server behavior with 100 client use the script in lotsofclients.py
 
 - We used mypy as a type checker, to check the server and client run the following commands:
 	```
