@@ -56,6 +56,8 @@ the following [link](https://amineafia.github.io/Battleship-test-cases/) is a ch
 
 - To test the server behavior with 100 client use the script in lotsofclients.py
 
+- Random messages for the server in `random_messages.py`
+
 - We used mypy as a type checker, to check the server and client run the following commands:
 	```
 	make mypy-server
