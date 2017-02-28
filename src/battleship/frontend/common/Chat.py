@@ -24,7 +24,7 @@ class Chat:
         # messages_pile.rows((10,))
         # self.chat_messages_walker = urwid.SimpleListWalker([messages_pile, urwid.Text("gggg")])
         # self.chat_messages = urwid.ListBox(self.chat_messages_walker)
-        self.chat_messages = urwid.Pile([])
+        self.chat_messages = urwid.Pile([urwid.Text(""), urwid.Text(""), urwid.Text(""), urwid.Text(""), urwid.Text(""), urwid.Text("")])
         self.chat_message = urwid.Edit("->", edit_text="")
         self.post_chat_message = urwid.Button("Send")
         urwid.connect_signal(self.post_chat_message, 'click', lambda button: self.append_message())
@@ -64,7 +64,8 @@ class Chat:
 
             # chat_grid_flow1 = urwid.GridFlow([my_identifier], 4, 1, 1, 'left')
             # chat_grid_flow2 = urwid.GridFlow([message_to_append], 20, 1, 1, 'left')
-
+            if len(self.chat_messages.contents) > 5:
+                del self.chat_messages.contents[0]
             self.chat_messages.contents.append((message_to_append, self.chat_messages.options()))
             self.chat_message.set_edit_text("")
         except Exception as e:

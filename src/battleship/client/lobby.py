@@ -80,6 +80,7 @@ class ClientLobbyController:
         await self._callbacks[name].call(*args)
 
     def prepare_for_next(self):
+        # We can do better with that
         # self.games = {}
         self.quit_client = False
         self.is_joining_game = False
