@@ -33,7 +33,16 @@ class ServerLobbyController:
 #games: {}
 #user_gid: {}
 #user_game_ctrl: {}
-""".format(len(self.users), len(self.clients), len(self.games), len(self.user_gid), len(self.user_game_ctrl))
+
+users: {}
+games: {}
+""".format(len(self.users),
+            len(self.clients),
+            len(self.games),
+            len(self.user_gid),
+            len(self.user_game_ctrl),
+            [username for username in self.users.keys()],
+            ["{}: {} vs {}".format(game_id, game_ctrls[0].username if game_ctrls[0] is not None else "", game_ctrls[1].username if game_ctrls[1] is not None else "") for game_id, game_ctrls in self.games.items()])
 
         print(stats)
 
@@ -46,6 +55,8 @@ class ServerLobbyController:
         # Might already have been removed by a concurrent call
         if client.id in self.clients:
             del self.clients[client.id]
+
+        self.print_stats()
 
     def login_user(self, username: str, client: Client) -> bool:
         if username not in self.users:
@@ -194,6 +205,8 @@ class ServerLobbyController:
         params: Dict[str, Any] = msg.parameters
         answer: Optional[ProtocolMessage] = None
 
+        self.print_stats()
+
         if client.state is not ClientConnectionState.NOT_CONNECTED:
             answer = ProtocolMessage.create_error(ErrorCode.ILLEGAL_STATE_ALREADY_LOGGED_IN)
         elif len(params["username"]) > ProtocolConfig.USERNAME_MAX_LENGTH:
@@ -216,6 +229,8 @@ class ServerLobbyController:
     async def handle_logout(self, client: Client, msg: ProtocolMessage):
         await self.logout_user(client)
         self.print_client(client, "Client '{}' logged out".format(client.username))
+
+        self.print_stats()
 
     async def handle_chat_send(self, client: Client, msg: ProtocolMessage):
         params: Dict[str, Any] = msg.parameters
@@ -272,6 +287,7 @@ class ServerLobbyController:
             game_msg: ProtocolMessage = game_controller.to_game_msg()
             await self.msg_to_all(game_msg)
 
+            self.print_stats()
         # the game controller already sends the error messages, so this is fine.
         # TODO: move this here to be consistent.
         else:
@@ -352,6 +368,8 @@ class ServerLobbyController:
             # inform the other users the game is no longer available
             await self.send_delete_game(game_id)
 
+            self.print_stats()
+
         if answer is not None:
             await self.send(client, answer)
 
@@ -419,6 +437,8 @@ class ServerLobbyController:
 
         await self.send(other_ctrl.client, ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": other_reason}))
         await self.send(our_ctrl.client, ProtocolMessage.create_single(ProtocolMessageType.ENDGAME, {"reason": our_reason}))
+
+        self.print_stats()
 
     async def handle_move(self, client: Client, msg: ProtocolMessage):
         our_ctrl: GameController = self.user_game_ctrl[client.username]
