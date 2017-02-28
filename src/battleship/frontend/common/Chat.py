@@ -20,9 +20,10 @@ class Chat:
         ]
 
     def render_chat(self):
-        # self.chat_messages = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("HEEEEE"), urwid.Text("LOOOL")]))
-        # fill = urwid.SimpleListWalker([urwid.Text("jjjjjj"), urwid.Text("jjjjjj")])
-        # self.chat_messages = urwid.ListBox([fill])
+        # messages_pile = urwid.Pile([urwid.Text("HEEEEE"), urwid.Text("LOOOL")])
+        # messages_pile.rows((10,))
+        # self.chat_messages_walker = urwid.SimpleListWalker([messages_pile, urwid.Text("gggg")])
+        # self.chat_messages = urwid.ListBox(self.chat_messages_walker)
         self.chat_messages = urwid.Pile([])
         self.chat_message = urwid.Edit("->", edit_text="")
         self.post_chat_message = urwid.Button("Send")

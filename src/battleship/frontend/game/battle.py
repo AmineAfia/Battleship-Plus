@@ -46,10 +46,10 @@ class ShipsList:
     # Dictionary of shhoting feld matrix
     shoot_matrix__buttons_dic = {}
 
-    # For testing perposes
-    all_ships_coordinates = []
-    test_refs = urwid.Button("")
-    test_refs_pile = urwid.Pile([test_refs])
+    # For testing purposes
+    # all_ships_coordinates = []
+    # test_refs = urwid.Button("")
+    # test_refs_pile = urwid.Pile([test_refs])
 
     # Dictionary to keep track of ships movement 
     ships_dictionary = {}
@@ -289,8 +289,8 @@ class Battle:
         self.round_time_pile = urwid.Pile([urwid.Button("0.0")])
 
         # For testing purposes
-        ShipsList.test_refs = urwid.Button(str(game_controller.get_all_ships_coordinates()))
-        ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
+        # ShipsList.test_refs = urwid.Button(str(game_controller.get_all_ships_coordinates()))
+        # ShipsList.test_refs_pile.contents.append((ShipsList.test_refs, ShipsList.test_refs_pile.options()))
 
     def you_wait(self):
         self.turn.contents.clear()
@@ -484,8 +484,8 @@ class Battle:
         shooting_pile = urwid.Pile(f)
         ship_pile = urwid.Pile(ship_f)
 
-        ShipsList.all_ships_coordinates_button = urwid.Button(str(ShipsList.ships_dictionary))
-        ShipsList.test_refs_pile.contents.append((ShipsList.all_ships_coordinates_button, ShipsList.test_refs_pile.options()))
+        # ShipsList.all_ships_coordinates_button = urwid.Button(str(ShipsList.ships_dictionary))
+        # ShipsList.test_refs_pile.contents.append((ShipsList.all_ships_coordinates_button, ShipsList.test_refs_pile.options()))
 
         # The rendered layout
         blank = urwid.Divider()
@@ -509,8 +509,8 @@ class Battle:
             ], 2),
             blank,
             #urwid.Button(str(self.placed_ships)),
-            ShipsList.test_refs_pile,
-            blank,
+            # ShipsList.test_refs_pile,
+            # blank,
             self.round_time_pile
         ]
 
