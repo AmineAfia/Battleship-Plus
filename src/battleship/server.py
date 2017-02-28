@@ -58,6 +58,10 @@ def main():
             if msg.type in msgs_for_lobby_controller:
                 await lobby_ctrl.handle_msg(client, msg)
 
+            if msg.type == ProtocolMessageType.NONE:
+                err: ProtocolMessage = ProtocolMessage.create_error(ErrorCode.UNKNOWN)
+                await client.send(err)
+
             # If we have a direct answer, send it here
             if answer is not None:
                 await client.send(answer)
