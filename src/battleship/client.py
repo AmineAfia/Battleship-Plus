@@ -36,6 +36,11 @@ def main():
 
     async def msg_callback(msg: ProtocolMessage):
         logging.debug("< {}".format(msg))
+
+        # if we receive a non error message, we take this as a hint that we are successfully logged in
+        if lobby_controller.state is ClientConnectionState.NOT_CONNECTED and not msg.type == ProtocolMessageType.ERROR:
+            lobby_controller.state = ClientConnectionState.CONNECTED
+
         if msg.type == ProtocolMessageType.ERROR:
             pass
         elif msg.type == ProtocolMessageType.GAMES:

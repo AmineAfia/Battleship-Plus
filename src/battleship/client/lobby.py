@@ -173,7 +173,7 @@ class ClientLobbyController:
     async def send_cancel(self):
         msg = ProtocolMessage.create_single(ProtocolMessageType.CANCEL)
         await self.client.send_and_wait_for_answer(msg)
-        
+
         # TODO: timeouts
         if self.client.last_msg_was_error:
             raise BattleshipError(self.client.last_error)
@@ -183,7 +183,8 @@ class ClientLobbyController:
 
     async def handle_games(self, msg):
         # Because the GAMES message is the implicit confirmation that the login was successful
-        self.state = ClientConnectionState.CONNECTED
+        # this is now done directly in client.py
+        # self.state = ClientConnectionState.CONNECTED
 
         # TODO: fix this. Why is the [{}] in an empty message?
         if not msg.repeating_parameters == [] or not msg.repeating_parameters == [{}]:
