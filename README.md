@@ -1,11 +1,15 @@
 ## Battleship+
-Implementation of team 4 using python and Terminal as a user interface.
+![Overview](https://media.giphy.com/media/3o6Mv4JnwwAXOievm0/source.gif)
+
+Implementation of team 4 using python and Terminal as a user interface. 
+More screen shots are located in the [screen_shots folder](./screen_shots).
 ## Getting Strated
 #### Prerequisitions
-To run the project youhn need to have:
+To run the project you need to have:
 
-- Python 3
+- Python 3.6
 - urwid
+- pyfiglet
 - mypy (optional for linting)
 
 Clone the repo and cd to it.
@@ -54,11 +58,11 @@ the following [link](https://amineafia.github.io/Battleship-test-cases/) is a ch
 
 - To test the server's functionalities: use the scripts in `src/battleship/battletest1` and `src/battleship/battletest2`. 
 
-- To test the server behavior with 100 client use the script in lotsofclients.py
+- To test the server behavior with 100 clients use the script in `lotsofclients.py`
 
-- Random messages for the server in `random_messages.py`
+- Generate random messages for testing in `random_messages.py`
 
-- We used mypy as a type checker, to check the server and client run the following commands:
+- We used mypy as a type checker. To check the server and client run the following commands:
 	```
 	make mypy-server
 	```
@@ -70,7 +74,8 @@ the following [link](https://amineafia.github.io/Battleship-test-cases/) is a ch
 The game is structured as a Server-Client architechture, with one server that manages different clients playing with each other.
 
 Both the server and the client have to follow the RFC rules for structured communication. 
-To do that a GameController is an interface for the client and the server for RFC specifications checkings.
+To do that a GameController offers an interface for the client and the server for RFC specifications checkings (Bettleship rules).
 
 The client is based on the MVC architechture, where the GameController (the controller) is responsible for controlling the clients behavior, 
-the ClientLobbyController class (the model) is responsible for handling the interactions with the server and different views in the frontend folder that use the model's/controller's data to render the user interface.
+the ClientLobbyController class (the model) is responsible for handling the interactions with the server. The frontend is a collection of 
+different views in the frontend folder that use the model's/controller's data to render the user interface.
