@@ -1,5 +1,7 @@
 ## Battleship+
-![Overview](https://media.giphy.com/media/3o6Mv4JnwwAXOievm0/source.gif)
+||
+|:-------------------------------------------------------------------------------------------------:|
+|<img src="https://media.giphy.com/media/3o6Mv4JnwwAXOievm0/source.gif" alt="Overview" width="900"/>|
 
 Implementation of team 4 using python and Terminal as a user interface. 
 More screen shots are located in the [screen_shots folder](./screen_shots).
