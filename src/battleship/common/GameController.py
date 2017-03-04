@@ -14,9 +14,15 @@ from common.network import BattleshipClient
 from common.protocol import ProtocolMessage, ProtocolMessageType, NumShips, ShipPositions, Positions, Position
 from common.game import GameLobbyData
 from common.states import GameState
+""" Controller for Battleship+
+    The Controller is responsible for controlling the flow of data between the model and the view.
+    The game logic is implemented in this GameController.
+    Each client holds a single GameController and the Server holds for each client a GameController.
+    Each GameController holds a single Battlefield.
+    The interface consists of a simple command parser, which evaluates the incoming network messages.
+"""
 
 
-# Controller for Battleship
 class GameController(GameLobbyData):
 
     def __init__(self, game_id, client, loop):
@@ -44,11 +50,8 @@ class GameController(GameLobbyData):
     @classmethod
     async def create_from_msg(cls, game_id, client, loop, msg: ProtocolMessage, username):
         controller = cls(game_id, client, loop)
-
         controller.username = username
-
         params = msg.parameters
-
         board_size, num_ships = params["board_size"], params["num_ships"].numbers
 
         try:
@@ -87,14 +90,12 @@ class GameController(GameLobbyData):
     @classmethod
     def create_from_existing_for_opponent(cls, other_ctrl, client):
         new_ctrl = cls(other_ctrl.game_id, client, other_ctrl.loop)
-
         new_ctrl.username = client.username
         new_ctrl.opponent_name = other_ctrl.username
         new_ctrl.round_time = other_ctrl.round_time
         new_ctrl.options = other_ctrl.options
         new_ctrl.password = other_ctrl.password
         new_ctrl._battlefield = new_ctrl.create_battlefield(other_ctrl.length, other_ctrl.ships)
-
         return new_ctrl
 
     @property
@@ -170,11 +171,12 @@ class GameController(GameLobbyData):
         else:
             raise BattleshipError(ErrorCode.INTERN_SHIP_ID_DOES_NOT_EXIST)
 
-    # todo: ich verbesser das nochmal
     def get_ship_orientation_by_id(self, ship_id):
-        for ship in self._battlefield._ships:
-            if ship.get_ship_id() == ship_id:
-                return ship._orientation
+        result = self._battlefield.get_ship_orientation_by_id(ship_id)
+        if result is not None:
+            return result
+        else:
+            raise BattleshipError(ErrorCode.INTERN_SHIP_ID_DOES_NOT_EXIST)
 
     async def create_on_server(self, board_size, num_ships, round_time, options, password):
         self.round_time = round_time
@@ -223,7 +225,6 @@ class GameController(GameLobbyData):
                     identification += 1
             self._battlefield = Battlefield(length, ships, ships_table)
             if length * length * 0.3 > self._battlefield.calc_filled():
-                # needs to return the battlefield for the cmd-line downside
                 return self._battlefield
             else:
                 raise BattleshipError(ErrorCode.PARAMETER_TOO_MANY_SHIPS)
@@ -237,7 +238,6 @@ class GameController(GameLobbyData):
                     try:
                         orientation = Orientation(orientation)
                     except ValueError:
-                        # return False
                         raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
                     if self._battlefield.place(ship_id, x_pos, y_pos, orientation):
                         return True
@@ -270,9 +270,6 @@ class GameController(GameLobbyData):
                                 direction = Direction(direction)
                             except ValueError:
                                 raise BattleshipError(ErrorCode.SYNTAX_INVALID_PARAMETER)
-                            # todo differentiate if called from UI -> SEND MSG TO SERVER AND WAIT FOR ANSWER -> Set new state
-                            # todo if called from CLIENT -> set new state and answer to Client OK
-                            # TODO: does this never return False after our checks above?
                             if self._state == GameState.YOUR_TURN:
                                 result = self._battlefield.move(ship_id, direction)
                                 return result
@@ -295,11 +292,9 @@ class GameController(GameLobbyData):
             if self._battlefield.no_border_crossing(x_pos, y_pos):
                 if self._battlefield.no_strike_at_place(x_pos, y_pos):
                     if self._battlefield.strike(x_pos, y_pos):
-                        # todo call UI for a successful enemy strike(x,y)
                         self._last_shot = (x_pos, y_pos)
                         return True
                     else:
-                        # todo call UI for a missed enemy strike(x,y)
                         return False
                 else:
                     raise BattleshipError(ErrorCode.PARAMETER_ALREADY_HIT_POSITION)
@@ -463,7 +458,7 @@ class GameController(GameLobbyData):
 
         # The last shot was unsuccessful. This message is sent to both clients.
         elif msg.type == ProtocolMessageType.FAIL:
-            if (self._state == GameState.YOUR_TURN):
+            if self._state == GameState.YOUR_TURN:
                 self._state = GameState.OPPONENTS_TURN
             else:
                 self._state = GameState.YOUR_TURN
@@ -481,7 +476,6 @@ class GameController(GameLobbyData):
                 self._state = GameState.OPPONENTS_TURN
             else:
                 self._state = GameState.YOUR_TURN
-
             self.start_round_time()
             self.increase_turn_counter()
 
@@ -491,7 +485,6 @@ class GameController(GameLobbyData):
                 self._state = GameState.OPPONENTS_TURN
             else:
                 self._state = GameState.YOUR_TURN
-
             self.start_round_time()
             self.increase_turn_counter()
 
@@ -503,9 +496,6 @@ class GameController(GameLobbyData):
         elif msg.type == ProtocolMessageType.ENDGAME:
             reason = msg.parameters["reason"]
             self._state = GameState.GAME_ENDED
-            # TODO: what?
-            #self.start_round_time()
-            #self.abort()
 
         # unknown command
         else:

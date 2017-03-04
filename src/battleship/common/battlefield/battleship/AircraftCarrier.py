@@ -1,4 +1,9 @@
 from .Ship import Ship
+""" class AircraftCarrier
+    The subclass AircraftCarrier inherits the class Ship.
+    It contains the name, width and length of this type of ship.
+"""
+
 
 class AircraftCarrier(Ship):
 
