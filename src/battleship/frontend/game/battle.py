@@ -1,3 +1,4 @@
+""" This module implements the battle screen with all its feactures """
 import urwid
 import urwid.raw_display
 import urwid.web_display
@@ -9,7 +10,6 @@ import logging
 
 from ..common.StaticScreens import Screen
 from ..common.Chat import Chat
-from .result import Result
 from common.GameController import GameController
 from common.constants import Orientation, EndGameReason, Direction
 from common.protocol import ProtocolMessageType, Position
@@ -18,6 +18,7 @@ from common.errorHandler.BattleshipError import BattleshipError
 
 
 class ShipsList:
+    """ A static class that holds shared data structures for battle the battle screen """
     # list of ships from each type
     ships = [0, 0, 0, 0, 0]
     # Dictionary to get chips length
@@ -46,7 +47,7 @@ class ShipsList:
     # Dictionary of shhoting feld matrix
     shoot_matrix__buttons_dic = {}
 
-    # For testing purposes
+    # For testing purposes (uncomment if needed)
     # all_ships_coordinates = []
     # test_refs = urwid.Button("")
     # test_refs_pile = urwid.Pile([test_refs])
@@ -69,7 +70,17 @@ class ShipsList:
 
 
 class PopUpDialog(urwid.WidgetWrap):
-    """A dialog that appears with North, South, West and East buttons """
+    """
+        A dialog that appears with North, South, West and East buttons.
+        That is also the class that sends the MOVE message.
+
+        :param button_with_pop_up: the button the popup is attached to.
+        :param x_pos: x position this popup should represent
+        :param y_pos: y position this popup should represent
+        :param game_controller: A game controller instance to check the rule befor sending messages to the server.
+        :param lobby_controller: An of the class that holds all handlers/sender for all messages
+        :param loop: Asyncio loop
+    """
     signals = ['close']
 
     def __init__(self, button_with_pop_up, x_pos, y_pos, game_controller, lobby_controller, loop):
@@ -87,21 +98,15 @@ class PopUpDialog(urwid.WidgetWrap):
 
         urwid.connect_signal(self.exit_button, 'click',
                              lambda button: self._emit("close"))
-
         urwid.connect_signal(self.n_button, 'click',
                              lambda button: self.move_ship(Direction.NORTH))
-
         urwid.connect_signal(self.s_button, 'click',
                              lambda button: self.move_ship(Direction.SOUTH))
-
         urwid.connect_signal(self.e_button, 'click',
                              lambda button: self.move_ship(Direction.EAST))
-
         urwid.connect_signal(self.w_button, 'click',
                              lambda button: self.move_ship(Direction.WEST))
-
         self.coordinates = urwid.Text("({}, {})".format(self.x_pos, self.y_pos))
-
 
         if (self.x_pos , self.y_pos) in ShipsList.immovable_coordinates:
             pile = urwid.Pile([self.exit_button, urwid.Text("This ship is immovable!")])
@@ -113,7 +118,6 @@ class PopUpDialog(urwid.WidgetWrap):
     def move_ship(self, direction):
         allowed_shoot_bool = False
         if ShipsList.your_turn == 1:
-
             self.ship_id = self.game_controller.get_ship_id_from_location(self.x_pos, self.y_pos)
             self.ship_type = self.game_controller.get_ship_type_by_id(self.ship_id)
             self.ship_orientation = self.game_controller.get_ship_orientation_by_id(self.ship_id)
@@ -151,20 +155,22 @@ class PopUpDialog(urwid.WidgetWrap):
 
 
 class ButtonWithAPopUp(urwid.PopUpLauncher):
+    """
+        Instances on this class represent the cells in the ships field, they show where the ships are and 
+        lunch popups to move them.
+    """
     def __init__(self, x_pos, y_pos, game_controller, lobby_controller, loop):
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
         self.loop = loop
-        #self.cell = urwid.Button("({}, {})".format(self.x_pos, y_pos))
         self.cell = urwid.Button("_")
         ShipsList.movement_popups_dic[(self.x_pos, self.y_pos)] = self.cell
         super().__init__(self.cell)
         self.x_pos_move = 0
         self.y_pos_move = 0
-
-        # if (x_pos, y_pos) in self.game_controller.get_all_ships_coordinates():
+        # connect the cell to its popup
         urwid.connect_signal(ShipsList.movement_popups_dic[self.x_pos + self.x_pos_move, self.y_pos + self.y_pos_move], 'click',
                              lambda button: self.dummy_pop_up_opener())
 
@@ -181,7 +187,6 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 7}
 
     def move_ship_in_position(self, orientation, length, ship_type, direction, ship_id):
-
         if direction == Direction.EAST:
             self.x_pos_move = 1
             self.y_pos_move = 0
@@ -198,14 +203,14 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         for ship_cell_k, ship_cell_v in ShipsList.ships_dictionary.items():
             if ship_cell_k == ship_id:
                 ship_cell_v_copy = list(ship_cell_v)
-                # take the existing ship out of the board
+                # Take the existing ship out of the board
                 for (ship_cell_x, ship_cell_y) in ship_cell_v_copy:
                     if orientation == Orientation.NORTH:
                         ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y)].cell.set_label("_")
                     elif orientation == Orientation.EAST:
                         ShipsList.ship_buttons_dic[(ship_cell_x, ship_cell_y)].cell.set_label("_")
 
-                # draw new ship
+                # Draw new ship
                 for (ship_cell_x, ship_cell_y) in ship_cell_v_copy:
                     if orientation == Orientation.NORTH:
                         ShipsList.ship_buttons_dic[(ship_cell_x + self.x_pos_move, ship_cell_y + self.y_pos_move)].cell.set_label("@")
@@ -220,6 +225,10 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
 
 
 class ShootingCell(urwid.PopUpLauncher):
+    """
+        Instances of this class are the cells in the shooting field.
+        We send the shoot message from here to the Server
+    """
     def __init__(self, x_pos, y_pos, game_controller, lobby_controller, loop):
         self.x_pos = x_pos
         self.y_pos = y_pos
@@ -228,7 +237,6 @@ class ShootingCell(urwid.PopUpLauncher):
         self.loop = loop
         self.cell = urwid.Button(".")
         super().__init__(self.cell)
-        #super().__init__(urwid.Button("({}, {})".format(self.x_pos, self.y_pos)))
         urwid.connect_signal(self.original_widget, 'click', lambda button: self.shoot(button))
 
     def shoot(self, button):
@@ -247,14 +255,12 @@ class ShootingCell(urwid.PopUpLauncher):
             try:
                 if allowed_shoot_bool is True:
                     shoot_task = self.loop.create_task(self.lobby_controller.send_shoot(self.x_pos, self.y_pos))
-                    # shoot_task.add_done_callback(self.set_label_after_shoot(button))
                     shoot_task.add_done_callback(functools.partial(self.set_label_after_shoot, button))
             except Exception as e:
                 ShipsList.battle_notifications.contents.clear()
                 ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field!"), ShipsList.battle_notifications.options()))
                 ShipsList.battle_notifications.contents.append((urwid.Text(('notturn', "Try another time! you already have a hit in that field")), ShipsList.battle_notifications.options()))
                 logging.error(str(e))
-
 
     def set_label_after_shoot(self, button, future):
         e = future.exception()
@@ -266,6 +272,11 @@ class ShootingCell(urwid.PopUpLauncher):
 
 
 class Battle:
+    """
+        This is the main class for a battle. main functionalities are:
+            - Server Messages handling using callback in the lobby_controller
+            - Render the battle screen and lunch its loop
+    """
     def __init__(self, game_controller, lobby_controller, loop):
         self.loop = loop
         self.game_controller = game_controller
@@ -311,7 +322,6 @@ class Battle:
         ShipsList.your_turn = 1
 
     def change_player(self):
-        # TODO controller should switch the time counter
         if self.game_controller.game_state == GameState.YOUR_TURN:
             self.you_play()
         elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
@@ -320,12 +330,10 @@ class Battle:
 
     def handle_moved(self, positions):
         try:
-            # TODO controller should switch the time counter
             if self.game_controller.game_state == GameState.YOUR_TURN:
                 self.you_play()
                 for position in positions["positions"].positions:
                     ShipsList.shoot_matrix__buttons_dic[(position.horizontal, position.vertical)].cell.set_label("|")
-                    #logging.debug("({}, {})".format(position.horizontal, position.vertical))
             elif self.game_controller.game_state == GameState.OPPONENTS_TURN:
                 self.you_wait()
 
@@ -338,8 +346,6 @@ class Battle:
         threading.Timer(2, self.periodic_round_time_getter).start()
 
     def hit_strike(self, sunk: bool, position: Position):
-        # logging.debug("in hit strike")
-        # self.game_controller.strike(position.horizontal, position.vertical)
         if self.game_controller.game_state == GameState.OPPONENTS_TURN:
             ShipsList.ship_buttons_dic[position.horizontal, position.vertical].cell.set_label(('notturn', "@"))
             hited_ship_id = self.game_controller.get_ship_id_from_location(position.horizontal, position.vertical)
@@ -350,11 +356,9 @@ class Battle:
                     for (ship_x, ship_y) in ship_v_copy:
                         try:
                             ShipsList.immovable_coordinates.append((ship_x, ship_y))
-                            # urwid.disconnect_signal(ShipsList.ship_buttons_dic[ship_x, ship_y], 'click', ButtonWithAPopUp.open_pop_up(ShipsList.ship_buttons_dic[ship_x, ship_y].cell))
-                            # urwid.disconnect_signal(ShipsList.movement_popups_dic[ship_x, ship_y], 'click', getattr(ShipsList.ship_buttons_dic[ship_x, ship_y], 'dummy_pop_up_opener'))
 
                         except Exception as e:
-                            logging.debug("_____hit____: {} / {}".format(e, type(e)))
+                            logging.debug("____hit____: {} / {}".format(e, type(e)))
         else:
             ShipsList.shoot_matrix__buttons_dic[(position.horizontal, position.vertical)].cell.set_label(('hit', "X"))
             ShipsList.battle_notifications.contents.clear()
@@ -432,10 +436,6 @@ class Battle:
         for y_pos in range(field_offset):
             for x_pos in range(field_offset):
                 ship_cell = ButtonWithAPopUp(x_pos, y_pos, self.game_controller, self.lobby_controller, self.loop)
-                # if (y_pos, x_pos) in self.placed_ships:
-                #     ship_cell.cell.set_label("@")
-                # else:
-                #     ship_cell = urwid.Button("_")
                 ship_button_list.append(ship_cell)
                 # Dictionary with all cells
                 ShipsList.ship_buttons_dic[(x_pos, y_pos)] = ship_cell
@@ -486,12 +486,9 @@ class Battle:
                             ShipsList.ships_dictionary[ship_id] = tmp_cords
                             tmp_ship_list = []
 
-        # insert the matrix in piles
+        # Insert the matrix in piles
         shooting_pile = urwid.Pile(f)
         ship_pile = urwid.Pile(ship_f)
-
-        # ShipsList.all_ships_coordinates_button = urwid.Button(str(ShipsList.ships_dictionary))
-        # ShipsList.test_refs_pile.contents.append((ShipsList.all_ships_coordinates_button, ShipsList.test_refs_pile.options()))
 
         # The rendered layout
         blank = urwid.Divider()
@@ -514,6 +511,7 @@ class Battle:
                 urwid.LineBox(urwid.Button('Abort', on_press=self.abort)),
             ], 2),
             blank,
+            # Uncomment if you want to see what the the client gets from the UI (uncomment the needed variable as well)
             #urwid.Button(str(self.placed_ships)),
             # ShipsList.test_refs_pile,
             # blank,
@@ -525,21 +523,11 @@ class Battle:
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
 
         palette = [
-            ('ref', 'dark red', 'dark red', ''),
-            ('miss', 'black', 'black', ''),
-            ('untouched', 'white', 'black', ''),
             ('body', 'white', 'black', 'standout'),
             ('turn', 'dark blue', 'black'),
             ('hit', 'dark green', 'black'),
             ('notturn', 'dark red', 'black'),
             ('header', 'white', 'dark red', 'bold'),
-            ('important', 'dark blue', 'light gray', ('standout', 'underline')),
-            ('editfc', 'white', 'dark blue', 'bold'),
-            ('editbx', 'light gray', 'dark blue'),
-            ('editcp', 'black', 'light gray', 'standout'),
-            ('bright', 'dark gray', 'light gray', ('bold', 'standout')),
-            ('buttn', 'white', 'black'),
-            ('buttnf', 'white', 'dark blue', 'bold'),
             ('popbg', 'white', 'dark gray'),
         ]
 
@@ -556,7 +544,7 @@ class Battle:
 
     async def end_screen(self):
         await self.screen_finished.wait()
-        # reset variables
+        # Reset variables
         ShipsList.battle_notifications.contents.clear()
         ShipsList.battle_notifications.contents.append((urwid.Text("Opponent field"), ShipsList.battle_notifications.options()))
         # TODO: kill all registered callbacks

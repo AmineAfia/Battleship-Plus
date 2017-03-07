@@ -1,3 +1,6 @@
+"""
+    This Module represent the Welcome screen and the entry point for the UI.
+"""
 import urwid
 from pyfiglet import Figlet
 
@@ -7,6 +10,7 @@ from client.lobby import ClientLobbyController
 
 
 class Welcome:
+    """ The main class to render the welcome screen """
     def __init__(self, game_controller, lobby_controller, loop):
         self.loop = loop
         self.wlcm = Figlet(font='big')

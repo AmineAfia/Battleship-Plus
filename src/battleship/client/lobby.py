@@ -1,3 +1,6 @@
+"""
+    This module implements the messages handling/sending methods
+"""
 import asyncio
 import logging
 from typing import Any, Callable, Optional, List
@@ -11,6 +14,9 @@ from common.GameController import GameController
 
 
 class Callback:
+    """
+        Class to specify callback based on the ProtocolMessageType
+    """
     def __init__(self, name: ProtocolMessageType) -> None:
         self._name: ProtocolMessageType = name
         self._wait_until_set = asyncio.Event()
@@ -39,6 +45,9 @@ class Callback:
 
 
 class ClientLobbyController:
+    """
+        This class implements methods to handle messages or send them to the server
+    """
     def __init__(self, client, game_controller, loop):
         self.username = ""
         self.state = ClientConnectionState.NOT_CONNECTED
@@ -80,8 +89,6 @@ class ClientLobbyController:
         await self._callbacks[name].call(*args)
 
     def prepare_for_next(self):
-        # We can do better with that
-        # self.games = {}
         self.quit_client = False
         self.is_joining_game = False
         self.is_cancelling_game = False
@@ -216,7 +223,6 @@ class ClientLobbyController:
     async def handle_delete_game(self, msg):
         params = msg.parameters
         try:
-            #logging.debug("handle_delete_____: {}".format(self.games[params["game_id"]]))
             del self.games[params["game_id"]]
             await self.call_callback(ProtocolMessageType.DELETE_GAME, params["game_id"])
         except KeyError:

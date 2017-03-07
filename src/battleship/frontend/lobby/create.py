@@ -1,4 +1,4 @@
-# parameters form (optional password input) and create button for next screen (witting)
+""" This modul allows the creation of games """
 import urwid
 import traceback
 import logging
@@ -11,36 +11,34 @@ from common.constants import GameOptions
 from ..common.StaticScreens import Screen
 from common.protocol import ProtocolMessageType
 
-palette = [
-    ('hit', 'black', 'light gray', 'bold'),
-    ('miss', 'black', 'black', ''),
-    ('untouched', 'white', 'black', ''),
-    ('body', 'white', 'black', 'standout'),
-    ('reverse', 'light gray', 'black'),
-    ('header', 'white', 'dark red', 'bold'),
-    ('important', 'dark blue', 'light gray', ('standout', 'underline')),
-    ('editfc', 'white', 'dark blue', 'bold'),
-    ('editbx', 'light gray', 'dark blue'),
-    ('editcp', 'black', 'light gray', 'standout'),
-    ('bright', 'dark gray', 'light gray', ('bold', 'standout')),
-    ('buttn', 'white', 'black'),
-    ('buttnf', 'white', 'dark blue', 'bold'),
-    ('popbg', 'white', 'dark gray')
-    ]
+palette = [('hit', 'black', 'light gray', 'bold'),
+           ('miss', 'black', 'black', ''),
+           ('untouched', 'white', 'black', ''),
+           ('body', 'white', 'black', 'standout'),
+           ('reverse', 'light gray', 'black'),
+           ('header', 'white', 'dark red', 'bold'),
+           ('important', 'dark blue', 'light gray', ('standout', 'underline')),
+           ('editfc', 'white', 'dark blue', 'bold'),
+           ('editbx', 'light gray', 'dark blue'),
+           ('editcp', 'black', 'light gray', 'standout'),
+           ('bright', 'dark gray', 'light gray', ('bold', 'standout')),
+           ('buttn', 'white', 'black'),
+           ('buttnf', 'white', 'dark blue', 'bold'),
+           ('popbg', 'white', 'dark gray')]
 
 
 class RoundTimePopUpDialog(urwid.WidgetWrap):
-    """A dialog that appears with nothing but a close button """
+    """ A popup to set the roundtime """
     signals = ['close']
 
     def __init__(self, popup_launcher, button_with_pop_up):
         self.button_with_pop_up = button_with_pop_up
         self.round_time_choices = []
         self.popup_launcher = popup_launcher
-        # buttons list with time rounds
+        # Buttons list with time rounds
         for i in range(25, 65, 5):
             self.round_time_choices.append(urwid.Button(str(i)))
-        # connect each button to set_round_time() method
+        # Connect each button to set_round_time() method
         for i in self.round_time_choices:
             urwid.connect_signal(i, 'click', lambda button: self.set_round_time(button.get_label()))
 
@@ -48,15 +46,15 @@ class RoundTimePopUpDialog(urwid.WidgetWrap):
         fill = urwid.Filler(pile)
         self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
 
-    # set round time
+    # Set round time
     def set_round_time(self, label):
-        # TODO: link label with a controller method
         self.button_with_pop_up.set_label(label)
         self.popup_launcher.set_roundtime(int(label))
         self._emit("close")
 
 
 class RoundTimeButtonWithAPopUp(urwid.PopUpLauncher):
+    """ Button to launch the roundtime popup (30sec by default)"""
     def __init__(self):
         self.roundtime = 30
         self.b = urwid.Button("30")
@@ -81,6 +79,7 @@ class RoundTimeButtonWithAPopUp(urwid.PopUpLauncher):
 
 
 class CreateGame:
+    """ Main class to create a game. takes game and lobby controllers and the clients loop"""
     def __init__(self, game_controller, lobby_controller, loop):
         self.loop = loop
         self.game_controller = game_controller
@@ -96,28 +95,11 @@ class CreateGame:
         self.password_checkbox = None
 
     def forward_waiting_room(self, foo):
-        # TODO: controller doesn't handle empty ships array
-        # check the text fields content
-        # if int(self.length.get_edit_text()):
-        #     self.create_game()
-        # else:
-            # read the contents of the text fields
+        # Read the contents of the text fields
         ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
                                         self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
                                         self.submarine.get_edit_text()]]
-        #    # TODO: handle exception in case user didn't enter numbers into the fields
-        #    try:
-        #        self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
-        #        raise urwid.ExitMainLoop()
-        #    except BattleshipError as e:
-        #        logging.error("{}".format(e))
-
-        # ship_numbers = [int(_) for _ in [self.carrier.get_edit_text(), self.battleship.get_edit_text(),
-        #                                  self.cruiser.get_edit_text(), self.destroyer.get_edit_text(),
-        #                                  self.submarine.get_edit_text()]]
-        # # TODO: handle exception in case user didn't enter numbers into the fields
-        # self.game_controller.create_battlefield(int(self.length.get_edit_text()), ship_numbers)
-        # raise urwid.ExitMainLoop()
+        # TODO: handle exception in case user didn't enter numbers into the fields
         create_task = self.loop.create_task(self.game_controller.create_on_server(
                                                 int(self.length.get_edit_text()), ship_numbers, int(self.round_time.get_roundtime()),
                                                 GameOptions.PASSWORD if self.password_checkbox.state else 0,
@@ -126,7 +108,7 @@ class CreateGame:
         create_task.add_done_callback(self.create_result)
 
     def create_result(self, future):
-        # check if there is an error message to display
+        # Check if there is an error message to display
         e = future.exception()
         if type(e) is BattleshipError:
             logging.error(str(e.error_code))
@@ -136,7 +118,7 @@ class CreateGame:
             raise urwid.ExitMainLoop()
 
     def create_game(self):
-        # The rendered layout
+        # blank line to separate sections in the layout
         blank = urwid.Divider()
 
         # Form fields
@@ -161,7 +143,6 @@ class CreateGame:
         ships_form = urwid.Columns([game_settings, ships_edit_box])
 
         widget_list = [
-            # urwid.Padding(urwid.Text("Create Game"), left=2, right=0, min_width=20),
             blank,
             ships_form,
             blank,
@@ -172,13 +153,8 @@ class CreateGame:
         listbox = urwid.LineBox(urwid.ListBox(urwid.SimpleListWalker(widget_list)), title='Create Game')
         frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header)
 
-        # TODO: legnth = 10, ships = [0, 0, 0, 0, 1]
-        def set_ships():
-            pass
-
         def unhandled(key):
             if key == 'esc':
-                # TODO: the main client needs to know if esc was pressed
                 raise urwid.ExitMainLoop()
 
         urwid.MainLoop(frame, palette,

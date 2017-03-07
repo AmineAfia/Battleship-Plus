@@ -1,3 +1,7 @@
+"""
+    Module for waitting screen. 
+    We couldn't use the StaticScreen Module in common because we need to handle the STARTGAME Message here
+"""
 import urwid
 import asyncio
 from pyfiglet import Figlet
@@ -11,6 +15,7 @@ from ..common.StaticScreens import Screen
 
 
 class Waiting:
+    """ Main class for Waiting. renders the waiting screen and handles STARTGAME when it comes """
     def __init__(self, game_controller, lobby_controller, loop):
         self.loop = loop
         self.game_controller = game_controller

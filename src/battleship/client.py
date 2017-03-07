@@ -1,3 +1,6 @@
+"""
+    This is the client module. it manages comming messages fro the server and manages the UI screens order.
+"""
 import sys
 import os
 import asyncio
@@ -20,20 +23,36 @@ from common.states import ClientConnectionState
 
 
 def main():
-
+    """
+        Main class for the client. It follows the following order:
+        - The client picks an IP address, a Port to connect to and a file to log his output
+        - Gets a asyncio loop
+        - Defines a callback that specifies handlers for each massage he receives
+        - Defines a callback that specifies what to do when connect closed
+        - Instanciate BattleshipClient with the loop and defined callbacks. 
+          This makes the client now able to communicate with the server
+        - Instanciate a GameController to use the controllers methods (RFC rules)
+        - Instanciate a ClientLobbyController where the message handling/sending methods are implemented
+        - Define the order/flow of rendring the screens
+    """
+    # Arguments Parser to indicate an IP address, Port and log file directly from a Terminal command
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--ip", help="server IP", type=str, default=Constants.SERVER_IP)
     parser.add_argument("-p", "--port", help="server port", type=int, default=Constants.SERVER_PORT)
     parser.add_argument("-l", "--logfile", help="file for logs", type=argparse.FileType('w'), default='client.log')
     args = parser.parse_args()
 
+    # Initiat the IP, port and logger for the client as well
     Constants.SERVER_IP = args.ip
     Constants.SERVER_PORT = args.port
     logging.basicConfig(filename=args.logfile.name, level=logging.DEBUG)
 
+    # Get asyncio loop
     loop = asyncio.get_event_loop()
+    # A flag to tell the client when to handle the CHAT messages
     in_lobby_or_battle = False
 
+    # Specify handlers for all messages from the server
     async def msg_callback(msg: ProtocolMessage):
         logging.debug("< {}".format(msg))
 
@@ -76,56 +95,57 @@ def main():
         # add the other types if needed
         else:
             pass
-
+    
+    # A callback to run when we close the connection with the server
     def closed_callback():
         logging.debug("< server closed connection".format())
-
+    
+    # Instance of BattleshipClient. The client can open a connection to the server with the arguments he passed
     battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
 
+    # Instance of GameController and ClientLobbyController for this client
     game_id = 1
     game_controller = GameController(game_id, battleship_client, loop)
     lobby_controller = ClientLobbyController(battleship_client, game_controller, loop)
 
+    # render the first screen
     welcome = Welcome(game_controller, lobby_controller, loop)
     welcome.main_welcome()
 
+    # Render the loging screen and stay in it till the client stats changes to CONNECTED
     while lobby_controller.state == ClientConnectionState.NOT_CONNECTED:
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
         del login
-
+    
+    # Render the lobby screen and keep comming back to it till the client quits the battleship+
     while not lobby_controller.quit_client:
         create_lobby = Lobby(game_controller, lobby_controller, loop)
         in_lobby_or_battle = True
         create_lobby.lobby_main()
         del create_lobby
         in_lobby_or_battle = False
-
+        # Render the create game screen if the client is not joining a game
         if lobby_controller.is_joining_game is False:
             create_game = CreateGame(game_controller, lobby_controller, loop)
             create_game.create_game()
             del create_game
-
-            # TODO: esc or normal continuation?
+            # Render a waiting screen and keep it till the client cancels or somebody joins his game
             go_to_game = Waiting(game_controller, lobby_controller, loop)
-            # TODO: is this foo nedded in waiting_main?
             go_to_game.waiting_main("")
             del go_to_game
-
+        # If somebody joins this clients game, render the join screen to place ships
         if not lobby_controller.is_cancelling_game:
-
             join_battle = Join(game_controller, lobby_controller, loop)
             in_lobby_or_battle = True
             join_battle.join_main()
             del join_battle
             in_lobby_or_battle = False
-
+            # If nobody cancels render the battle screen and lets play! :)
             if not lobby_controller.received_cancel:
                 battle_sessions = Battle(game_controller, lobby_controller, loop)
                 battle_sessions.battle_main()
                 del battle_sessions
-
-        # TODO: what is needed to kill all the Screens?
 
         os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -133,10 +153,7 @@ def main():
         game_controller.reset_for_client()
         lobby_controller.prepare_for_next()
 
-        # TODO: send GET_GAMES and receive GAMES (maybe inside frontend/lobby)
-
         # TODO: CTRL+C should exit everything. Maybe a global QUIT_APP callback?
-
 
 if __name__ == '__main__':
     sys.exit(main())

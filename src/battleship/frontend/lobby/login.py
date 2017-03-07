@@ -1,3 +1,4 @@
+""" This Module contains the loging features """
 import urwid
 import asyncio
 import logging
@@ -24,7 +25,7 @@ class ErrorMessages:
 
 
 class LoginPopUpDialog(urwid.WidgetWrap):
-    """A dialog that appears with nothing but a close button """
+    """ Apopup that appers if somthing goes wrong with the loging """
     signals = ['close']
     def __init__(self):
         close_button = urwid.Button("close")
@@ -38,14 +39,11 @@ class LoginPopUpDialog(urwid.WidgetWrap):
 
 
 class LoginButtonWithAPopUp(urwid.PopUpLauncher):
+    """ a popup launcher for error popups """
     def __init__(self):
         self.__super.__init__(urwid.Button(""))
-        #urwid.connect_signal(self.original_widget, 'click',
-        #                     lambda button: None)
-        #                     #lambda button: self.open_pop_up())
 
     def callback_for_popup(self, show):
-
         if show == "empty":
             ErrorMessages.default = ErrorMessages.empty
         elif show == "exist":
@@ -56,7 +54,6 @@ class LoginButtonWithAPopUp(urwid.PopUpLauncher):
             ErrorMessages.default = ErrorMessages.unreachable
         elif show == "other":
             ErrorMessages.default = ErrorMessages.other
-
         self.open_pop_up()
 
     def create_pop_up(self):
@@ -70,6 +67,10 @@ class LoginButtonWithAPopUp(urwid.PopUpLauncher):
 
 
 class Login:
+    """
+        Main class for login. This class renders the logging screen and
+        sends the loging message to the server and handles the respond.
+    """
     def __init__(self, game_controller, lobby_controller, loop):
         self.game_controller = game_controller
         self.lobby_controller = lobby_controller
@@ -79,14 +80,6 @@ class Login:
         self.server_port = urwid.Edit("Server Port: ", str(Constants.SERVER_PORT))
         self.popup = LoginButtonWithAPopUp()
         self.chat = Chat(self.loop, self.lobby_controller)
-
-        # self.lobby_controller.set_callback(ProtocolMessageType.GAMES, self.handle_games)
-
-        # self.lobby_controller.set_callback(ProtocolMessageType.CHAT_RECV, self.handle_message_receive)
-        # self.screen_finished: asyncio.Event = asyncio.Event()
-
-    # def handle_games(self):
-    #     self.screen_finished.set()
 
     def forward_lobby(self, key):
         if key == 'enter':
@@ -127,11 +120,5 @@ class Login:
                     ], 2)
         f = urwid.Filler(dialog)
 
-        # self.loop.create_task(self.end_screen())
         urwid.MainLoop(f, [('popbg', 'white', 'dark blue')], unhandled_input=self.forward_lobby,
                        event_loop=urwid.AsyncioEventLoop(loop=self.loop), pop_ups=True).run()
-
-    # async def end_screen(self):
-    #     await self.screen_finished.wait()
-    #     self.lobby_controller.clear_callback(ProtocolMessageType.CHAT_RECV)
-    #     raise urwid.ExitMainLoop()

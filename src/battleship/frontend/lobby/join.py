@@ -1,3 +1,4 @@
+""" This module include all functionalities to join a game """
 import urwid
 import logging
 import asyncio
@@ -12,8 +13,9 @@ from common.protocol import ProtocolMessageType
 from ..common.StaticScreens import Screen
 
 
-# common variables to place ships
+# Common variables to place ships
 class ShipsList:
+    """ A static class that holds the shares variables between the module classes """
     # parameters to place a ship
     ship_id = None
     ship_type = None
@@ -43,8 +45,6 @@ class ShipsList:
 
     placement_notification = urwid.Pile([urwid.Text("")])
 
-    # bgroup = [] # button group for radio buttons in (place) popup
-
     @staticmethod
     def get_ships():
         i = 0
@@ -72,7 +72,7 @@ class ShipsList:
 
 
 class PopUpDialog(urwid.WidgetWrap):
-    """Popup for each cell in the matrix """
+    """Popup for each cell in the matrix. it contains button to place the ships"""
     signals = ['close']
 
     def __init__(self, button_with_pop_up, x_pos, y_pos):
@@ -134,8 +134,8 @@ class PopUpDialog(urwid.WidgetWrap):
         self._emit("close")
 
 
-# structuring one cell
 class ButtonWithAPopUp(urwid.PopUpLauncher):
+    """ a popup launcher that represent cells in the field """
     def __init__(self, x_pos, y_pos, game_controller):
         self.game_controller = game_controller
         self.x_pos = x_pos
@@ -178,8 +178,8 @@ class ButtonWithAPopUp(urwid.PopUpLauncher):
         return {'left': 0, 'top': 1, 'overlay_width': 32, 'overlay_height': 8}
 
 
-# Main class to place ships
 class Join:
+    """ Main class to join a game. it renders the join screen, send PLACE message and handles the STARTGAME, ENDGAME and PLACED messages """
     def __init__(self, game_controller, lobby_controller, loop):
         self.loop = loop
         self.game_controller = game_controller
@@ -267,7 +267,6 @@ class Join:
             else:
                 raise e
         # the ships are placed, we know this only when a WAIT or YOUSTART arrives
-        # TODO.
         else:
             # ok, we are ready
             self.lobby_controller.received_cancel = False
