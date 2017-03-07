@@ -1,4 +1,9 @@
 from .Ship import Ship
+""" class Destroyer
+    The subclass Destroyer inherits the class Ship.
+    It contains the name, width and length of this type of ship.
+"""
+
 
 class Destroyer(Ship):
 

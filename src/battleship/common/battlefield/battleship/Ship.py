@@ -1,5 +1,9 @@
 from ...constants import Orientation, Direction
 from common.protocol import ShipPosition, Position
+""" class Ship
+    The super class Ship is an abstract model of all ships for a single battlefield.
+    It contains the location, state and orientation of this ship.
+"""
 
 
 class Ship:
@@ -21,7 +25,6 @@ class Ship:
                 if self._orientation == Orientation.NORTH:
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
                 elif self._orientation == Orientation.EAST:
-                    # TODO: check if this what flo wanted (switched i and j)
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
 
     def get_ship_position(self):
@@ -73,8 +76,6 @@ class Ship:
         if self._placed:
             for i in range(self._x_length):
                 for j in range(self._y_length):
-                    # TODO: check if this what flo wanted (compare just the positions)
-                    # if self._ship_state[i][j] == [(x_pos, y_pos), self._ship_state[i][j][1]]:
                     if self._ship_state[i][j][0] == (x_pos, y_pos):
                         return True
         return False
@@ -95,7 +96,6 @@ class Ship:
         else:
             return False
 
-    # replace this ship
     def place(self, x_pos, y_pos, orientation):
         self._x_pos = x_pos
         self._y_pos = y_pos
@@ -103,14 +103,12 @@ class Ship:
         if self._orientation == Orientation.NORTH:
             for i in range(self._x_length):
                 for j in range(self._y_length):
-                    # TODO: check if this what flo wanted (switched i and j)
                     self._ship_state[i][j] = [(j + self._x_pos, i + self._y_pos), 0]
             self._placed = True
             return True
         elif self._orientation == Orientation.EAST:
             for i in range(self._x_length):
                 for j in range(self._y_length):
-                    # TODO: check if this what flo wanted (switched i and j)
                     self._ship_state[i][j] = [(i + self._x_pos, j + self._y_pos), 0]
             self._placed = True
             return True

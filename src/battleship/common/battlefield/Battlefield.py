@@ -1,6 +1,10 @@
 from typing import List, Optional, Any, Dict, Tuple
 from ..constants import Orientation, Direction, ErrorCode
 from .battleship import Ship
+""" class Battlefield
+    The Battlefield is an abstract model of a battlefield for a single player.
+    It contains of two matrix fields and the ship list of the responsible player.
+"""
 
 
 class Battlefield:
@@ -10,7 +14,6 @@ class Battlefield:
         self._ships = ships
         self._ships_table: List[int] = ships_table
         self._ships_table_not_placed: List[int] = ships_table
-        # TODO: check if this what flo wanted (removed -1)
         self._my_battlefield = [[0 for x in range(self._length)] for y in range(self._length)]
         self._enemy_battlefield = [[0 for x in range(self._length)] for y in range(self._length)]
 
@@ -37,7 +40,6 @@ class Battlefield:
     # shoot at enemy battlefield
     def shoot(self, x_pos, y_pos):
         if self._enemy_battlefield[x_pos][y_pos] == 0 or self._enemy_battlefield[x_pos][y_pos] == 2:
-            # todo: is enemy ship hit?
             self._enemy_battlefield[x_pos][y_pos] = 1
             return True
         else:
@@ -240,3 +242,9 @@ class Battlefield:
 
     def shot_missed(self, x_pos, y_pos):
         self._enemy_battlefield[x_pos][y_pos] = 2
+
+    def get_ship_orientation_by_id(self, ship_id):
+        for ship in self._ships:
+            if ship.get_ship_id() == ship_id:
+                return ship._orientation
+        return None
