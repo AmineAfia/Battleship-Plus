@@ -1,10 +1,10 @@
 ## Battleship+
-||
-|:-------------------------------------------------------------------------------------------------:|
 |<img src="https://media.giphy.com/media/3o6Mv4JnwwAXOievm0/source.gif" alt="Overview" width="900"/>|
+|:-------------------------------------------------------------------------------------------------:|
 
-Implementation of team 4 using python and Terminal as a user interface. 
+The GIF shows two clients (two upper tabs) playing with each other and the server (lower tab) output. 
 More screen shots are located in the [screen_shots folder](./screen_shots).
+
 ## Getting Strated
 #### Prerequisitions
 To run the project you need to have:
@@ -23,7 +23,7 @@ Clone the repo and cd to it.
 	- Terminal 3: `make run-client`
 
 #### Run in developer mode
-IF you want to follow the clients log as well, instead of run-client
+If you want to follow the clients log as well, instead of `run-client`
 - Terminal 2: `make run-client1`
 - Terminal 3: `make run-client2`
 
