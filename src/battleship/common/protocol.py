@@ -595,7 +595,7 @@ class ProtocolMessage:
             raise OverflowError()
 
         writer.write(msg_bytes_type + msg_bytes_length + msg_bytes_payload)
-        logging.debug("send: type({}) length({}) payload({})".format(msg_bytes_type, msg_bytes_length, msg_bytes_payload))
+        # logging.debug("send: type({}) length({}) payload({})".format(msg_bytes_type, msg_bytes_length, msg_bytes_payload))
 
         await writer.drain()
 
@@ -654,7 +654,7 @@ async def parse_from_stream(client_reader, client_writer, msg_callback):
         except Exception as e:
             logging.info("Some other error while reading, stop reading from this stream")
             break
-        logging.debug("recv: " + str(data))
+        # logging.debug("recv: " + str(data))
 
         # parse data
         if waiting_for_msg_type:
