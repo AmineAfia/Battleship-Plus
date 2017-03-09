@@ -56,13 +56,13 @@ optional arguments:
 # Tests/debuging
 
 - We tested all functionalities of our client and server in the pre-interop test, 
-the following [link](https://amineafia.github.io/Battleship-test-cases/) is a check list for the test cases we examed.
+the following [link](https://amineafia.github.io/Battleship-test-cases/) is a check list for the test cases we examined.
 
 - To test the server's functionalities: use the scripts in `src/battleship/battletest1` and `src/battleship/battletest2`. 
 
-- To test the server behavior with 100 clients use the script in `lotsofclients.py`
+- To test the server's behavior with 100 clients use the script in `lotsofclients.py` and start the server with the `make run-server-large` which sets a high limit of 4096 allowed open files to allow a lot of incoming client connections.
 
-- Generate random messages for testing in `random_messages.py`
+- To test the sending and parsing of messages on the level of the protocol layer, use `random_messages.py`
 
 - We used mypy as a type checker. To check the server and client run the following commands:
 	```
@@ -73,11 +73,21 @@ the following [link](https://amineafia.github.io/Battleship-test-cases/) is a ch
 	```
 
 # Architecture
-The game is structured as a Server-Client architechture, with one server that manages different clients playing with each other.
+The game is structured as a client-server architechture, with one server managing different clients playing with each other.
 
-Both the server and the client have to follow the RFC rules for structured communication. 
-To do that a GameController offers an interface for the client and the server for RFC specifications checkings (Bettleship rules).
+Both the server and the client have to follow the RFC rules for structured communication.
+To do that a GameController offers an interface for the client and the server for checking the RFC specifications (Bettleship rules).
 
-The client is based on the MVC architechture, where the GameController (the controller) is responsible for controlling the clients behavior, 
-the ClientLobbyController class (the model) is responsible for handling the interactions with the server. The frontend is a collection of 
+The client is based on the MVC architechture, where the GameController (controller and model for a game) is responsible for controlling the clients behavior, 
+the ClientLobbyController class (controller and model for the client) is responsible for handling the interactions with the server. The frontend is a collection of 
 different views in the frontend folder that use the model's/controller's data to render the user interface.
+
+Both client and server are single-threaded applications. The asynchronous handling of network and UI events is done by Python's asyncio.
+In the case of the client, the urwid UI framework and the network share one event loop.
+
+Entrypoints to read the code are
+
+- `src/battleship/client.py`: the client
+- `src/battleship/server.py`: the server
+- `src/battleship/common/GameController.py`: the game controller
+- `src/battleship/common/protocol.py`: the protocol message creation and parsing code
