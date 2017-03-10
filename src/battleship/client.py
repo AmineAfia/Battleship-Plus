@@ -1,5 +1,5 @@
 """
-    This is the client module. it manages comming messages fro the server and manages the UI screens order.
+    This is the client module. It manages incoming messages from the server and manages the UI screens in order of execution.
 """
 import sys
 import os
@@ -25,15 +25,15 @@ from common.states import ClientConnectionState
 def main():
     """
         Main class for the client. It follows the following order:
-        - The client picks an IP address, a Port to connect to and a file to log his output
+        - The client picks an IP address, a port to connect to and a file to log his output
         - Gets a asyncio loop
         - Defines a callback that specifies handlers for each massage he receives
-        - Defines a callback that specifies what to do when connect closed
-        - Instanciate BattleshipClient with the loop and defined callbacks. 
+        - Defines a callback that specifies what to do when the connection is closed or lost
+        - Instanciate BattleshipClient with the loop and defined callbacks.
           This makes the client now able to communicate with the server
-        - Instanciate a GameController to use the controllers methods (RFC rules)
+        - Instanciate a GameController to use the controller's methods (RFC rules)
         - Instanciate a ClientLobbyController where the message handling/sending methods are implemented
-        - Define the order/flow of rendring the screens
+        - Define the order/flow of rendering the screens
     """
     # Arguments Parser to indicate an IP address, Port and log file directly from a Terminal command
     parser = argparse.ArgumentParser()
@@ -95,11 +95,11 @@ def main():
         # add the other types if needed
         else:
             pass
-    
+
     # A callback to run when we close the connection with the server
     def closed_callback():
         logging.debug("< server closed connection".format())
-    
+
     # Instance of BattleshipClient. The client can open a connection to the server with the arguments he passed
     battleship_client = BattleshipClient(loop, msg_callback, closed_callback)
 
@@ -117,7 +117,7 @@ def main():
         login = Login(game_controller, lobby_controller, loop)
         login.login_main()
         del login
-    
+
     # Render the lobby screen and keep comming back to it till the client quits the battleship+
     while not lobby_controller.quit_client:
         create_lobby = Lobby(game_controller, lobby_controller, loop)

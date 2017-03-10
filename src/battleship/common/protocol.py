@@ -1,3 +1,40 @@
+"""
+This file contains the classes and functions needed for creating, sending,
+receiving and parsing protocol messages. The main class is ProtocolMessage,
+which has a member function to send itself over the wire. The function
+parse_from_stream on the other hand listens on a stream and hands reconstructed
+ProtocolMessage objects to a callback. A ProtocolMessage object holds a type
+value of type ProtocolMessageType (an enum which holds the different command
+numbers defined by the RFC), and a dictionary of protocol fields which maps
+a string name to an arbitrary object (for example "username" to "benjamin").
+
+The protocol messages are configurable under certain assumptions. These are:
+- length fields for fields, if present, preceed the field directly
+
+The configuration of protocol messages is done via the definition of a series
+of ProtocolField objects, which are chained together to form a protocol
+message via the dictionary ProtocolMessageParameters: for each ProtocolMessageType,
+it holds a list of protocol fields. A ProtocolField object has a name -- which
+corresponds to the key in the dictionary of parameters in a ProtocolMessage object,
+and certain definitions about the length (fixed, implicit).
+
+The parsing and sending functions use the configured fields to read or send
+the fields in the right order and with the specified length fields. Thus, there
+is one generic sending function (ProtocolMessage.send) and one generic parsing
+function (parse_from_stream).
+
+For non-trivial protocol fields such as the position of ships or the numbers
+of ships in a game, custom classes have been created which contain functions
+to parse this field type from bytes or to create a byte sequence from it.
+This way, most protocol fields have a common interface which can be used
+by the sending and parsing function and make them more readable.
+
+One special case is the GAMES message, which can contain an arbitrary number
+of games. This is implemented in ProtocolMessage as a so called "repeating
+message type": the paramaters list can contain multiple dictionaries. Each
+is sent one after another, using the configured protocol fields.
+"""
+
 import logging
 from enum import Enum, IntEnum
 from typing import Dict, List, Any, Optional
