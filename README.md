@@ -1,12 +1,12 @@
-## Battleship+
+# Battleship+
 |<img src="https://media.giphy.com/media/3o6Mv4JnwwAXOievm0/source.gif" alt="Overview" width="900"/>|
 |:-------------------------------------------------------------------------------------------------:|
 
 The GIF shows two clients (two upper tabs) playing with each other and the server (lower tab) output. 
 More screen shots are located in the [screen_shots folder](./screen_shots).
 
-## Getting Strated
-#### Prerequisitions
+## Getting Started
+### Prerequisites
 To run the project you need to have:
 
 - Python 3.6
@@ -16,13 +16,13 @@ To run the project you need to have:
 
 Clone the repo and cd to it.
 
-#### Run
+### Run
 - open 3 Terminal windows/tabs then run in each:
 	- Terminal 1: `make run-server`
 	- Terminal 2: `make run-client`
 	- Terminal 3: `make run-client`
 
-#### Run in developer mode
+### Run in developer mode
 If you want to follow the clients log as well, instead of `run-client`
 - Terminal 2: `make run-client1`
 - Terminal 3: `make run-client2`
@@ -31,7 +31,7 @@ Open 2 new Terminal windows/tabs, cd to the battleship directory and run
 - Terminal 4: `tail -f client1.log`
 - Terminal 5: `tail -f client2.log`
 
-#### Command arguments for custome ip and port
+### Command arguments for custome ip and port
 
 ```
 usage: server.py [-h] [-i IP] [-p PORT]
@@ -53,7 +53,23 @@ optional arguments:
                         file for logs
 ```
 
-# Tests/debuging
+### IPv6
+
+This Battleship+ implementation supports IPv6. The used Python
+libraries made this completely transparent for us developers and
+thus for the users.
+
+Simply provide an IPv6 address via the command line options, or in the case of the client, enter it into the login screen:
+
+```
+python src/battleship/server.py --ip ::1
+```
+
+```
+python src/battleship/client.py --ip ::1
+```
+
+## Tests/debuging
 
 - We tested all functionalities of our client and server in the pre-interop test, 
 the following [link](https://amineafia.github.io/Battleship-test-cases/) is a check list for the test cases we examined.
@@ -72,7 +88,7 @@ the following [link](https://amineafia.github.io/Battleship-test-cases/) is a ch
 	make mypy-client
 	```
 
-# Architecture
+## Architecture
 The game is structured as a client-server architechture, with one server managing different clients playing with each other.
 
 Both the server and the client have to follow the RFC rules for structured communication.
