@@ -1,0 +1,1736 @@
+
+
+
+
+Telematics in Practice                                     R. Bauer, Ed.
+Internet-Draft                   Karlsruhe Institute of Technology (KIT)
+Intended status: Informational                              January 2017
+Expires: July 5, 2017
+
+
+                     Battleship Plus Game Protocol
+                     draft-ietf-xml2rfc-template-06
+
+Abstract
+
+   Insert an abstract: MANDATORY.  This template is for creating an
+   Internet Draft.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at http://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on July 5, 2017.
+
+Copyright Notice
+
+   Copyright (c) 2017 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents
+   (http://trustee.ietf.org/license-info) in effect on the date of
+   publication of this document.  Please review these documents
+   carefully, as they describe your rights and restrictions with respect
+   to this document.  Code Components extracted from this document must
+   include Simplified BSD License text as described in Section 4.e of
+   the Trust Legal Provisions and are provided without warranty as
+   described in the Simplified BSD License.
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 1]
+
+Internet-Draft                                              January 2017
+
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+     1.1.  Basic Rules . . . . . . . . . . . . . . . . . . . . . . .   3
+     1.2.  Match preparation . . . . . . . . . . . . . . . . . . . .   4
+     1.3.  Typical Protocol Course . . . . . . . . . . . . . . . . .   4
+   2.  Message Format  . . . . . . . . . . . . . . . . . . . . . . .   5
+     2.1.  Example . . . . . . . . . . . . . . . . . . . . . . . . .   6
+   3.  Lobby . . . . . . . . . . . . . . . . . . . . . . . . . . . .   6
+     3.1.  Messages  . . . . . . . . . . . . . . . . . . . . . . . .   6
+       3.1.1.  Server Messages . . . . . . . . . . . . . . . . . . .   6
+         3.1.1.1.  Receive a chat message  . . . . . . . . . . . . .   6
+         3.1.1.2.  Game list . . . . . . . . . . . . . . . . . . . .   7
+         3.1.1.3.  Game list updated . . . . . . . . . . . . . . . .   7
+         3.1.1.4.  Game deleted  . . . . . . . . . . . . . . . . . .   7
+       3.1.2.  Parameters  . . . . . . . . . . . . . . . . . . . . .   7
+     3.2.  Client messages . . . . . . . . . . . . . . . . . . . . .   8
+       3.2.1.  Login . . . . . . . . . . . . . . . . . . . . . . . .   8
+       3.2.2.  Logout  . . . . . . . . . . . . . . . . . . . . . . .   9
+       3.2.3.  Chat message  . . . . . . . . . . . . . . . . . . . .   9
+       3.2.4.  Create a game . . . . . . . . . . . . . . . . . . . .  10
+       3.2.5.  Cancel a game . . . . . . . . . . . . . . . . . . . .  10
+       3.2.6.  Join a game . . . . . . . . . . . . . . . . . . . . .  10
+       3.2.7.  List Games  . . . . . . . . . . . . . . . . . . . . .  11
+   4.  Game messages . . . . . . . . . . . . . . . . . . . . . . . .  11
+     4.1.  Server messages . . . . . . . . . . . . . . . . . . . . .  11
+       4.1.1.  Start game message  . . . . . . . . . . . . . . . . .  11
+       4.1.2.  Ships placed message  . . . . . . . . . . . . . . . .  12
+       4.1.3.  You start message . . . . . . . . . . . . . . . . . .  12
+       4.1.4.  Wait message  . . . . . . . . . . . . . . . . . . . .  12
+       4.1.5.  Hit message . . . . . . . . . . . . . . . . . . . . .  12
+       4.1.6.  Fail message  . . . . . . . . . . . . . . . . . . . .  13
+       4.1.7.  Moved message . . . . . . . . . . . . . . . . . . . .  13
+       4.1.8.  Timeout message . . . . . . . . . . . . . . . . . . .  13
+       4.1.9.  Game ended message  . . . . . . . . . . . . . . . . .  13
+     4.2.  Client messages . . . . . . . . . . . . . . . . . . . . .  14
+       4.2.1.  Turn counter  . . . . . . . . . . . . . . . . . . . .  14
+       4.2.2.  Place ships message . . . . . . . . . . . . . . . . .  14
+       4.2.3.  Move ship message . . . . . . . . . . . . . . . . . .  15
+       4.2.4.  Shoot message . . . . . . . . . . . . . . . . . . . .  15
+       4.2.5.  Abort message . . . . . . . . . . . . . . . . . . . .  16
+     4.3.  Parameters  . . . . . . . . . . . . . . . . . . . . . . .  16
+     4.4.  Game board  . . . . . . . . . . . . . . . . . . . . . . .  17
+       4.4.1.  Coordinate representation . . . . . . . . . . . . . .  17
+       4.4.2.  Directions  . . . . . . . . . . . . . . . . . . . . .  18
+     4.5.  Ship types  . . . . . . . . . . . . . . . . . . . . . . .  19
+   5.  Error Reporting . . . . . . . . . . . . . . . . . . . . . . .  21
+     5.1.  Error Message . . . . . . . . . . . . . . . . . . . . . .  21
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 2]
+
+Internet-Draft                                              January 2017
+
+
+     5.2.  Error Codes . . . . . . . . . . . . . . . . . . . . . . .  21
+       5.2.1.  0 Unknown Command . . . . . . . . . . . . . . . . . .  21
+       5.2.2.  1-9 Illegal State Error . . . . . . . . . . . . . . .  21
+       5.2.3.  10-14 Syntax Error  . . . . . . . . . . . . . . . . .  22
+       5.2.4.  100- Parameter Error  . . . . . . . . . . . . . . . .  22
+   6.  State machines  . . . . . . . . . . . . . . . . . . . . . . .  24
+     6.1.  Client connection state machine . . . . . . . . . . . . .  24
+     6.2.  Game state machine  . . . . . . . . . . . . . . . . . . .  25
+   7.  Simple List . . . . . . . . . . . . . . . . . . . . . . . . .  27
+   8.  Figures . . . . . . . . . . . . . . . . . . . . . . . . . . .  27
+   9.  Subsections and Tables  . . . . . . . . . . . . . . . . . . .  27
+     9.1.  A Subsection  . . . . . . . . . . . . . . . . . . . . . .  27
+     9.2.  Tables  . . . . . . . . . . . . . . . . . . . . . . . . .  27
+   10. More about Lists  . . . . . . . . . . . . . . . . . . . . . .  28
+     10.1.  Numbering Lists across Lists and Sections  . . . . . . .  28
+     10.2.  Where the List Numbering Continues . . . . . . . . . . .  29
+   11. Example of Code or MIB Module To Be Extracted . . . . . . . .  29
+   12. Acknowledgements  . . . . . . . . . . . . . . . . . . . . . .  30
+   13. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  30
+   14. Security Considerations . . . . . . . . . . . . . . . . . . .  31
+   15. Informative References  . . . . . . . . . . . . . . . . . . .  31
+   Appendix A.  Appendix . . . . . . . . . . . . . . . . . . . . . .  31
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  31
+
+1.  Introduction
+
+   The Battleship Plus Game Protocol (BPGP) is a protocol used for
+   playing Battleship Plus, a derivative of the popular guessing game
+   Battleship.  The protocol aims to define the communication between
+   one server and an arbitrary number of clients.  This covers both the
+   establishment of new matches and the gameplay itself.
+
+   This document briefly explains the modified rules of the game and
+   gives a general overview of how the Battleship Plus Game Protocol
+   (BPGP) works before it gets into the details on how the communication
+   is structured, how messages are framed and encoded and how they are
+   transmitted.
+
+1.1.  Basic Rules
+
+   Just like a classic game of Battleship, the game is played by two
+   players on two respective grids.  The grids are square and size
+   ranges from 10 by 10 to 26 by 26 squares.  The grid size is decided
+   on before the game starts.  The grid is labelled vertically by
+   letters starting with A and horizontally by numbers starting with 1.
+   The game uses 5 types of ships with the following dimensions:
+
+   1.  Carrier (5 x 2 squares)
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 3]
+
+Internet-Draft                                              January 2017
+
+
+   2.  Battleship (5 x 1 squares)
+
+   3.  Cruiser (4 x 1 squares)
+
+   4.  Destroyer (3 x 1 squares)
+
+   5.  Submarine (2 x 1 squares)
+
+   This order must be used for the messages which are described in a
+   later chapter.
+
+1.2.  Match preparation
+
+   Before the game can begin both players start by arranging ships on
+   their own grid called battleground.  The number of ships the players
+   can place depends on the size of the grid.  It is up to the player to
+   decide how many ships of each type they want to place as long as an
+   area closest to 30% of the whole grid is filled with ships.  They are
+   allowed to place their ships anywhere on their grid with the
+   following restrictions:
+
+   o  Each ship must be placed horizontally or vertically.  Ships cannot
+      be placed diagonally.
+
+   o  Ships must be placed in one straight line, and cannot be folded or
+      bent.
+
+   o  Ships are not allowed to touch each other.
+
+   o  Ships must not be placed partially on the grid.  Every square of a
+      ship needs to fill one square on the grid.
+
+   A modification of both grid size and ships is not intended as soon as
+   the game has started.  The server decides which player starts the
+   game.  The players take turns either firing a shot or moving a ship.
+   The decision time is limited from 25 to 60 seconds.  This needs to be
+   decided before the game starts.  If a square of a ship is hit, the
+   ship is damaged and can no longer be moved.  If all squares of a ship
+   have been hit, it sinks.  The winner is whoever manages to sink all
+   of the opponents ships first.
+
+1.3.  Typical Protocol Course
+
+   The Battleship Plus Game Protocol (BPGP) can be divided into two
+   general steps: The establishing of a game and the turn-based gameflow
+   itself.  Each BPGP session has exactly three participants, two
+   clients as well as a third instance which is hosting the game.  The
+   first client that joins an empty game provided by the server is seen
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 4]
+
+Internet-Draft                                              January 2017
+
+
+   as the host of the party.  He therefore decides on the parameters
+   used for that particular game of Battleship Plus once and for all.
+   After deciding those he waits for an opponent.  Once someone joins
+   and confirms that he wants to play this game, the server queries both
+   clients for their ship positions.  Right after those have been
+   gathered the server decides on which player has to start and informs
+   both about that decision.  This concludes the first step, the so
+   called session setup, which is followed by the actual gameplay.
+
+   To start playing the established BPGP session the currently active
+   player gets a push notification about the beginning of his turn
+   directly from the server of the party.  The active player then has to
+   decide whether he wants to move one of his ships by exactly one
+   square either up, down, left or right or if he wants to take a shot
+   at one of the ships of his opponent.  The turn of a player thereby
+   ends either if the time limit negotiated during the session setup has
+   expired or one of the following scenarios has concluded:
+
+   o  The active player has chosen to move a ship, which ends the turn
+      immediately.
+
+   o  The active player decides to take a shot but misses.
+
+   o  The active player shoots and hits.  He is therefore granted
+      another turn, which also resets the turn timer.
+
+   The game of Battleship Plus continues until one of the player wins,
+   which is achieved by sinking all the ships of the opponent.
+   Alternatively a forced end of the game occurs either if one of the
+   players completely loses the connection to the game or doesn't
+   respond for three turns in a row.  A turn is identified as passed in
+   case the turn timer runs out prior to concluding the turn by taking
+   one of the two actions.  Lastly the winning player is informed about
+   his victory and can therefore wear his smug face until he gets beaten
+   by another player.
+
+2.  Message Format
+
+   This section defines the message format.  TCP is used as the layer4
+   transport protocol.
+   Each message begins with one byte identifying the type / command of
+   the message.
+   This byte is always followed by a length field of two bytes.  The
+   length field specifies the total length of the payload of the
+   message.  This means the length of the payload of fixed and variable
+   size messages is encoded in the length field.  Therefore no more than
+   65535 bytes of payload can be transmitted.
+
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 5]
+
+Internet-Draft                                              January 2017
+
+
+2.1.  Example
+
+   Command GET_GAMES: "0x390000" where '39' encodes the command number
+   57 and '0000' the length, which is 0 here
+   Command CANCEL: "0x370002****" where '37' encodes the command number
+   55, '0002' the length of 2 bytes for the payload and **** encodes the
+   2 byte long game_id
+   Command LOGIN: "0x33000475736572" where '33' encodes the command
+   number 51, '0004' the length of the payload and '75736572'='user' the
+   username in UTF-8
+
+3.  Lobby
+
+   This section defines the protocol messages for login, logout,
+   creating and joining games.
+
+3.1.  Messages
+
+3.1.1.  Server Messages
+
+3.1.1.1.  Receive a chat message
+
+   Command: 1 (0x01)
+   Name: CHAT
+   Parameters: <length_name> <username> <length_name> <username> <text>
+
+   When the server receives a CHAT message from a client (see
+   Section 3.2.3), it forwards the message <text> to the receiving
+   client using this message.  The first <username> is the username of
+   the sender, the second <username> is the username of the recipient.
+   If the username of the recipient is empty, the message is sent to
+   every client in the lobby.
+
+   The client replies with an ERROR message, if
+
+   o  the message text exceeds the limit specified in Table 1 (error
+      code 11),
+
+   o  the recipient of the CHAT message is invalid (error code 103).
+
+   Example: '0x01 0015 06 73656e646572 08 7265636569766572 68616c6c6f' =
+   'sender' sends message 'hello' to 'receiver'
+   Example: '0x01 0015 06 73656e646572 00 68616c6c6f' = 'sender' sends
+   message 'hello' to every client in the lobby.
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 6]
+
+Internet-Draft                                              January 2017
+
+
+3.1.1.2.  Game list
+
+   Command: 2 (0x02)
+   Name: GAMES
+   Parameters: (<game_ID> <length_name> <username> <board_size>
+   <num_ships> <round_time> <options>)*
+
+   This message is sent to the client in reply to a GET_GAMES message.
+   It contains a list of available games on the server with the
+   parameters specified in Table 1. <game_ID> is a unique identifier of
+   a game assigned by the server, and <username> is the name of the user
+   who has created the game.  If the list of available games is empty,
+   the server sends a GAMES message of length 0.
+   Several GAMES messages may be sent to the client, if the amount of
+   open games does not fit into one GAMES message.
+
+   Example
+
+3.1.1.3.  Game list updated
+
+   Command: 3 (0x03)
+   Name: GAME
+   Parameters: <game_ID> <username> <board_size> <num_ships>
+   <round_time> <options>
+
+   The server sends this message to all logged in clients when a new
+   game has been created.  The parameters are the same as in the GAMES
+   message except for the <length_name>-Parameter which is not needed in
+   this case.
+
+   Example
+
+3.1.1.4.  Game deleted
+
+   Command: 4 (0x04)
+   Name: DELETE_GAME
+   Parameters: <game_ID>
+
+   The server sends this message to all logged in clients when the game
+   <game_ID> has been cancelled.
+
+   Example: '0x04 0002 0001' = delete game with id 1
+
+3.1.2.  Parameters
+
+   The type of the parameters are assumed to be unsigned integers
+   encoded as little endian unless further specified.
+
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 7]
+
+Internet-Draft                                              January 2017
+
+
+   If, in a message containing a username, the length_name field is set
+   to a value greater than 90 (i.e. the following username exceeds the
+   maximum length of 90 bytes), the receiver MUST reject the command and
+   reply with an ERROR code 12 message.
+
+   +-------------+--------------------+--------------------------------+
+   |  Parameter  |       Bytes        |          Description           |
+   +-------------+--------------------+--------------------------------+
+   |   username  |      max. 90       |  encoded in UTF-8, maximum of  |
+   |             |                    |         22 characters          |
+   | length_name |         1          |   the length in byte of the    |
+   |             |                    |       following username       |
+   |     text    | max. 65534 (65535  |  encoded in UTF-8, maximum of  |
+   |             |        - 1         |         63 characters          |
+   |             | (length_username)) |                                |
+   |  board_size |         1          |  1 byte unsigned integer for   |
+   |             |                    |     the size of the board      |
+   |  num_ships  |         5          | 5 byte unsigned integer, each  |
+   |             |                    |  byte for one ship type. The   |
+   |             |                    |  order of ships is: carrier,   |
+   |             |                    |      battleship, cruiser,      |
+   |             |                    |      destroyer, submarine      |
+   |  round_time |         1          |  1 byte unsigned integer. The  |
+   |             |                    |  possible values are between   |
+   |             |                    |     25s to 60s in 5s steps     |
+   |   options   |         1          | only the most significant bit  |
+   |             |                    | is used. If this is set then a |
+   |             |                    |        password is used        |
+   |   password  |   max. 255 bytes   | only set, if the password flag |
+   |             |                    |       in options is set        |
+   |   game_ID   |         2          |    2 byte unsigned integer     |
+   +-------------+--------------------+--------------------------------+
+
+                     Table 1: Lobby Message parameters
+
+3.2.  Client messages
+
+3.2.1.  Login
+
+   Command: 51 (0x33)
+   Name: LOGIN
+   Parameters: <username>
+
+   This message is used to login into the lobby with the given username.
+
+   The server must reply with a GAMES message as specified in
+   Section 3.1.1.2, if the login was successful.
+
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 8]
+
+Internet-Draft                                              January 2017
+
+
+   The server replies with an ERROR message, if
+
+   o  the client is already logged in (error code 1),
+
+   o  another client is logged in with the same username (error code
+      101),
+
+   o  the username is empty (error code 116).
+
+   Example: '0x33 0004 75736572' = login with username 'user'
+
+3.2.2.  Logout
+
+   Command: 52 (0x34)
+   Name: LOGOUT
+   Parameters: none
+
+   This message is used to logout from the lobby.  The server MAY close
+   the TCP connection in reaction to the message.
+
+   Example: '0x34 0000' = logout
+
+3.2.3.  Chat message
+
+   Command: 53 (0x35)
+   Name: CHAT
+   Parameters: <length_name> <username> <text>
+
+   This message asks the server to send the message <text> to the user
+   <username>.  The <username> may be empty (and thereby <length_name>
+   zero) to ask the server to send the message to everyone in the lobby.
+
+   The server replies with an ERROR message, if
+
+   o  the message text exceeds the limit specified in Table 1 (error
+      code 11),
+
+   o  there is no client currently logged in with the given username
+      (error code 102).
+
+   Example: '0x35 000E 08 7265636569766572 68616c6c6f' = message 'hello'
+   to 'receiver'
+   Example: '0x35 0006 00 68616c6c6f' = message 'hello' to every client
+   in the lobby
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                  [Page 9]
+
+Internet-Draft                                              January 2017
+
+
+3.2.4.  Create a game
+
+   Command: 54 (0x36)
+   Name: CREATE_GAME
+   Parameters: <board_size> <num_ships> <round_time> <options>
+   [<password>]
+
+   This message tells the server to create a game with the parameters
+   specified in Table 1 and an optional password.  The game is added to
+   the list of available games.
+
+   Of the <options> field, only the most significant bit (the password
+   option) is used in this version of the protocol.  The server SHOULD
+   NOT accept a game with any unused option bit set and reply with an
+   ERROR code 100 message instead.  If the password option is not set,
+   no password is required for joining the game.  If it is set, the
+   password field MUST NOT be empty, otherwise the server replies with
+   an ERROR code 10 message.
+
+   If the specified ships in <num_ships> would need more space than the
+   field is big, the server replies with an ERROR message code 108.
+
+   To prevent overloading, the server MAY reject new games if a specific
+   limit in the number of games in total is reached.  In this case, the
+   server replies with an ERROR code 9 message, indicating that the
+   client MUST NOT send any CREATE_GAME message until it has received a
+   DELETE_GAME message.
+
+   Example
+
+3.2.5.  Cancel a game
+
+   Command: 55 (0x37)
+   Name: CANCEL
+   Parameters: none
+
+   This message tells the server to cancel the game of the current user.
+   If the user currently has no created game, the server replies with an
+   ERROR code 104 message.
+
+   Example: '0x37 0002' = cancel current game
+
+3.2.6.  Join a game
+
+   Command: 56 (0x38)
+   Name: JOIN
+   Parameters: <game_ID> [<password>]
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 10]
+
+Internet-Draft                                              January 2017
+
+
+   This message is used to join the game <game_ID>.
+
+   The server replies with an ERROR message, if
+
+   o  there is no available game with the specified game_ID (error code
+      104),
+
+   o  the message lacks the password parameter although a password is
+      required (error code 105),
+
+   o  a password is required for the game, but the given password is
+      incorrect (error code 106),
+
+   o  the user wants to join his own game (error code 107),
+
+   o  the game has already started (error code 8).
+
+   Example: '0x38 0002 0001' = join game with id 1 without password
+
+3.2.7.  List Games
+
+   Command: 57 (0x39)
+   Name: GET_GAMES
+   Parameters: none
+
+   This message asks the server to send a list of all available games to
+   the client.  The server MUST reply with a GAMES message as specified
+   in Section 3.1.1.2.
+
+   Example: '0x39 0000' = get games
+
+4.  Game messages
+
+   This section describes the messages for the gameplay.
+
+4.1.  Server messages
+
+4.1.1.  Start game message
+
+   Command: 101 (0x65)
+   Name: STARTGAME
+   Parameters: <board_size> <num_ships> <round_time> <opponent_name>
+
+   Initial message to start the game.  The message MUST be sent to both
+   clients.
+
+   Example:
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 11]
+
+Internet-Draft                                              January 2017
+
+
+4.1.2.  Ships placed message
+
+   Command: 102 (0x66)
+   Name: PLACED
+   Parameters: none
+
+   The opponent placed ships.
+
+   Example: '0x66 0000'
+
+4.1.3.  You start message
+
+   Command: 103 (0x67)
+   Name: YOUSTART
+   Parameters: none
+
+   This message MUST be sent to the client who has the first turn.  It
+   is sent only once after the STARTGAME message.
+
+   Example: '0x67 0000'
+
+4.1.4.  Wait message
+
+   Command: 104 (0x68)
+   Name: WAIT
+   Parameters: none
+
+   This message MUST be sent to the client who has to wait for the
+   opponent's first turn.  It is sent only once after the STARTGAME
+   message.
+
+   Example: '0x68 0000'
+
+4.1.5.  Hit message
+
+   Command: 105 (0x69)
+   Name: HIT
+   Parameters: <sunk> <position>
+
+   A ship was hit.
+   This message is sent to both clients.
+
+   Example: '0x69 0003 00 02 02' = a ship was hit on field C 3, but is
+   not sunken
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 12]
+
+Internet-Draft                                              January 2017
+
+
+4.1.6.  Fail message
+
+   Command: 106 (0x6a)
+   Name: FAIL
+   Parameters: <position>
+
+   The last shot was unsuccessful.
+   This message is sent to both clients.
+
+   Example: '0x6a 0002 00 04' = shot on field A 5 failed
+
+4.1.7.  Moved message
+
+   Command: 107 (0x6b)
+   Name: MOVED
+   Parameters: <positions>
+
+   A ship was moved.  If the ship was moved to already shot fields,
+   these fields are mentioned in the positions.
+   This message is sent to both clients.
+
+   Example: '0x6b 0000' = a ship was moved, but hasn't reached a field
+   that has been shot yet
+
+4.1.8.  Timeout message
+
+   Command: 108 (0x6c)
+   Name: TIMEOUT
+   Parameters: none
+
+   The current turn ended because of a timeout.
+   This message is sent to both clients.
+
+   Example: '0x6c 0000'
+
+4.1.9.  Game ended message
+
+   Command: 109 (0x6d)
+   Name: ENDGAME
+   Parameters: <reason>
+
+   The current game ended because of a known reason.
+   This message is sent to both clients.
+
+   Example:
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 13]
+
+Internet-Draft                                              January 2017
+
+
+4.2.  Client messages
+
+   Client messages are sent from a client to the server.
+
+   If the server receives any of these messages from a client that has
+   not joined a game or (except for the PLACE message) at a time when
+   the game has not started yet, it MUST reply with an ERROR code 3
+   message.
+
+4.2.1.  Turn counter
+
+   Each client has an internal variable named turn_counter.  This
+   counter is initialized to zero.  Each time a client receives a HIT,
+   FAIL, MOVED or TIMEOUT message, the turn_counter is incremented by
+   one.  When the turn_counter exceeds the limit of a byte (256), it is
+   reset to zero.
+
+4.2.2.  Place ships message
+
+   Command: 151 (0x97)
+   Name: PLACE
+   Parameters: <ship_positions>
+
+   Sends the server a list of ship placements.  The list MUST be ordered
+   by ship type as specified in the introduction (see Section 1.1).  The
+   list position defines the ship_id, starting at 0.
+
+   The server replies with an ERROR message, if
+
+   o  the orientation parameter of one of the ships has an invalid value
+      (error code 15),
+
+   o  one of the ships is positioned so that some part of the ship lies
+      outside the board (error code 110),
+
+   o  two ships are positioned so that they overlap or touch each other
+      (error code 111),
+
+   o  the number of ships given does not meet the game specification
+      (error code 112).
+
+   If there is more than one error in the message, the server stops at
+   the first error and sends only one ERROR message.
+
+   Example:
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 14]
+
+Internet-Draft                                              January 2017
+
+
+4.2.3.  Move ship message
+
+   Command: 152 (0x98)
+   Name: MOVE
+   Parameters: <turn_counter> <ship_id> <direction>
+
+   Moves a ship.
+
+   The server replies with an ERROR message, if
+
+   o  it is not the client's turn (error code 4),
+
+   o  the <direction> parameter has an invalid value (error code 15),
+
+   o  the ship would be moved over the edge of the board (error code
+      110),
+
+   o  the ship would be moved to a position where it touches another
+      ship (error code 111),
+
+   o  the given <ship_id> is invalid (error code 113),
+
+   o  the specified ship cannot be moved because it has already been hit
+      (error code 114),
+
+   o  the turn counter is invalid (error code 115).
+
+   Example:
+
+4.2.4.  Shoot message
+
+   Command: 153 (0x99)
+   Name: SHOOT
+   Parameters: <turn_counter> <position>
+
+   Shoots the specified position of the opponents board.
+
+   The server replies with an ERROR message, if
+
+   o  it is not the client's turn (error code 4),
+
+   o  the specified position lies outside the board (error code 110),
+
+   o  the turn counter is invalid (error code 115),
+
+   o  there was already a hit at the specified position (error code
+      117).
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 15]
+
+Internet-Draft                                              January 2017
+
+
+   Example:
+
+4.2.5.  Abort message
+
+   Command: 154 (0x9a)
+   Name: ABORT
+   Parameters: none
+
+   This message tells the server that the client wants to abort the
+   game.  The user may communicate the reason via the chat.
+
+   Example: '0x9a 0000'
+
+4.3.  Parameters
+
+   The type of the parameters are assumed to be unsigned integers
+   encoded as big endian unless further specified.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 16]
+
+Internet-Draft                                              January 2017
+
+
+   +----------------+-------+------------------------------------------+
+   |   Parameter    | Bytes |               Description                |
+   +----------------+-------+------------------------------------------+
+   |  turn_counter  |   1   |     The number of the current turn.      |
+   |   board_size   |   1   |  Side length of the board with a value   |
+   |                |       |            between 10 and 26.            |
+   |   num_ships    |   5   |  Each byte defines the number of ships   |
+   |                |       | for a specific ship type.  The order of  |
+   |                |       | ships is: carrier, battleship, cruiser,  |
+   |                |       |           destroyer, submarine           |
+   |   round_time   |   1   | A number that defines the round time in  |
+   |                |       |                 seconds.                 |
+   | opponent_name  |  1 -  |    The opponents nickname. Encoded in    |
+   |                |   90  |                  UTF-8.                  |
+   |      sunk      |   1   | Is 1 if all fields of the ship were hit. |
+   |                |       |               Otherwise 0.               |
+   |    position    |   2   | First byte defines the vertical and the  |
+   |                |       |   second byte the horizontal position.   |
+   |                |       |     The value MUST be between 0 and      |
+   |                |       |              board_size-1.               |
+   |   positions    |   2L  |     Defines L concatenated position      |
+   |                |       |      parameters. L is the number of      |
+   |                |       |         concatenated positions.          |
+   |  orientation   |   1   |        0: vertical, 1: horizontal        |
+   |     reason     |   1   |  0: opponent aborted, 1: opponent timed  |
+   |                |       |   out, 2: you won, 3: opponent won, 4:   |
+   |                |       |    server closed connection, 5: other    |
+   | ship_position  |   3   |     Defines a tuple of a positon and     |
+   |                |       |          orientation of a ship.          |
+   | ship_positions |   3L  |   Defines L concatenated ship_position   |
+   |                |       |      parameters. L is the number of      |
+   |                |       |       concatenated ship positions.       |
+   |    ship_id     |   1   |  A number which identifies the ship. It  |
+   |                |       |     is the number of the ship in the     |
+   |                |       |   ship_positions list (PLACE message).   |
+   |   direction    |   1   |   0: north, 1: east, 2: south, 3: west   |
+   +----------------+-------+------------------------------------------+
+
+                        Table 2: Message parameters
+
+4.4.  Game board
+
+4.4.1.  Coordinate representation
+
+   The game board as it SHOULD be presented to the user looks like this:
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 17]
+
+Internet-Draft                                              January 2017
+
+
+                     +-----+---+---+---+---+---+-----+
+                     | Y\X | A | B | C | D | E | ... |
+                     +-----+---+---+---+---+---+-----+
+                     |  1  |   |   |   |   |   |     |
+                     |  2  |   |   |   |   |   |     |
+                     |  3  |   |   |   |   |   |     |
+                     |  4  |   |   |   |   |   |     |
+                     |  5  |   |   |   |   |   |     |
+                     | ... |   |   |   |   |   |     |
+                     +-----+---+---+---+---+---+-----+
+
+                                  Table 3
+
+   The x-axis is labeled with letters as in the classic battleship game
+   and the y-axis is labeled with numbers.  This differs from the
+   internal (client) representation, which looks like:
+
+                     +-----+---+---+---+---+---+-----+
+                     | Y\X | 0 | 1 | 2 | 3 | 4 | ... |
+                     +-----+---+---+---+---+---+-----+
+                     |  0  |   |   |   |   |   |     |
+                     |  1  |   |   |   |   |   |     |
+                     |  2  |   |   |   |   |   |     |
+                     |  3  |   |   |   |   |   |     |
+                     |  4  |   |   |   |   |   |     |
+                     | ... |   |   |   |   |   |     |
+                     +-----+---+---+---+---+---+-----+
+
+                                  Table 4
+
+   The client interprets the field B1 internally as 10.  This preserves
+   the user from confusing.  For example field 32, with this
+   presentation the user needs to know which axis is mentioned first.
+   The x-Axis stands for the vertical columns and the y-Axis stands for
+   the horizontal rows.
+
+4.4.2.  Directions
+
+   The possible directions are north (N), east (E), south (S) and west
+   (W).
+
+
+
+
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 18]
+
+Internet-Draft                                              January 2017
+
+
+                     +-----+---+---+---+---+---+-----+
+                     | Y\X | 0 | 1 | 2 | 3 | 4 | ... |
+                     +-----+---+---+---+---+---+-----+
+                     |  0  |   |   |   |   |   |     |
+                     |  1  |   |   | N |   |   |     |
+                     |  2  |   | W | x | E |   |     |
+                     |  3  |   |   | S |   |   |     |
+                     |  4  |   |   |   |   |   |     |
+                     | ... |   |   |   |   |   |     |
+                     +-----+---+---+---+---+---+-----+
+
+                                  Table 5
+
+   Starting from the point (x) with the internal coordinates (2,2):
+
+   o  North is defined as (2,1)
+
+   o  East is defined as (3,2)
+
+   o  South is defined as (2,3)
+
+   o  West is defined as (1,2)
+
+4.5.  Ship types
+
+   There are five ship types which need a representation along with a
+   defined fix point.  The latter we need in order to rotate the ship
+   during the placement of the ships.
+   In the following artwork the squares represent the single parts and
+   the 'X' the fix point of a ship.
+
+           +---+---+        +---+---+---+---+---+
+           | X |   |        | X |   |   |   |   |
+           +---+---+        +---+---+---+---+---+
+           |   |   |        |   |   |   |   |   |
+           +---+---+        +---+---+---+---+---+
+           |   |   |
+           +---+---+
+           |   |   |
+           +---+---+
+           |   |   |
+           +---+---+
+
+                             Figure 1: Carrier
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 19]
+
+Internet-Draft                                              January 2017
+
+
+           +---+        +---+---+---+---+---+
+           | X |        | X |   |   |   |   |
+           +---+        +---+---+---+---+---+
+           |   |
+           +---+
+           |   |
+           +---+
+           |   |
+           +---+
+           |   |
+           +---+
+
+                           Figure 2: Battleship
+
+           +---+        +---+---+---+----+
+           | X |        | X |   |   |    |
+           +---+        +---+---+---+----+
+           |   |
+           +---+
+           |   |
+           +---+
+           |   |
+           +---+
+
+                             Figure 3: Cruiser
+
+           +---+        +---+---+---+
+           | X |        | X |   |   |
+           +---+        +---+---+---+
+           |   |
+           +---+
+           |   |
+           +---+
+
+                            Figure 4: Destroyer
+
+           +---+        +---+---+
+           | X |        | X |   |
+           +---+        +---+---+
+           |   |
+           +---+
+
+                            Figure 5: Submarine
+
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 20]
+
+Internet-Draft                                              January 2017
+
+
+5.  Error Reporting
+
+   If the server or client receives a message that it cannot process
+   successfully, it SHOULD reply with an appropriate ERROR message as
+   specified in this section.
+
+5.1.  Error Message
+
+   Command: 255
+   Name: ERROR
+   Parameters: <error_code>
+
+   This message indicates an error in the previously received message.
+   The error code (1 byte unsigned integer) indicates the type of the
+   error as specified in the following section.
+
+   Example: '0xFF0001**' = length field is 1 and ** indicates the error
+   code
+
+5.2.  Error Codes
+
+5.2.1.  0 Unknown Command
+
+   The error code 0 indicates that the command is unknown to the
+   receiver.
+
+5.2.2.  1-9 Illegal State Error
+
+   The error codes 1 to 9 indicate that the command is not allowed in
+   the current state, e.g. when a client sends a PLACE message before
+   having joined a game.
+
+     1  Already logged in
+        (in response to a LOGIN message, see Section 3.2.1)
+
+     2  Not logged in
+        (in response to any message except LOGIN)
+
+     3  Not in game
+        (in response to any game message, see Section 4.2)
+
+     4  Not your turn
+        (in response to a MOVE or SHOOT message, see Section 4.2.3 and
+        Section 4.2.4)
+
+     8  Game already started
+        (in response to a Join message, see Section 3.2.6)
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 21]
+
+Internet-Draft                                              January 2017
+
+
+     9  Number of games limit exceeded
+        (in response to a CREATE_GAME message, see Section 3.2.4)
+
+5.2.3.  10-14 Syntax Error
+
+   The error codes 10 to 14 indicate that the message parameters cannot
+   be parsed by the receiver, e.g. because it has the wrong number of
+   parameters as defined for the command or some parameter contains an
+   unspecified value.  This could be the result of a wrong length field
+   or parameters sent in the wrong order.
+
+    10  Missing or unknown parameter
+        (in response to any message)
+
+    11  Message text too long
+        (in response to a CHAT message, see Section 3.2.3 and
+        Section 3.1.1)
+
+    12  Username too long
+        (in response to a LOGIN, CHAT, GAME or GAMES message, see
+        Section 3.1.2)
+
+    13  Invalid board size
+        (in response to a GAME, GAMES or CREATE_GAME message, see
+        Section 3.1.2)
+
+    14  Invalid round time
+        (in response to a GAME, GAMES or CREATE_GAME message, see
+        Section 3.1.2)
+
+    15  Invalid parameter
+        (in response to a PLACE or MOVE message, see Section 4.2.2 and
+        Section 4.2.3)
+
+    16  Password to long
+        (in response to a CREATE_GAME or JOIN message, see Section 3.2.4
+        and Section 3.2.6)
+
+5.2.4.  100- Parameter Error
+
+   The error codes 100 and above indicate some logic error in the
+   parameters of the message.
+
+   100  Option not supported
+        (in response to a CREATE_GAME message, see Section 3.2.4)
+
+   101  Username already exists
+        (in response to a LOGIN message, see Section 3.2.1)
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 22]
+
+Internet-Draft                                              January 2017
+
+
+   102  Username does not exist
+        (in response to a CHAT message from the client, see
+        Section 3.2.3)
+
+   103  Wrong recipient
+        (in response to a CHAT message from the server, see
+        Section 3.1.1)
+
+   104  Unknown game_ID
+        (in response to a CANCEL or JOIN message, see Section 3.2.5 and
+        Section 3.2.6)
+
+   105  Password required
+        (in response to a JOIN message, see Section 3.2.6)
+
+   106  Invalid password
+        (in response to a JOIN message, see Section 3.2.6)
+
+   107  Illegal Join
+        (in response to a JOIN message, see Section 3.2.6)
+
+   108  Too many ships
+        (in response to a CREATE_GAME message, see Section 3.2.4)
+
+   110  Position out of bounds
+        (in response to a PLACE, MOVE, or SHOOT message, see
+        Section 4.2.2, Section 4.2.3 and Section 4.2.4)
+
+   111  Overlapping ships
+        (in response to a PLACE or MOVE message, see Section 4.2.2 and
+        Section 4.2.3)
+
+   112  Wrong number of ships
+        (in response to a PLACE message, see Section 4.2.2)
+
+   113  Invalid ship ID
+        (in response to a MOVE message, see Section 4.2.3)
+
+   114  Ship immovable
+        (in response to a MOVE message, see Section 4.2.3)
+
+   115  Invalid turn count
+        (in response to a MOVE or SHOOT message, see Section 4.2.3 and
+        Section 4.2.4)
+
+   116  Invalid username
+        (in response to a LOGIN message, see Section 3.2.1)
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 23]
+
+Internet-Draft                                              January 2017
+
+
+   117  Already hit
+        (in response to a SHOOT message, see Section 4.2.4)
+
+6.  State machines
+
+   The following subsections contain state machines for playing and
+   joining/creating battleship games.
+
+6.1.  Client connection state machine
+
+    The following state machine describes the behavior of clients while
+       connecting and creating or joining a game.  Initial state is
+    'unconnected'.  Uncapitalized messages were sent from server to the
+        client, capitalized messages from the client to the server.
+
+                                +-------------+
+                        +-------+ unconnected |
+                  LOGIN |       +-----------+-+
+                        |                   ^
+                        v                   |  LOGOUT
+                 +------+---------+         |
+             +---+   connected    +---------+
+             |   +------+--+------+         |
+             |          |  ^                |
+             |   CREATE |  | CANCEL         |
+             |          v  |                |
+             |   +------+--+------+         |
+             |   |  game created  +---------+
+   GET_GAMES |   +------+-----+---+         |
+             |          ^     |             |
+             |          |     | startgame   |
+             |   CREATE |     v             |
+             |          |   +-+-------+     |
+             |          |   | playing +-----+
+             |          |   +-+-------+     |
+             |          |     ^             |
+             |          |     | JOIN        |
+             |          |     |             |
+             |   +------+-----+---+         |
+             +-->+ game selection +---------+
+                 +----------------+
+
+
+                                 Figure 6
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 24]
+
+Internet-Draft                                              January 2017
+
+
+6.2.  Game state machine
+
+   This state machine shows what happens during the game.  It is written
+     out of the view of one player.  Starting state is 'place ships'.
+        Uncapitalized messages were sent from server to the client,
+            capitalized messages from the client to the server.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 25]
+
+Internet-Draft                                              January 2017
+
+
+      +-------------+
+   +--+ place ships +--+
+   |  +----+--------+  | PLACE
+   |       |       ^---+
+   |       |
+   |       | placed
+   |       |
+   |       |        +---+
+   |       v        v   | PLACE
+   |  +----+--------++  |
+   +--+ place ships/ +--+
+   |  |   waiting    +-------+
+   |  +-+------------+       |     SHOOT & hit
+   |    |                    |       +----+
+   |    | wait      youstart |       |    |
+   |    |                    v       v    |
+   |    |                  +-+-------+-+  |
+   |    |      +-----------+ your turn +--+
+   |    |      |           +---+------++
+   |    |      | timeout       ^      |
+   |    |      | or            |      +---------------+
+   |    |      | endgame       |                      |
+   |    |      v               |                      |
+   |    |   +--+---------+     | SHOOT & fail         |
+   |    |   | game ended +<--+ | or                   |
+   |    |   +------------+   | | MOVE & moved         |
+   |    |                    | |      & (shipseen)    |
+   |    |            timeout | | or                   |
+   |    |            or      | | timeout              |
+   |    |            endgame | |                      |
+   |    |                    | v                      |
+   |    |                  +-+-+------------+         |
+   |    +----------------->+ opponents turn +<-+      |
+   |                       +-------+-----+--+  |      |
+   |                               |     |     |      |
+   |                               |     +-----+      |
+   | ABORT                         |   SHOOT & hit    |
+   |                               |                  |
+   |     +--------------+    ABORT |                  |
+   +---->+ game aborted +<---------+------------------+
+         +--------------+
+
+
+
+                                 Figure 7
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 26]
+
+Internet-Draft                                              January 2017
+
+
+7.  Simple List
+
+   List styles: 'empty', 'symbols', 'letters', 'numbers', 'hanging',
+   'format'.
+
+   o  First bullet
+
+   o  Second bullet
+
+   You can write text here as well.
+
+8.  Figures
+
+   The CDATA means you don't need to escape meta-characters (especially
+   < (&lt;) and & (&amp;)) but is not essential.  Figures may also have
+   a title attribute but it won't be displayed unless there is also an
+   anchor.  White space, both horizontal and vertical, is significant in
+   figures even if you don't use CDATA.
+
+9.  Subsections and Tables
+
+9.1.  A Subsection
+
+   By default 3 levels of nesting show in table of contents but that can
+   be adjusted with the value of the "tocdepth" processing instruction.
+
+9.2.  Tables
+
+   .. are very similar to figures:
+
+     Tables use ttcol to define column headers and widths.  Every cell
+                  then has a "c" element for its content.
+
+                          +----------+----------+
+                          | ttcol #1 | ttcol #2 |
+                          +----------+----------+
+                          |   c #1   |   c #2   |
+                          |   c #3   |   c #4   |
+                          |   c #5   |   c #6   |
+                          +----------+----------+
+
+                      which is a very simple example.
+
+                       Table 6: A Very Simple Table
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 27]
+
+Internet-Draft                                              January 2017
+
+
+10.  More about Lists
+
+   Lists with 'hanging labels': the list item is indented the amount of
+   the hangIndent:
+
+   short   With a label shorter than the hangIndent.
+
+   fantastically long label  With a label longer than the hangIndent.
+
+   vspace_trick
+           Forces the new item to start on a new line.
+
+   Simulating more than one paragraph in a list item using <vspace>:
+
+   a.  First, a short item.
+
+   b.  Second, a longer list item.
+
+       And something that looks like a separate pararaph..
+
+   Simple indented paragraph using the "empty" style:
+
+      The quick, brown fox jumped over the lazy dog and lived to fool
+      many another hunter in the great wood in the west.
+
+10.1.  Numbering Lists across Lists and Sections
+
+   Numbering items continuously although they are in separate <list>
+   elements, maybe in separate sections using the "format" style and a
+   "counter" variable.
+
+   First list:
+
+   R1  #1
+
+   R2  #2
+
+   R3  #3
+
+   Specify the indent explicitly so that all the items line up nicely.
+
+   Second list:
+
+   R4  #4
+
+   R5  #5
+
+   R6  #6
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 28]
+
+Internet-Draft                                              January 2017
+
+
+10.2.  Where the List Numbering Continues
+
+   List continues here.
+
+   Third list:
+
+   R7  #7
+
+   R8  #8
+
+   R9  #9
+
+   R10 #10
+
+   The end of the list.
+
+11.  Example of Code or MIB Module To Be Extracted
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 29]
+
+Internet-Draft                                              January 2017
+
+
+   The <artwork> element has a number of extra attributes that can be
+   used to substitute a more aesthetically pleasing rendition into HTML
+   output while continuing to use the ASCII art version in the text and
+   nroff outputs (see the xml2rfc README for details).  It also has a
+   "type" attribute.  This is currently ignored except in the case
+   'type="abnf"'.  In this case the "artwork" is expected to contain a
+   piece of valid Augmented Backus-Naur Format (ABNF) grammar.  This
+   will be syntax checked by xml2rfc and any errors will cause a fatal
+   error if the "strict" processing instruction is set to "yes".  The
+   ABNF will also be colorized in HTML output to highlight the syntactic
+   components.  Checking of additional "types" may be provided in future
+   versions of xml2rfc.
+
+
+   /**** an example C program */
+
+   #include <stdio.h>
+
+   void
+   main(int argc, char *argv[])
+   {
+      int i;
+
+      printf("program arguments are:\n");
+      for (i = 0; i < argc; i++) {
+          printf("%d: \"%s\"\n", i, argv[i]);
+      }
+
+      exit(0);
+   } /* main */
+
+   /* end of file */
+
+
+12.  Acknowledgements
+
+   This template was derived from an initial version written by Pekka
+   Savola and contributed by him to the xml2rfc project.
+
+   This document is part of a plan to make xml2rfc indispensable
+   [DOMINATION].
+
+13.  IANA Considerations
+
+   This memo includes no request to IANA.
+
+   All drafts are required to have an IANA considerations section (see
+   Guidelines for Writing an IANA Considerations Section in RFCs
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 30]
+
+Internet-Draft                                              January 2017
+
+
+   [RFC5226] for a guide).  If the draft does not require IANA to do
+   anything, the section contains an explicit statement that this is the
+   case (as above).  If there are no requirements for IANA, the section
+   will be removed during conversion into an RFC by the RFC Editor.
+
+14.  Security Considerations
+
+   All drafts are required to have a security considerations section.
+   See RFC 3552 [RFC3552] for a guide.
+
+15.  Informative References
+
+   [DOMINATION]
+              Mad Dominators, Inc., "Ultimate Plan for Taking Over the
+              World", 1984, <http://www.example.com/dominator.html>.
+
+   [RFC2629]  Rose, M., "Writing I-Ds and RFCs using XML", RFC 2629,
+              DOI 10.17487/RFC2629, June 1999,
+              <http://www.rfc-editor.org/info/rfc2629>.
+
+   [RFC3552]  Rescorla, E. and B. Korver, "Guidelines for Writing RFC
+              Text on Security Considerations", BCP 72, RFC 3552,
+              DOI 10.17487/RFC3552, July 2003,
+              <http://www.rfc-editor.org/info/rfc3552>.
+
+   [RFC5226]  Narten, T. and H. Alvestrand, "Guidelines for Writing an
+              IANA Considerations Section in RFCs", BCP 26, RFC 5226,
+              DOI 10.17487/RFC5226, May 2008,
+              <http://www.rfc-editor.org/info/rfc5226>.
+
+Appendix A.  Appendix
+
+   This becomes an Appendix.
+
+Author's Address
+
+   Robert Bauer (editor)
+   Karlsruhe Institute of Technology (KIT)
+   Zirkel 2
+   Karlsruhe  76131
+   DE
+
+   Phone: +49 721 608-46400
+   Email: telematics@tm.kit.edu
+
+
+
+
+
+
+
+Bauer                     Expires July 5, 2017                 [Page 31]
