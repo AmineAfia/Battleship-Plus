@@ -1,8 +1,8 @@
 # Battleship+
-|<img src="https://media.giphy.com/media/3o6Mv4JnwwAXOievm0/source.gif" alt="Overview" width="900"/>|
-|:-------------------------------------------------------------------------------------------------:|
 
-The GIF shows two clients (two upper tabs) playing with each other and the server (lower tab) output. 
+<img src="https://github.com/AmineAfia/Battleship-/blob/master/screen_shots/clients-server-overview.gif" width="600" />
+
+The GIF shows two clients (two upper terminal tabs) playing with each other and the server (lower tab) output. 
 More screen shots are located in the [screen_shots folder](./screen_shots).
 
 ## Getting Started
