@@ -1,9 +1,8 @@
 # Battleship+
+This project was developed during the ["Telematics in Practice"](http://telematics.tm.kit.edu/ws201617_telematik_praxis.php) lab at the KIT. The task was the design and implementation of a game based [communication protocol](https://github.com/AmineAfia/Battleship-Plus/blob/master/Protocole.txt). The GIF bellow shows two clients (two upper terminal tabs) playing with each other and the server (lower tab) output. More screen shots are located in the [screen_shots folder](./screen_shots).
+
 
 <img src="https://github.com/AmineAfia/Battleship-/blob/master/screen_shots/clients-server-overview.gif" width="600" />
-
-The GIF shows two clients (two upper terminal tabs) playing with each other and the server (lower tab) output. 
-More screen shots are located in the [screen_shots folder](./screen_shots).
 
 ## Getting Started
 ### Prerequisites
